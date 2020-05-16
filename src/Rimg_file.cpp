@@ -1,13 +1,13 @@
-#include "../include/torasu/mod/imgc/RImgFile.hpp"
+#include "../include/torasu/mod/imgc/Rimg_file.hpp"
 
 #include <iostream>
 #include <cmath>
 #include <lodepng.h>
 
 #include <torasu/torasu.hpp>
-#include <torasu/std/pipelines.hpp>
-#include <torasu/std/DPString.hpp>
-#include <torasu/std/DRBImg.hpp>
+#include <torasu/std/pipeline_names.hpp>
+#include <torasu/std/Dstring.hpp>
+#include <torasu/std/Dbimg.hpp>
 
 using namespace std;
 using namespace torasu;
@@ -33,8 +33,8 @@ ResultSegment* RImgFile::renderSegment(ResultSegmentSettings* resSettings, Rende
 				rHeight = -1;
 			} else {
 				DataResource* fmtData = format->getData();
-				DRBImg_FORMAT* bimgFormat;
-				if (!(bimgFormat = dynamic_cast<DRBImg_FORMAT*>(fmtData))) {
+				Dbimg_FORMAT* bimgFormat;
+				if (!(bimgFormat = dynamic_cast<Dbimg_FORMAT*>(fmtData))) {
 					return new ResultSegment(ResultSegmentStatus_INVALID_FORMAT);
 				}
 				rWidth = bimgFormat->getWidth();
@@ -54,7 +54,7 @@ ResultSegment* RImgFile::renderSegment(ResultSegmentSettings* resSettings, Rende
 			}
 
 			if (rWidth == 0 || rHeight == 0) {
-				return new ResultSegment(ResultSegmentStatus_OK, new DRBImg(rWidth, rHeight), true);
+				return new ResultSegment(ResultSegmentStatus_OK, new Dbimg(rWidth, rHeight), true);
 			}
 
 			if (rWidth < 0) {
@@ -62,7 +62,7 @@ ResultSegment* RImgFile::renderSegment(ResultSegmentSettings* resSettings, Rende
 				rHeight = srcHeight;
 			}
 
-			DRBImg* bimg = new DRBImg(rWidth, rHeight);
+			Dbimg* bimg = new Dbimg(rWidth, rHeight);
 			uint8_t* data = bimg->getImageData();
 			uint8_t* imgaddr = &image[0];
 
@@ -136,7 +136,7 @@ DataResource* RImgFile::getData() {
 }
 
 void RImgFile::setData(DataResource* data) {
-	if (DPString* dpstr = dynamic_cast<DPString*>(data)) {
+	if (Dstring* dpstr = dynamic_cast<Dstring*>(data)) {
 		if (this->data != NULL) delete this->data;
 		this->data = dpstr;
 	} else {

@@ -3,13 +3,13 @@
 #include <lodepng.h>
 
 #include <torasu/torasu.hpp>
-#include <torasu/tools.hpp>
-#include <torasu/std/pipelines.hpp>
-#include <torasu/std/EICoreRunner.hpp>
-#include <torasu/std/DPString.hpp>
-#include <torasu/std/DRBImg.hpp>
+#include <torasu/render_tools.hpp>
+#include <torasu/std/pipeline_names.hpp>
+#include <torasu/std/EIcore_runner.hpp>
+#include <torasu/std/Dstring.hpp>
+#include <torasu/std/Dbimg.hpp>
 
-#include <torasu/mod/imgc/RImgFile.hpp>
+#include <torasu/mod/imgc/Rimg_file.hpp>
 
 using namespace std;
 using namespace torasu;
@@ -33,23 +33,23 @@ inline const char* printCode(u_int8_t value, const char** codeSet) {
 
 int main() {
 
-	DPString* path = new DPString("test-res/in.png");
+	Dstring* path = new Dstring("test-res/in.png");
 
 	RImgFile tree;
 
 	tree.setData(path);
 
-	EICoreRunner* runner = new EICoreRunner();
+	EIcore_runner* runner = new EIcore_runner();
 
 	ExecutionInterface* ei = runner->createInterface();
 
 	tools::RenderInstructionBuilder rib;
 
-	DRBImg_FORMAT format(400, 400);
+	Dbimg_FORMAT format(400, 400);
 
 	auto rf = format.asFormat();
 
-	auto handle = rib.addSegmentWithHandle<DRBImg>(TORASU_STD_PL_VIS, &rf);
+	auto handle = rib.addSegmentWithHandle<Dbimg>(TORASU_STD_PL_VIS, &rf);
 
 	cout << "RENDER BEGIN" << endl;
 	for (int i = 0; i < 120; i++) {
@@ -70,7 +70,7 @@ int main() {
 	cout << "STATUS " << rss << endl;
 
 	if (rss >= ResultSegmentStatus::ResultSegmentStatus_OK) {
-		DRBImg* bimg = castedRes.getResult();
+		Dbimg* bimg = castedRes.getResult();
 
 		uint8_t* data = bimg->getImageData();
 		int width = bimg->getWidth();
