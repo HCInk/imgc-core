@@ -8,7 +8,7 @@
 
 namespace imgc {
 
-class RImgFile : public torasu::tools::SimpleRenderable {
+class Rimg_file : public torasu::tools::SimpleRenderable {
 private:
 	torasu::tstd::Dstring* data;
 
@@ -16,8 +16,8 @@ protected:
 	torasu::ResultSegment* renderSegment(torasu::ResultSegmentSettings* resSettings, torasu::RenderInstruction* ri);
 
 public:
-	RImgFile();
-	~RImgFile();
+	Rimg_file();
+	~Rimg_file();
 
 	torasu::DataResource* getData();
 	void setData(torasu::DataResource* data);

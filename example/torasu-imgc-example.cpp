@@ -35,7 +35,7 @@ int main() {
 
 	Dstring* path = new Dstring("test-res/in.png");
 
-	RImgFile tree;
+	Rimg_file tree;
 
 	tree.setData(path);
 

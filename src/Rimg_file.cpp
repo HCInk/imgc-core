@@ -15,15 +15,15 @@ using namespace torasu::tstd;
 
 namespace imgc {
 
-RImgFile::RImgFile() : SimpleRenderable("STD::RIMGFILE", true) {
+Rimg_file::Rimg_file() : SimpleRenderable("STD::RIMG_FILE", true) {
 	data = NULL;
 }
 
-RImgFile::~RImgFile() {
+Rimg_file::~Rimg_file() {
 	if (data != NULL) delete data;
 }
 
-ResultSegment* RImgFile::renderSegment(ResultSegmentSettings* resSettings, RenderInstruction* ri) {
+ResultSegment* Rimg_file::renderSegment(ResultSegmentSettings* resSettings, RenderInstruction* ri) {
 	if (resSettings->getPipeline().compare(TORASU_STD_PL_VIS) == 0) {
 		auto format = resSettings->getResultFormatSettings();
 		if (format == NULL || format->getFormat().compare("STD::DRBIMG") == 0) {
@@ -131,11 +131,11 @@ ResultSegment* RImgFile::renderSegment(ResultSegmentSettings* resSettings, Rende
 	}
 }
 
-DataResource* RImgFile::getData() {
+DataResource* Rimg_file::getData() {
 	return data;
 }
 
-void RImgFile::setData(DataResource* data) {
+void Rimg_file::setData(DataResource* data) {
 	if (Dstring* dpstr = dynamic_cast<Dstring*>(data)) {
 		if (this->data != NULL) delete this->data;
 		this->data = dpstr;
