@@ -8,6 +8,8 @@
 #include <torasu/std/EIcore_runner.hpp>
 #include <torasu/std/Dstring.hpp>
 #include <torasu/std/Dbimg.hpp>
+#include <torasu/std/Dfile.hpp>
+#include <torasu/std/Rlocal_file.hpp>
 
 #include <torasu/mod/imgc/Rimg_file.hpp>
 
@@ -33,11 +35,11 @@ inline const char* printCode(u_int8_t value, const char** codeSet) {
 
 int main() {
 
-	Dstring* path = new Dstring("test-res/in.png");
 
-	Rimg_file tree;
+	Rlocal_file file("test-res/in.png");
 
-	tree.setData(path);
+	Rimg_file tree(&file);
+	
 
 	EIcore_runner* runner = new EIcore_runner();
 

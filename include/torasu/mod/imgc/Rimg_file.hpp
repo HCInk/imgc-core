@@ -4,23 +4,30 @@
 #include <torasu/torasu.hpp>
 #include <torasu/SimpleRenderable.hpp>
 
+#include <torasu/render_tools.hpp>
 #include <torasu/std/spoilsD.hpp>
+#include <torasu/std/pipeline_names.hpp>
 
 namespace imgc {
 
 class Rimg_file : public torasu::tools::SimpleRenderable {
 private:
-	torasu::tstd::Dstring* data;
+	const std::string pipeline = std::string(TORASU_STD_PL_FILE);
+	
+	torasu::Renderable* rfile;
+
+	torasu::tools::RenderInstructionBuilder rib;
+	torasu::tools::RenderResultSegmentHandle<torasu::tstd::Dfile> resHandle;
 
 protected:
 	torasu::ResultSegment* renderSegment(torasu::ResultSegmentSettings* resSettings, torasu::RenderInstruction* ri);
 
 public:
-	Rimg_file();
+	explicit Rimg_file(Renderable* file);
 	~Rimg_file();
 
-	torasu::DataResource* getData();
-	void setData(torasu::DataResource* data);
+	virtual std::map<std::string, Element*> getElements();
+	virtual void setElement(std::string key, Element* elem);
 };
 
 } // namespace imgc

@@ -5,9 +5,11 @@
 #include <lodepng.h>
 
 #include <torasu/torasu.hpp>
+#include <torasu/render_tools.hpp>
 #include <torasu/std/pipeline_names.hpp>
 #include <torasu/std/Dstring.hpp>
 #include <torasu/std/Dbimg.hpp>
+#include <torasu/std/Dfile.hpp>
 
 using namespace std;
 using namespace torasu;
@@ -15,13 +17,13 @@ using namespace torasu::tstd;
 
 namespace imgc {
 
-Rimg_file::Rimg_file() : SimpleRenderable("STD::RIMG_FILE", true) {
-	data = NULL;
+Rimg_file::Rimg_file(Renderable* file) 
+	: SimpleRenderable("STD::RIMG_FILE", false, true),
+	resHandle(rib.addSegmentWithHandle<Dfile>(TORASU_STD_PL_FILE, NULL)) {
+	this->rfile = file;
 }
 
-Rimg_file::~Rimg_file() {
-	if (data != NULL) delete data;
-}
+Rimg_file::~Rimg_file() {}
 
 ResultSegment* Rimg_file::renderSegment(ResultSegmentSettings* resSettings, RenderInstruction* ri) {
 	if (resSettings->getPipeline().compare(TORASU_STD_PL_VIS) == 0) {
@@ -42,15 +44,34 @@ ResultSegment* Rimg_file::renderSegment(ResultSegmentSettings* resSettings, Rend
 				cout << "RIMG RENDER " << rWidth << "x" << rHeight << endl;
 			}
 
+
+			
+			auto ei = ri->getExecutionInterface();
+			auto rctx = ri->getRenderContext();
+
+			RenderResult* fileRenderResult = rib.runRender(rfile, rctx, ei);
+			
+			auto fileRes = resHandle.getFrom(fileRenderResult);
+
+			if (fileRes.getStatus() < ResultSegmentStatus_OK) {
+				// Stop because of file-render-error
+				return new ResultSegment(ResultSegmentStatus_INTERNAL_ERROR);
+			}
+
+			Dfile* file = fileRes.getResult();
+			std::vector<uint8_t>* srcData = file->getFileData();
+			cout << "SRC DATA" << srcData << endl;
+			cout << "DATA SIZE" << srcData->size() << endl;
 			vector<uint8_t>* image = new vector<uint8_t>();
 
 			uint32_t srcWidth, srcHeight;
-			string filename = this->data->getString();
-			cout << "LOADING IMAGE FROM " << filename << endl;
-			uint32_t error = lodepng::decode(*image, srcWidth, srcHeight, filename.c_str());
+			uint32_t error = lodepng::decode(*image, srcWidth, srcHeight, *srcData);
+
+			delete fileRenderResult;
 
 			cout << "DECODE STATUS " << error << endl;
 			if (error) {
+				// Stop because file-decoding error
 				return new ResultSegment(ResultSegmentStatus_INTERNAL_ERROR);
 			}
 
@@ -135,16 +156,24 @@ ResultSegment* Rimg_file::renderSegment(ResultSegmentSettings* resSettings, Rend
 	}
 }
 
-DataResource* Rimg_file::getData() {
-	return data;
+std::map<std::string, Element*> Rimg_file::getElements() {
+	std::map<std::string, Element*> elems;
+	elems["f"] = rfile;
+	return elems;
 }
 
-void Rimg_file::setData(DataResource* data) {
-	if (Dstring* dpstr = dynamic_cast<Dstring*>(data)) {
-		if (this->data != NULL) delete this->data;
-		this->data = dpstr;
+void Rimg_file::setElement(std::string key, Element* elem) {
+	if (key.compare("f") != 0) {
+		throw invalid_argument("Invalid slot-key! Only slot-key \"f\" allowed");
+	}
+	if (elem == NULL) {
+		throw invalid_argument("Element for slot \"f\" may not be NULL!");
+	}
+
+	if (Renderable* rnd = dynamic_cast<Renderable*>(elem)) {
+		this->rfile = rnd;
 	} else {
-		throw invalid_argument("The data-type \"DPString\" is only allowed");
+		throw invalid_argument("Only \"Renderable\" for slot \"f\" allowed");
 	}
 }
 
