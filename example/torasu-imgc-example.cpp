@@ -72,21 +72,24 @@ int main() {
 	if (rss >= ResultSegmentStatus::ResultSegmentStatus_OK) {
 		Dbimg* bimg = castedRes.getResult();
 
-		uint8_t* data = bimg->getImageData();
+		
 		int width = bimg->getWidth();
 		int height = bimg->getHeight();
-		int channels = 4;
-		/*int i = 0;
+		/*int channels = 4;
+		uint8_t* data = &(*bimg->getImageData())[0];
+
+				
+		const char* redCodes[] = {"\33[31m|", "\33[31;1m|", "\33[30m\33[101m|", "\33[31;1m\33[101m|"};
+		const char* greenCodes[] = {"\33[32m|", "\33[32;1m|", "\33[30m\33[102m|", "\33[32;1m\33[102m|"};
+		const char* blueCodes[] = {"\33[34m|", "\33[34;1m|", "\33[30m\33[104m|", "\33[34;1m\33[104m|"};
+
+		int i = 0;
 		for (int y = 0; y < height; y++) {
 			for (int x = 0; x < width; x++) {
 
 				u_int8_t red = data[i];
 				u_int8_t green = data[i+1];
 				u_int8_t blue = data[i+2];
-				
-				const char* redCodes[] = {"\33[31m|", "\33[31;1m|", "\33[30m\33[101m|", "\33[31;1m\33[101m|"};
-				const char* greenCodes[] = {"\33[32m|", "\33[32;1m|", "\33[30m\33[102m|", "\33[32;1m\33[102m|"};
-				const char* blueCodes[] = {"\33[34m|", "\33[34;1m|", "\33[30m\33[104m|", "\33[34;1m\33[104m|"};
 				
 				cout << printCode(red, redCodes) << "\33[0m";
 				cout << printCode(green, greenCodes) << "\33[0m";
@@ -97,8 +100,7 @@ int main() {
 			cout << endl;
 		}*/
 
-		std::vector<uint8_t> image(data, data+(width*height*channels));
-		unsigned error = lodepng::encode("test-res/out.png", image, width, height);
+		unsigned error = lodepng::encode("test-res/out.png", *bimg->getImageData(), width, height);
 
 		cout << "ENCODE STAT " << error;
 	}

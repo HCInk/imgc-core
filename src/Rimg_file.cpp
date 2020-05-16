@@ -26,7 +26,7 @@ Rimg_file::~Rimg_file() {
 ResultSegment* Rimg_file::renderSegment(ResultSegmentSettings* resSettings, RenderInstruction* ri) {
 	if (resSettings->getPipeline().compare(TORASU_STD_PL_VIS) == 0) {
 		auto format = resSettings->getResultFormatSettings();
-		if (format == NULL || format->getFormat().compare("STD::DRBIMG") == 0) {
+		if (format == NULL || format->getFormat().compare("STD::DBIMG") == 0) {
 			int32_t rWidth, rHeight;
 			if (format == NULL) {
 				rWidth = -1;
@@ -42,11 +42,12 @@ ResultSegment* Rimg_file::renderSegment(ResultSegmentSettings* resSettings, Rend
 				cout << "RIMG RENDER " << rWidth << "x" << rHeight << endl;
 			}
 
-			vector<uint8_t> image;
+			vector<uint8_t>* image = new vector<uint8_t>();
+
 			uint32_t srcWidth, srcHeight;
 			string filename = this->data->getString();
 			cout << "LOADING IMAGE FROM " << filename << endl;
-			uint32_t error = lodepng::decode(image, srcWidth, srcHeight, filename.c_str());
+			uint32_t error = lodepng::decode(*image, srcWidth, srcHeight, filename.c_str());
 
 			cout << "DECODE STATUS " << error << endl;
 			if (error) {
@@ -62,15 +63,16 @@ ResultSegment* Rimg_file::renderSegment(ResultSegmentSettings* resSettings, Rend
 				rHeight = srcHeight;
 			}
 
-			Dbimg* bimg = new Dbimg(rWidth, rHeight);
-			uint8_t* data = bimg->getImageData();
-			uint8_t* imgaddr = &image[0];
+			Dbimg* bimg;
 
 			if (rWidth == ((int32_t)srcWidth) && rHeight == ((int32_t)srcHeight)) {
-				cout << "COPY SIZE " << image.size() << "BUFF SIZE" << bimg->getBufferSize() << endl;
-				int endOffset = image.size()-1;
-				copy(imgaddr, imgaddr+endOffset, data);
+				bimg = new Dbimg(rWidth, rHeight, image);
 			} else {
+				
+				bimg = new Dbimg(rWidth, rHeight);
+				uint8_t* data = &(*(bimg->getImageData()))[0];
+				uint8_t* imgaddr = &(*image)[0];
+
 				uint8_t channels = 4;
 				uint64_t i = 0;
 
@@ -118,6 +120,8 @@ ResultSegment* Rimg_file::renderSegment(ResultSegmentSettings* resSettings, Rend
 					}
 					//cout << endl;
 				}
+
+				delete image;
 			}
 
 			return new ResultSegment(ResultSegmentStatus_OK, bimg, true);
