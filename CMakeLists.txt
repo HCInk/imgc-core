@@ -24,7 +24,7 @@ endif()
 
 
 target_link_libraries(imgc torasu torasustd)
-target_link_libraries(imgc-example torasu torasustd imgc)
+target_link_libraries(imgc-example torasu torasustd imgc avcodec avformat avutil)
 
 target_link_libraries(imgc lodepng)
 
