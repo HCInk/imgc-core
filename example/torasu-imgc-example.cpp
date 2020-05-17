@@ -9,9 +9,10 @@
 #include <torasu/std/Dstring.hpp>
 #include <torasu/std/Dbimg.hpp>
 #include <torasu/std/Dfile.hpp>
-#include <torasu/std/Rlocal_file.hpp>
+#include <torasu/std/Rnet_file.hpp>
 
 #include <torasu/mod/imgc/Rimg_file.hpp>
+
 
 using namespace std;
 using namespace torasu;
@@ -35,8 +36,7 @@ inline const char* printCode(u_int8_t value, const char** codeSet) {
 
 int main() {
 
-
-	Rlocal_file file("test-res/in.png");
+	Rnet_file file("https://assets.gitlab-static.net/uploads/-/system/project/avatar/14033279/TorasuLogo2Color.png");
 
 	Rimg_file tree(&file);
 	
@@ -54,15 +54,21 @@ int main() {
 	auto handle = rib.addSegmentWithHandle<Dbimg>(TORASU_STD_PL_VIS, &rf);
 
 	cout << "RENDER BEGIN" << endl;
-	for (int i = 0; i < 120; i++) {
+	/*for (int i = 0; i < 120; i++) {
 		std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 		auto result = rib.runRender(&tree, NULL, ei);
 		cout << "NEXT FRAME " << i << endl;
 		std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 		std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
 		delete result;
-	}
+	}*/
+
+	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+
 	auto result = rib.runRender(&tree, NULL, ei);
+
+	std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+	std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
 	cout << "RENDER FIN" << endl;
 
 	auto castedRes = handle.getFrom(result);
