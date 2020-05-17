@@ -34,8 +34,7 @@ inline const char* printCode(u_int8_t value, const char** codeSet) {
 	}
 }
 
-int main() {
-
+void netImageTest() {
 	Rnet_file file("https://assets.gitlab-static.net/uploads/-/system/project/avatar/14033279/TorasuLogo2Color.png");
 
 	Rimg_file tree(&file);
@@ -120,6 +119,12 @@ int main() {
 
 	delete ei;
 	delete runner;
+}
+
+
+
+int main() {
+	netImageTest();
 
 	return 0;
 }
