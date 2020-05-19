@@ -37,7 +37,7 @@ public:
 	VideoLoader(std::string filename);
 	~VideoLoader();
 
-	bool video_decode_example();
+	void video_decode_example();
 };
 
 } // namespace imgc

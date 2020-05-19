@@ -1,6 +1,5 @@
 #include "../include/torasu/mod/imgc/VideoLoader.hpp"
 
-
 #include <string>
 #include <sstream>
 #include <iostream>
@@ -31,12 +30,9 @@ VideoLoader::VideoLoader(std::string filename) {
 		throw runtime_error("Failed to find stream info");
     }
 
-
-	for (unsigned int i = 0; i < av_format_ctx->nb_streams; i++)
-	{
+	for (unsigned int i = 0; i < av_format_ctx->nb_streams; i++) {
 		AVStream* stream = av_format_ctx->streams[i];
-		if (stream->codecpar->codec_type == AVMEDIA_TYPE_VIDEO)
-		{
+		if (stream->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
 			av_codec_params = stream->codecpar;
 			av_codec = avcodec_find_decoder(av_codec_params->codec_id);
 
@@ -106,7 +102,7 @@ VideoLoader::~VideoLoader() {
 
 }
 
-bool VideoLoader::video_decode_example() {
+void VideoLoader::video_decode_example() {
 
 	int response;
 	int frameNum = 0;
@@ -137,19 +133,20 @@ bool VideoLoader::video_decode_example() {
 			throw runtime_error(msgExcept);
 		}
 
-
 		stringstream out_name;
 		out_name << "test-res/out";
 		out_name << std::setfill('0') << std::setw(5) << frameNum;
 		out_name << ".png";
+		
 		if (!sws_scaler_ctx) {
 
 			sws_scaler_ctx = sws_getContext(av_frame->width, av_frame->height, av_codec_ctx->pix_fmt,
-														av_frame->width, av_frame->height, AV_PIX_FMT_RGB0,
-														SWS_FAST_BILINEAR, NULL, NULL, NULL);
+											av_frame->width, av_frame->height, AV_PIX_FMT_RGB0,
+											SWS_FAST_BILINEAR, NULL, NULL, NULL);
 			if (!sws_scaler_ctx) {
-				throw runtime_error("Failed t create sws_scaler_ctx!");
+				throw runtime_error("Failed to create sws_scaler_ctx!");
 			}
+
 		}
 		
 		vector<uint8_t> rgbaData(av_frame->width * av_frame->height * 4);
@@ -164,13 +161,10 @@ bool VideoLoader::video_decode_example() {
 			cout << "Saved " << out_name.str() << endl;
 		}
 
-
 		av_packet_unref(av_packet);
 
 		frameNum++;
 	}
-
-	return true;
 }
 
 } // namespace imgc
