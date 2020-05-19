@@ -7,11 +7,13 @@ if (NOT MINGW AND NOT APPLE)
 endif()
 
 set(IMGC_SRC
-	${CMAKE_CURRENT_LIST_DIR}/src/Rimg_file.cpp)
+	${CMAKE_CURRENT_LIST_DIR}/src/Rimg_file.cpp
+	${CMAKE_CURRENT_LIST_DIR}/src/VideoLoader.cpp)
 add_library(imgc SHARED ${IMGC_SRC})
 
 set(IMGC_EXAMPLE_SRC
 	${CMAKE_CURRENT_LIST_DIR}/example/torasu-imgc-example.cpp)
+	
 add_executable(imgc-example ${IMGC_EXAMPLE_SRC})
 
 set_target_properties(imgc PROPERTIES LINK_FLAGS "-Wl,-rpath,/usr/local/lib")

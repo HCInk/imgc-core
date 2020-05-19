@@ -13,6 +13,7 @@
 #include <torasu/std/Rnet_file.hpp>
 
 #include <torasu/mod/imgc/Rimg_file.hpp>
+#include <torasu/mod/imgc/VideoLoader.hpp>
 
 
 using namespace std;
@@ -122,175 +123,10 @@ void netImageTest() {
 	delete runner;
 }
 
-extern "C" {
-	#include <libavcodec/avcodec.h>
-	#include <libavformat/avformat.h>
-	#include <libavutil/mathematics.h>
-	#include <libavutil/avutil.h>
-	#include <libswscale/swscale.h>
-	#include <libavutil/error.h>
-	#include <libavutil/frame.h>
-}
-
-bool video_decode_example(const char *outfilename, const char *filename) {
-
-	AVFormatContext* av_format_ctx = avformat_alloc_context();
-
-	if (!av_format_ctx) {
-		return false;
-	}
-
-	// Open file
-    if (avformat_open_input(&av_format_ctx, filename, NULL, NULL) != 0) {
-       return false;
-    }
-
-    // Get infromation about streams
-    if (avformat_find_stream_info(av_format_ctx, NULL) < 0) {
-       return false;
-    }
-	
-	int video_stream_index = -1;
-	int width, height;
-	AVCodecContext* av_codec_ctx;
-	AVCodec* av_codec;
-	AVCodecParameters* av_codec_params;
-	
-	video_stream_index = -1;
-
-	for (unsigned int i = 0; i < av_format_ctx->nb_streams; i++)
-	{
-		AVStream* stream = av_format_ctx->streams[i];
-		if (stream->codecpar->codec_type == AVMEDIA_TYPE_VIDEO)
-		{
-			av_codec_params = stream->codecpar;
-			av_codec = avcodec_find_decoder(av_codec_params->codec_id);
-
-			if (!av_codec) {
-				continue;
-			}
-			video_stream_index = i;
-
-			break;
-		}
-	}
-
-	if (video_stream_index < 0) {
-		return false;
-	}
-
-	av_codec_ctx = avcodec_alloc_context3(av_codec);
-	if (!av_codec_ctx) {
-		return false;
-	}
-
-	if (avcodec_parameters_to_context(av_codec_ctx, av_codec_params) < 0) {
-		return false;
-	}
-
-	if(avcodec_open2(av_codec_ctx, av_codec, NULL) < 0) {
-		return false;
-	}
-
-
-	double video_framees_per_second = av_q2d(av_format_ctx->streams[video_stream_index]->r_frame_rate);
-	double video_base_time = av_q2d(av_format_ctx->streams[video_stream_index]->time_base); 
-	// FIXME video_base_time doesnt seem to make any sesnse
-	
-	width   = av_codec_ctx->width;
-	height  = av_codec_ctx->height;
-
-	cout << "GOT VIDEO:" << endl
-			<< "FPS	" << video_framees_per_second << endl
-			<< "TIME	" << video_base_time << endl
-			<< "RES " << width << "x" << height << endl;
-
-
-	AVFrame* av_frame = av_frame_alloc();
-	if (!av_frame) {
-		return false;
-	}
-	AVPacket* av_packet = av_packet_alloc();
-	if (!av_packet) {
-		return false;
-	}
-
-	int response;
-	int frameNum = 0;
-	SwsContext* sws_scaler_ctx = NULL;
-	while (av_read_frame(av_format_ctx, av_packet) >= 0) {
-
-		if (av_packet->stream_index != video_stream_index) {
-			continue;
-		}
-		response = avcodec_send_packet(av_codec_ctx, av_packet);
-		if (response < 0) {
-			char errStr[100];
-			av_strerror(response, errStr, 100);
-			printf("Failed to decode packet: %s\n", errStr);
-			return false;
-		}
-
-		int response = avcodec_receive_frame(av_codec_ctx, av_frame);
-		
-		if (response == AVERROR(EAGAIN)) {
-			cout << "~EAGAIN" << endl;
-			continue;
-		} else if (response < 0) {
-			char errStr[100];
-			av_strerror(response, errStr, 100);
-			printf("Failed to recieve frame: %s\n", errStr);
-			return false;
-		}
-
-
-		stringstream out_name;
-		out_name << "test-res/out";
-		out_name << std::setfill('0') << std::setw(5) << frameNum;
-		out_name << ".png";
-		if (!sws_scaler_ctx) {
-
-			sws_scaler_ctx = sws_getContext(av_frame->width, av_frame->height, av_codec_ctx->pix_fmt,
-														av_frame->width, av_frame->height, AV_PIX_FMT_RGB0,
-														SWS_FAST_BILINEAR, NULL, NULL, NULL);
-			if (!sws_scaler_ctx) {
-				return false;
-			}
-		}
-
-		vector<uint8_t> rgbaData(av_frame->width * av_frame->height * 4);
-		uint8_t* dst[4] = {rgbaData.data(), NULL, NULL, NULL};
-		int dest_linesize[4] = { av_frame->width*4, 0, 0, 0 };
-		sws_scale(sws_scaler_ctx, av_frame->data, av_frame->linesize, 0, av_frame->height,dst, dest_linesize);
-
-		unsigned error = lodepng::encode(out_name.str(), rgbaData, av_frame->width, av_frame->height);
-		if (error) {
-			cerr << "Failed encoding png: " << lodepng_error_text(error) << endl;
-		} else {
-			cout << "Saved " << out_name.str() << endl;
-		}
-
-
-		av_packet_unref(av_packet);
-
-		frameNum++;
-	}
-	
-	
-	sws_freeContext(sws_scaler_ctx);
-	avformat_close_input(&av_format_ctx);
-	avformat_free_context(av_format_ctx);
-	av_frame_free(&av_frame);
-	av_packet_free(&av_packet);
-	avcodec_free_context(&av_codec_ctx);
-
-	return true;
-}
-
 void avTest() {
 	cout << "ello avTest()" << endl;
-
-	bool res = video_decode_example("out.ex", "test-res/in.mp4");
+	imgc::VideoLoader vidld("test-res/in.mp4");
+	bool res = vidld.video_decode_example();
 	cout << " >> " << res << endl;
 }
 
