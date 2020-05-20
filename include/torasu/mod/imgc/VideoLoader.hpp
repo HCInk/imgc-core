@@ -2,6 +2,7 @@
 #define INCLUDE_TORASU_MOD_IMGC_VIDEOLOADER_HPP_
 
 #include <string>
+#include <istream>
 
 extern "C" {
 	#include <libavcodec/avcodec.h>
@@ -33,6 +34,11 @@ private:
 
 	AVFrame* av_frame;
 	AVPacket* av_packet;
+
+	std::istream* in_stream;
+
+	const size_t alloc_buf_len = 32 * 1024;
+
 public:
 	VideoLoader(std::string filename);
 	~VideoLoader();

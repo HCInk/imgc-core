@@ -5,12 +5,42 @@
 #include <iostream>
 #include <iomanip>
 #include <vector>
+#include <istream>
+#include <fstream>
 
 #include <lodepng.h>
 
 using namespace std;
 
 namespace imgc {
+
+
+int ReadFunc(void* ptr, uint8_t* buf, int buf_size) {
+    istream* pStream = reinterpret_cast<istream*>(ptr);
+
+    pStream->read(reinterpret_cast<char*>(buf), buf_size);
+	
+	size_t read = pStream->gcount();
+	
+	//cout << "R" << read << endl;
+	
+	if (read > 0) {
+		return read;
+	} else {
+		return -1;
+	}
+}
+// whence: SEEK_SET, SEEK_CUR, SEEK_END (like fseek) and AVSEEK_SIZE
+/*int64_t SeekFunc(void* ptr, int64_t pos, int whence)
+{
+    istream* pStream = reinterpret_cast<istream*>(ptr);
+ 
+    // Seek:
+    pStream->seekg(pos, whence);
+ 
+    // Return the new position:
+    return out;
+}*/
 
 VideoLoader::VideoLoader(std::string filename) {
 	this->filename = filename;
@@ -20,10 +50,44 @@ VideoLoader::VideoLoader(std::string filename) {
 		throw runtime_error("Failed allocating av_format_ctx!");
 	}
 
+	this->in_stream = new ifstream(filename, ios::binary|ios::ate);
+//	uint64_t size = pInStream->tellg();
+	in_stream->seekg(0, ios::beg);
+
 	// Open file
-    if (avformat_open_input(&av_format_ctx, filename.c_str(), NULL, NULL) != 0) {
+    /*if (avformat_open_input(&av_format_ctx, filename.c_str(), NULL, NULL) != 0) {
 		throw runtime_error("Failed to open input file");
+    }*/
+	uint8_t* alloc_buf = (uint8_t*) av_malloc(alloc_buf_len);
+
+	av_format_ctx->pb = avio_alloc_context(alloc_buf, alloc_buf_len, false, in_stream, ReadFunc, NULL, NULL);
+
+	if(!av_format_ctx->pb) {
+		av_free(alloc_buf);
+		throw runtime_error("Failed allocating avio_context!");
+	}
+
+	// Need to probe buffer for input format unless you already know it
+	AVProbeData probeData;
+	probeData.buf = alloc_buf;
+	probeData.buf_size = alloc_buf_len;
+	probeData.filename = "";
+
+	AVInputFormat* av_input_format;// = av_probe_input_format(&probeData, 1);
+
+	//if(!pAVInputFormat)
+	av_input_format = av_probe_input_format(&probeData, 1);
+
+	if(!av_input_format) {
+		throw runtime_error("Failed to create input-format!");
+	}
+
+	av_input_format->flags |= AVFMT_NOFILE;
+	
+	if (avformat_open_input(&av_format_ctx, "", NULL, NULL) != 0) {
+		throw runtime_error("Failed to open input stream");
     }
+
 
     // Get infromation about streams
     if (avformat_find_stream_info(av_format_ctx, NULL) < 0) {
@@ -99,6 +163,8 @@ VideoLoader::~VideoLoader() {
 	avformat_close_input(&av_format_ctx);
 	avformat_free_context(av_format_ctx);
 	avcodec_free_context(&av_codec_ctx);
+	
+	delete in_stream;
 
 }
 
@@ -106,7 +172,13 @@ void VideoLoader::video_decode_example() {
 
 	int response;
 	int frameNum = 0;
-	while (av_read_frame(av_format_ctx, av_packet) >= 0) {
+	
+	while (true) {
+		int nextFrameStat = av_read_frame(av_format_ctx, av_packet);
+
+		if (nextFrameStat < 0) {
+			break;
+		}
 
 		if (av_packet->stream_index != video_stream_index) {
 			continue;

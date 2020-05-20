@@ -126,8 +126,7 @@ void netImageTest() {
 void avTest() {
 	cout << "ello avTest()" << endl;
 	imgc::VideoLoader vidld("test-res/in.mp4");
-	bool res = vidld.video_decode_example();
-	cout << " >> " << res << endl;
+	vidld.video_decode_example();
 }
 
 int main() {
