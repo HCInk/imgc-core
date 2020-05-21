@@ -1,9 +1,6 @@
 #ifndef INCLUDE_TORASU_MOD_IMGC_VIDEOLOADER_HPP_
 #define INCLUDE_TORASU_MOD_IMGC_VIDEOLOADER_HPP_
 
-#include <string>
-#include <istream>
-
 extern "C" {
 	#include <libavcodec/avcodec.h>
 	#include <libavformat/avformat.h>
@@ -14,35 +11,50 @@ extern "C" {
 	#include <libavutil/frame.h>
 }
 
+#include <string>
+#include <istream>
+
+#include <torasu/torasu.hpp>
+
 namespace imgc {
+
+struct FileReader {
+	uint8_t* data;
+	size_t size;
+	size_t pos;
+};
 
 class VideoLoader {
 private:
-	std::string filename;
+	torasu::Renderable* source;
 	AVFormatContext* av_format_ctx;
-	
+	bool input_laoded = false;
+
 	int video_stream_index = -1;
 	int width, height;
-	AVCodecContext* av_codec_ctx;
-	AVCodec* av_codec;
-	AVCodecParameters* av_codec_params;
+	AVCodecContext* av_codec_ctx = NULL;
+	AVCodec* av_codec = NULL;
+	AVCodecParameters* av_codec_params = NULL;
 	
 	SwsContext* sws_scaler_ctx = NULL;
 	
 	double video_framees_per_second;
 	double video_base_time;
 
-	AVFrame* av_frame;
-	AVPacket* av_packet;
+	AVFrame* av_frame = NULL;
+	AVPacket* av_packet = NULL;
 
-	std::istream* in_stream;
 
 	const size_t alloc_buf_len = 32 * 1024;
 
+	FileReader in_stream;
+	torasu::RenderResult* sourceFetchResult = NULL;
+
 public:
-	VideoLoader(std::string filename);
+	VideoLoader(torasu::Renderable* source);
 	~VideoLoader();
 
+	void load(torasu::ExecutionInterface* ei);
 	void video_decode_example();
 };
 

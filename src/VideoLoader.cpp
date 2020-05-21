@@ -8,22 +8,35 @@
 #include <istream>
 #include <fstream>
 
+#include <torasu/render_tools.hpp>
+#include <torasu/std/Dfile.hpp>
+#include <torasu/std/pipeline_names.hpp>
+
 #include <lodepng.h>
 
 using namespace std;
+using namespace torasu;
+using namespace torasu::tstd;
 
 namespace imgc {
 
 
 int ReadFunc(void* ptr, uint8_t* buf, int buf_size) {
-    istream* pStream = reinterpret_cast<istream*>(ptr);
+    FileReader* reader = reinterpret_cast<FileReader*>(ptr);
 
-    pStream->read(reinterpret_cast<char*>(buf), buf_size);
-	
-	size_t read = pStream->gcount();
-	
-	//cout << "R" << read << endl;
-	
+    size_t nextPos = reader->pos+buf_size;
+	size_t read;
+
+	if (nextPos <= reader->size) {
+		read = buf_size;
+	} else {
+		nextPos = reader->size;
+		read = nextPos-reader->pos;
+	}
+
+	memcpy(buf, reader->data + reader->pos, read);
+	cout << "R " << read << " OF " << buf_size << endl;
+	reader->pos+=read;
 	if (read > 0) {
 		return read;
 	} else {
@@ -33,26 +46,87 @@ int ReadFunc(void* ptr, uint8_t* buf, int buf_size) {
 // whence: SEEK_SET, SEEK_CUR, SEEK_END (like fseek) and AVSEEK_SIZE
 /*int64_t SeekFunc(void* ptr, int64_t pos, int whence)
 {
-    istream* pStream = reinterpret_cast<istream*>(ptr);
- 
-    // Seek:
-    pStream->seekg(pos, whence);
- 
+    FileReader* reader = reinterpret_cast<FileReader*>(ptr);
+	
+	cerr << "SEEK " << pos << " WHENCE " << whence << endl;
+	// switch (pos) {
+	// case SEEK_SET:
+	// 	reader->pos = whence;
+	// 	break;
+	// case SEEK_CUR:
+	// 	reader->pos += whence;
+	// 	break;
+	// default:
+	// 	cerr << "UNSUPP-SEEK " << pos << " WHENCE " << whence << endl;
+	// 	break;
+	// }
+	reader->pos = pos;
+
     // Return the new position:
-    return out;
+    return reader->pos;
 }*/
 
-VideoLoader::VideoLoader(std::string filename) {
-	this->filename = filename;
+VideoLoader::VideoLoader(torasu::Renderable* source) {
+	this->source = source;
 	av_format_ctx = avformat_alloc_context();
 
 	if (!av_format_ctx) {
 		throw runtime_error("Failed allocating av_format_ctx!");
 	}
 
-	this->in_stream = new ifstream(filename, ios::binary|ios::ate);
-//	uint64_t size = pInStream->tellg();
-	in_stream->seekg(0, ios::beg);
+
+}
+
+VideoLoader::~VideoLoader() {
+
+	if (sws_scaler_ctx != NULL) {
+		sws_freeContext(sws_scaler_ctx);
+	}
+	if (av_frame != NULL) {
+		av_frame_free(&av_frame);
+	}
+	if (av_packet != NULL) {
+		av_packet_free(&av_packet);
+	}
+	if (av_codec_ctx != NULL) {
+		avcodec_free_context(&av_codec_ctx);
+	}
+
+	if (input_laoded) {
+		avformat_close_input(&av_format_ctx);
+	}
+
+	avformat_free_context(av_format_ctx);
+
+	if (sourceFetchResult != NULL) {
+		delete sourceFetchResult;
+	}
+
+}
+
+void VideoLoader::load(torasu::ExecutionInterface* ei) {
+
+	if (sourceFetchResult != NULL) {
+		delete sourceFetchResult;
+	}
+
+	tools::RenderInstructionBuilder rib;
+
+	auto handle = rib.addSegmentWithHandle<Dfile>(TORASU_STD_PL_FILE, NULL);
+
+	sourceFetchResult = rib.runRender(source, NULL, ei);
+
+	auto castedResultSeg = handle.getFrom(sourceFetchResult);
+
+	if (castedResultSeg.getResult() == NULL) {
+		throw runtime_error("Sub-render of file failed");
+	}
+
+	auto data = castedResultSeg.getResult()->getFileData();
+	
+	in_stream.data = data->data();
+	in_stream.size = data->size();
+	in_stream.pos = 0;
 
 	// Open file
     /*if (avformat_open_input(&av_format_ctx, filename.c_str(), NULL, NULL) != 0) {
@@ -60,12 +134,14 @@ VideoLoader::VideoLoader(std::string filename) {
     }*/
 	uint8_t* alloc_buf = (uint8_t*) av_malloc(alloc_buf_len);
 
-	av_format_ctx->pb = avio_alloc_context(alloc_buf, alloc_buf_len, false, in_stream, ReadFunc, NULL, NULL);
+	av_format_ctx->pb = avio_alloc_context(alloc_buf, alloc_buf_len, false, &in_stream, ReadFunc, NULL, NULL);
 
 	if(!av_format_ctx->pb) {
 		av_free(alloc_buf);
 		throw runtime_error("Failed allocating avio_context!");
 	}
+	av_format_ctx->flags = AVFMT_FLAG_CUSTOM_IO;
+	av_format_ctx->probesize = 1200000;
 
 	// Need to probe buffer for input format unless you already know it
 	AVProbeData probeData;
@@ -149,23 +225,6 @@ VideoLoader::VideoLoader(std::string filename) {
 	if (!av_packet) {
 		throw runtime_error("Failed to allocate av_packet");
 	}
-
-}
-
-VideoLoader::~VideoLoader() {
-
-	if (sws_scaler_ctx != NULL) {
-		sws_freeContext(sws_scaler_ctx);
-	}
-
-	av_frame_free(&av_frame);
-	av_packet_free(&av_packet);
-	avformat_close_input(&av_format_ctx);
-	avformat_free_context(av_format_ctx);
-	avcodec_free_context(&av_codec_ctx);
-	
-	delete in_stream;
-
 }
 
 void VideoLoader::video_decode_example() {

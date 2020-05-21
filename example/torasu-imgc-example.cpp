@@ -10,6 +10,7 @@
 #include <torasu/std/Dstring.hpp>
 #include <torasu/std/Dbimg.hpp>
 #include <torasu/std/Dfile.hpp>
+#include <torasu/std/Rlocal_file.hpp>
 #include <torasu/std/Rnet_file.hpp>
 
 #include <torasu/mod/imgc/Rimg_file.hpp>
@@ -125,8 +126,17 @@ void netImageTest() {
 
 void avTest() {
 	cout << "ello avTest()" << endl;
-	imgc::VideoLoader vidld("test-res/in.mp4");
+
+	EIcore_runner* runner = new EIcore_runner();
+	ExecutionInterface* ei = runner->createInterface();
+	Rlocal_file file("test-res/in.mp4");
+	//Rnet_file file("https://cdn.discordapp.com/attachments/598323767202152458/666010465809465410/8807502_Bender_and_penguins.mp4");
+	imgc::VideoLoader vidld(&file);
+	vidld.load(ei);
 	vidld.video_decode_example();
+
+	delete ei;
+	delete runner;
 }
 
 int main() {
