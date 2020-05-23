@@ -43,28 +43,32 @@ int ReadFunc(void* ptr, uint8_t* buf, int buf_size) {
 		return -1;
 	}
 }
-// whence: SEEK_SET, SEEK_CUR, SEEK_END (like fseek) and AVSEEK_SIZE
-/*int64_t SeekFunc(void* ptr, int64_t pos, int whence)
-{
+// whence: SEEK_SET, SEEK_CUR, SEEK_END (like fseek) and AVSEEK_SIZE, which is meant to return the video's size without changing the position
+int64_t SeekFunc(void* ptr, int64_t pos, int whence) {
     FileReader* reader = reinterpret_cast<FileReader*>(ptr);
 	
 	cerr << "SEEK " << pos << " WHENCE " << whence << endl;
-	// switch (pos) {
-	// case SEEK_SET:
-	// 	reader->pos = whence;
-	// 	break;
-	// case SEEK_CUR:
-	// 	reader->pos += whence;
-	// 	break;
-	// default:
-	// 	cerr << "UNSUPP-SEEK " << pos << " WHENCE " << whence << endl;
-	// 	break;
-	// }
-	reader->pos = pos;
+	switch (whence) {
+	case SEEK_SET:
+	 	reader->pos = pos;
+	 	break;
+	case SEEK_CUR:
+	 	reader->pos += pos;
+	 	break;
+	case SEEK_END:
+	 	reader->pos = reader->size+pos;
+	 	break;
+	case AVSEEK_SIZE:
+		cerr << "SEEK SIZE" << endl;
+    	return reader->size;
+	default:
+	 	cerr << "UNSUPP-SEEK " << pos << " WHENCE " << whence << endl;
+	 	break;
+	}
 
     // Return the new position:
     return reader->pos;
-}*/
+}
 
 VideoLoader::VideoLoader(torasu::Renderable* source) {
 	this->source = source;
@@ -132,9 +136,10 @@ void VideoLoader::load(torasu::ExecutionInterface* ei) {
     /*if (avformat_open_input(&av_format_ctx, filename.c_str(), NULL, NULL) != 0) {
 		throw runtime_error("Failed to open input file");
     }*/
+	
 	uint8_t* alloc_buf = (uint8_t*) av_malloc(alloc_buf_len);
 
-	av_format_ctx->pb = avio_alloc_context(alloc_buf, alloc_buf_len, false, &in_stream, ReadFunc, NULL, NULL);
+	av_format_ctx->pb = avio_alloc_context(alloc_buf, alloc_buf_len, false, &in_stream, ReadFunc, NULL, SeekFunc);
 
 	if(!av_format_ctx->pb) {
 		av_free(alloc_buf);
