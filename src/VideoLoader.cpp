@@ -234,33 +234,61 @@ void VideoLoader::load(torasu::ExecutionInterface* ei) {
 
 void VideoLoader::video_decode_example() {
 
-	int response;
 	int frameNum = 0;
-	
+	bool draining = false;
+
+	int response;
 	while (true) {
-		int nextFrameStat = av_read_frame(av_format_ctx, av_packet);
 
-		if (nextFrameStat < 0) {
-			break;
+		cout << "==== FRAME " << frameNum << "====" << endl;
+		if (!draining) {
+			int nextFrameStat = av_read_frame(av_format_ctx, av_packet);
+			if (nextFrameStat == AVERROR_EOF) {
+				cout << "ENTER DRAIN!" << endl;
+				draining = true;
+				nextFrameStat = avcodec_send_packet(av_codec_ctx, NULL);
+			}
+			if (nextFrameStat < 0) {
+				char errStr[100];
+				av_strerror(nextFrameStat, errStr, 100);
+				std::string msgExcept = draining ? "Failed to enter draining: " : "Failed to decode packet: ";
+				msgExcept += errStr;
+				cout << "NEXT FRAME STAT E" << nextFrameStat << " " << msgExcept << endl;
+				
+				break;
+
+			}
+		}
+		
+		if (!draining) {
+			
+			if (av_packet->stream_index != video_stream_index) {
+				av_packet_unref(av_packet);
+				continue;
+			}
+
+			cout << "PTS " << av_packet->pts << " DTS " << av_packet->dts << " SIZE " << av_packet->size << " POS " << av_packet->pos << endl;
+			
+			
+			response = avcodec_send_packet(av_codec_ctx, av_packet);
+
+			if (response < 0) {
+				char errStr[100];
+				av_strerror(response, errStr, 100);
+				std::string msgExcept = "Failed to decode packet: ";
+				msgExcept += errStr;
+				throw runtime_error(msgExcept);
+			}
 		}
 
-		if (av_packet->stream_index != video_stream_index) {
-			continue;
-		}
-
-		response = avcodec_send_packet(av_codec_ctx, av_packet);
-		if (response < 0) {
-			char errStr[100];
-			av_strerror(response, errStr, 100);
-			std::string msgExcept = "Failed to decode packet: ";
-			msgExcept += errStr;
-			throw runtime_error(msgExcept);
-		}
-
-		int response = avcodec_receive_frame(av_codec_ctx, av_frame);
+		response = avcodec_receive_frame(av_codec_ctx, av_frame);
 		
 		if (response == AVERROR(EAGAIN)) {
+			cout << "== EAGAIN" << endl;
 			continue;
+		} else if (response == AVERROR_EOF) {
+			cout << "EOF REC-FRAME" << endl;
+			break;
 		} else if (response < 0) {
 			char errStr[100];
 			av_strerror(response, errStr, 100);

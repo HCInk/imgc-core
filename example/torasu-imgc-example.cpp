@@ -129,8 +129,8 @@ void avTest() {
 
 	EIcore_runner* runner = new EIcore_runner();
 	ExecutionInterface* ei = runner->createInterface();
-	//Rlocal_file file("test-res/in.mp4");
-	Rnet_file file("https://cdn.discordapp.com/attachments/598323767202152458/666010465809465410/8807502_Bender_and_penguins.mp4");
+	Rlocal_file file("test-res/in.mp4");
+	//Rnet_file file("https://cdn.discordapp.com/attachments/598323767202152458/666010465809465410/8807502_Bender_and_penguins.mp4");
 	imgc::VideoLoader vidld(&file);
 	vidld.load(ei);
 	vidld.video_decode_example();
