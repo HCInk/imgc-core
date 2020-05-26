@@ -15,6 +15,7 @@ extern "C" {
 #include <istream>
 
 #include <torasu/torasu.hpp>
+#include <torasu/SimpleRenderable.hpp>
 
 namespace imgc {
 
@@ -24,7 +25,7 @@ struct FileReader {
 	size_t pos;
 };
 
-class VideoLoader {
+class VideoLoader : public torasu::tools::SimpleRenderable {
 private:
 	torasu::Renderable* source;
 	AVFormatContext* av_format_ctx;
@@ -44,15 +45,22 @@ private:
 	AVFrame* av_frame = NULL;
 	AVPacket* av_packet = NULL;
 
+	bool loaded = false;
 
 	const size_t alloc_buf_len = 32 * 1024;
 
 	FileReader in_stream;
 	torasu::RenderResult* sourceFetchResult = NULL;
 
+protected: 
+	torasu::ResultSegment* renderSegment(torasu::ResultSegmentSettings* resSettings, torasu::RenderInstruction* ri);
+
 public:
 	VideoLoader(torasu::Renderable* source);
 	~VideoLoader();
+
+	std::map<std::string, torasu::Element*> getElements();
+	void setElement(std::string key, torasu::Element* elem);
 
 	void load(torasu::ExecutionInterface* ei);
 	void video_decode_example();

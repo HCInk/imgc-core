@@ -20,7 +20,6 @@ using namespace torasu::tstd;
 
 namespace imgc {
 
-
 int ReadFunc(void* ptr, uint8_t* buf, int buf_size) {
     FileReader* reader = reinterpret_cast<FileReader*>(ptr);
 
@@ -70,7 +69,7 @@ int64_t SeekFunc(void* ptr, int64_t pos, int whence) {
     return reader->pos;
 }
 
-VideoLoader::VideoLoader(torasu::Renderable* source) {
+VideoLoader::VideoLoader(torasu::Renderable* source) : tools::SimpleRenderable("Rvideo_file", false, true) {
 	this->source = source;
 	av_format_ctx = avformat_alloc_context();
 
@@ -108,6 +107,23 @@ VideoLoader::~VideoLoader() {
 
 }
 
+ResultSegment* VideoLoader::renderSegment(ResultSegmentSettings* resSettings, RenderInstruction* ri) {
+	std::string pName = resSettings->getPipeline();
+	if (pName == TORASU_STD_PL_VIS) {
+		ExecutionInterface* ei = ri->getExecutionInterface();
+		if (!loaded) {
+			load(ei);
+			loaded = true;
+		}
+
+		// TODO Implement
+
+		return new ResultSegment(ResultSegmentStatus::ResultSegmentStatus_INTERNAL_ERROR);
+	} else {
+		return new ResultSegment(ResultSegmentStatus::ResultSegmentStatus_INVALID_SEGMENT);
+	}
+}
+
 void VideoLoader::load(torasu::ExecutionInterface* ei) {
 
 	if (sourceFetchResult != NULL) {
@@ -133,7 +149,7 @@ void VideoLoader::load(torasu::ExecutionInterface* ei) {
 	in_stream.pos = 0;
 
 	// Open file
-    /*if (avformat_open_input(&av_format_ctx, filename.c_str(), NULL, NULL) != 0) {
+    /*if (avformat_open_input(&av_format_ctx, "test-res/in.mp4", NULL, NULL) != 0) {
 		throw runtime_error("Failed to open input file");
     }*/
 	
@@ -232,12 +248,33 @@ void VideoLoader::load(torasu::ExecutionInterface* ei) {
 	}
 }
 
+
+std::map<std::string, Element*> VideoLoader::getElements() {
+	throw runtime_error("getElements() not implemented yet!");
+}
+
+void VideoLoader::setElement(std::string key, Element* elem) {
+	throw runtime_error("setElement(...) not implemented yet!");
+}
+
 void VideoLoader::video_decode_example() {
 
 	int frameNum = 0;
+	int response;
+	cout << "FNUM " << frameNum << endl;
+	//av_seek_frame(av_format_ctx, video_stream_index, 0, 0);
+	
+	double ptsOff = -1;
+	double lastPos = 0;
+
+	//av_seek_frame(av_format_ctx, -1, 0, 0);
+
+    auto stream = av_format_ctx->streams[video_stream_index];
+    avio_seek(av_format_ctx->pb, 0, SEEK_SET);
+    avformat_seek_file(av_format_ctx, video_stream_index, 0, 0, stream->duration, 0);
+
 	bool draining = false;
 
-	int response;
 	while (true) {
 
 		cout << "==== FRAME " << frameNum << "====" << endl;
@@ -267,6 +304,10 @@ void VideoLoader::video_decode_example() {
 				continue;
 			}
 
+			cout << lastPos << "=>";
+			lastPos = ((av_packet->pts+av_packet->duration)*video_base_time);
+			cout << lastPos << endl;
+
 			cout << "PTS " << av_packet->pts << " DTS " << av_packet->dts << " SIZE " << av_packet->size << " POS " << av_packet->pos << endl;
 			
 			
@@ -285,6 +326,7 @@ void VideoLoader::video_decode_example() {
 		
 		if (response == AVERROR(EAGAIN)) {
 			cout << "== EAGAIN" << endl;
+			//av_seek_frame(av_format_ctx, -1, 0, 0); // Appearently adds two still frames to the start
 			continue;
 		} else if (response == AVERROR_EOF) {
 			cout << "EOF REC-FRAME" << endl;
@@ -295,6 +337,10 @@ void VideoLoader::video_decode_example() {
 			std::string msgExcept = "Failed to recieve frame: ";
 			msgExcept += errStr;
 			throw runtime_error(msgExcept);
+		}
+
+		if (ptsOff < 0) {
+			ptsOff = (av_packet->pts+av_packet->dts)*video_base_time;
 		}
 
 		stringstream out_name;
@@ -328,6 +374,20 @@ void VideoLoader::video_decode_example() {
 		av_packet_unref(av_packet);
 
 		frameNum++;
+
+		double qfnum = (double)frameNum/25;
+		cout << "QFNUM " << frameNum << " -> " << qfnum << endl;
+		double adjQfnum = qfnum+ptsOff;
+		if (adjQfnum < ((double)av_format_ctx->duration)/AV_TIME_BASE) {
+			int seekRet = av_seek_frame(av_format_ctx, -1, adjQfnum*AV_TIME_BASE, AVSEEK_FLAG_BACKWARD);
+			cout << " PEEK " << adjQfnum <<  ">> " << seekRet << endl;
+			
+			seekRet = av_seek_frame(av_format_ctx, -1, lastPos*AV_TIME_BASE, AVSEEK_FLAG_ANY);
+			cout << " JUMP " << lastPos << ">> " << seekRet << endl;
+		} else {
+			cout << "SKIP PEEK - Position out of bounds" << endl;
+		}
+
 	}
 }
 
