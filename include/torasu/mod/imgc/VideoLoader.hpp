@@ -25,7 +25,7 @@ struct FileReader {
 	size_t pos;
 };
 
-struct FrameProperies {
+struct FrameProperties {
 	bool loaded;
 	double start;
 	double duration;
@@ -42,7 +42,7 @@ private:
 	AVCodecContext* av_codec_ctx = NULL;
 	AVCodec* av_codec = NULL;
 	AVCodecParameters* av_codec_params = NULL;
-	FrameProperies* av_codec_fp_buf = NULL;
+	FrameProperties* av_codec_fp_buf = NULL;
 	int av_codec_fp_buf_len;
 	int av_codec_fp_buf_pos;
 	
@@ -60,7 +60,7 @@ private:
 
 	FileReader in_stream;
 	torasu::RenderResult* sourceFetchResult = NULL;
-	
+
 	double lastReadLoc = 0;
 	bool draining = false;
 

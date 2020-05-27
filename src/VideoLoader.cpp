@@ -201,7 +201,7 @@ void VideoLoader::load(torasu::ExecutionInterface* ei) {
 			av_codec_params = stream->codecpar;
 			av_codec = avcodec_find_decoder(av_codec_params->codec_id);
 			av_codec_fp_buf_len = av_codec_params->video_delay+1;
-			av_codec_fp_buf = new FrameProperies[av_codec_fp_buf_len];
+			av_codec_fp_buf = new FrameProperties[av_codec_fp_buf_len];
 			av_codec_fp_buf_pos = 0;
 			while (av_codec_fp_buf_pos < av_codec_fp_buf_len) {
 				av_codec_fp_buf[av_codec_fp_buf_pos].loaded = false;
@@ -316,7 +316,7 @@ void VideoLoader::video_decode_example() {
 		bool searchBeginLoc = true;
 
 		cout << ":: PIPE[" << av_codec_fp_buf_len << "] ";
-		for (FrameProperies* fp = av_codec_fp_buf; fp < av_codec_fp_buf+av_codec_fp_buf_len;fp++) {
+		for (FrameProperties* fp = av_codec_fp_buf; fp < av_codec_fp_buf+av_codec_fp_buf_len;fp++) {
 			if (fp->loaded) {
 				cout << " " <<  fp->start;
 			} else {
@@ -325,7 +325,7 @@ void VideoLoader::video_decode_example() {
 		}
 		cout << endl;
 
-		for (FrameProperies* fp = av_codec_fp_buf; fp < av_codec_fp_buf+av_codec_fp_buf_len;fp++) {
+		for (FrameProperties* fp = av_codec_fp_buf; fp < av_codec_fp_buf+av_codec_fp_buf_len;fp++) {
 			if (fp->loaded && fp->start <= targetPos && fp->start+fp->duration > targetPos) {
 				cout << " ## IN PIPE " << targetPos <<"{" << fp->start << " - " << fp->start+fp->duration<< "}" << endl;
 				searchBeginLoc = false;
@@ -450,7 +450,7 @@ void VideoLoader::video_decode_example() {
 				
 				response = avcodec_send_packet(av_codec_ctx, av_packet);
 				// Save packet-metadata into buffer
-				FrameProperies* bufObj = av_codec_fp_buf+av_codec_fp_buf_pos;
+				FrameProperties* bufObj = av_codec_fp_buf+av_codec_fp_buf_pos;
 				bufObj->loaded = true;
 				bufObj->start = av_packet->pts*video_base_time;
 				bufObj->duration = 0.04;// FIXME Really calculate duration //av_packet->duration*video_base_time;
@@ -495,7 +495,7 @@ void VideoLoader::video_decode_example() {
 				throw runtime_error(msgExcept);
 			}
 
-			FrameProperies* currFP = av_codec_fp_buf+av_codec_fp_buf_pos;
+			FrameProperties* currFP = av_codec_fp_buf+av_codec_fp_buf_pos;
 
 			if (currFP->start > targetPos) {
 				cout << "  - FAST FORWARD TOO LATE FRAME " << currFP->start << endl;
