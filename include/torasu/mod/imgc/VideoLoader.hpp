@@ -16,22 +16,29 @@ extern "C" {
 
 #include <torasu/torasu.hpp>
 #include <torasu/SimpleRenderable.hpp>
+#include <torasu/std/spoilsD.hpp>
 
 namespace imgc {
 
-struct FileReader {
-	uint8_t* data;
-	size_t size;
-	size_t pos;
-};
-
-struct FrameProperties {
-	bool loaded;
-	double start;
-	double duration;
-};
 
 class VideoLoader : public torasu::tools::SimpleRenderable {
+public: 
+	//
+	// Helper structs
+	//
+
+	struct FileReader {
+		uint8_t* data;
+		size_t size;
+		size_t pos;
+	};
+
+	struct FrameProperties {
+		bool loaded;
+		double start;
+		double duration;
+	};
+
 private:
 	torasu::Renderable* source;
 	AVFormatContext* av_format_ctx;
@@ -42,7 +49,8 @@ private:
 	AVCodecContext* av_codec_ctx = NULL;
 	AVCodec* av_codec = NULL;
 	AVCodecParameters* av_codec_params = NULL;
-	FrameProperties* av_codec_fp_buf = NULL;
+	
+	VideoLoader::FrameProperties* av_codec_fp_buf = NULL;
 	int av_codec_fp_buf_len;
 	int av_codec_fp_buf_pos;
 	
@@ -58,11 +66,13 @@ private:
 
 	const size_t alloc_buf_len = 32 * 1024;
 
-	FileReader in_stream;
+	VideoLoader::FileReader in_stream;
 	torasu::RenderResult* sourceFetchResult = NULL;
 
 	double lastReadLoc = 0;
 	bool draining = false;
+
+	torasu::tstd::Dbimg* getFrame(double targetPos);
 
 protected: 
 	torasu::ResultSegment* renderSegment(torasu::ResultSegmentSettings* resSettings, torasu::RenderInstruction* ri);
@@ -77,6 +87,7 @@ public:
 	void load(torasu::ExecutionInterface* ei);
 	void flushBuffers();
 	void video_decode_example();
+	
 };
 
 } // namespace imgc
