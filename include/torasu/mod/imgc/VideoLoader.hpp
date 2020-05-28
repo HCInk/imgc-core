@@ -49,7 +49,7 @@ private:
 	AVCodecContext* av_codec_ctx = NULL;
 	AVCodec* av_codec = NULL;
 	AVCodecParameters* av_codec_params = NULL;
-	
+
 	VideoLoader::FrameProperties* av_codec_fp_buf = NULL;
 	int av_codec_fp_buf_len;
 	int av_codec_fp_buf_pos;
@@ -59,6 +59,7 @@ private:
 	double video_framees_per_second;
 	double video_base_time;
 
+	FrameProperties current_fp;
 	AVFrame* av_frame = NULL;
 	AVPacket* av_packet = NULL;
 

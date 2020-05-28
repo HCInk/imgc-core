@@ -76,6 +76,8 @@ namespace imgc {
 
 VideoLoader::VideoLoader(torasu::Renderable* source) : tools::SimpleRenderable("Rvideo_file", false, true) {
 	this->source = source;
+	current_fp.loaded = false;
+
 	av_format_ctx = avformat_alloc_context();
 
 	if (!av_format_ctx) {
@@ -284,44 +286,70 @@ void VideoLoader::flushBuffers() {
 }
 
 Dbimg* VideoLoader::getFrame(double targetPos) {
-
-	bool searchBeginLoc = true;
-
-	cout << ":: PIPE[" << av_codec_fp_buf_len << "] ";
-	for (FrameProperties* fp = av_codec_fp_buf; fp < av_codec_fp_buf+av_codec_fp_buf_len;fp++) {
-		if (fp->loaded) {
-			cout << " " <<  fp->start;
-		} else {
-			cout << " --";
-		}
-	}
-	cout << endl;
-
-	for (FrameProperties* fp = av_codec_fp_buf; fp < av_codec_fp_buf+av_codec_fp_buf_len;fp++) {
-		if (fp->loaded && fp->start <= targetPos && fp->start+fp->duration > targetPos) {
-			cout << " ## IN PIPE " << targetPos <<"{" << fp->start << " - " << fp->start+fp->duration<< "}" << endl;
-			searchBeginLoc = false;
-			break;
-		}
-	}
 	
-	if (searchBeginLoc) {
+	
+	if (!(current_fp.loaded && current_fp.start <= targetPos && current_fp.start+current_fp.duration > targetPos)) {
 
-		if (lastReadLoc <= targetPos) {
+		bool searchBeginLoc = true;
 
-			if (draining) {
-				
-				// Timeline Example
-				//
-				// WWW                            DDD
-				//    K   K   K    K       K        E
-				//                         L       P
-				//                                 AA
-				//
-				// A: The closest way to the desired frame is to just continue draining
+		cout << ":: PIPE[" << av_codec_fp_buf_len << "] ";
+		for (FrameProperties* fp = av_codec_fp_buf; fp < av_codec_fp_buf+av_codec_fp_buf_len;fp++) {
+			if (fp->loaded) {
+				cout << " " <<  fp->start;
+			} else {
+				cout << " --";
+			}
+		}
+		cout << endl;
 
-				cout << " ## CONT DRAIN " << lastReadLoc << " @" << av_format_ctx->pb->pos << endl;
-				searchBeginLoc = false; // Signalize that the begin-location has been found
+		for (FrameProperties* fp = av_codec_fp_buf; fp < av_codec_fp_buf+av_codec_fp_buf_len;fp++) {
+			if (fp->loaded && fp->start <= targetPos && fp->start+fp->duration > targetPos) {
+				cout << " ## IN PIPE " << targetPos <<"{" << fp->start << " - " << fp->start+fp->duration<< "}" << endl;
+				searchBeginLoc = false;
+				break;
+			}
+		}
+		
+		if (searchBeginLoc) {
+
+			if (lastReadLoc <= targetPos) {
+
+				if (draining) {
+					
+					// Timeline Example
+					//
+					// WWW                            DDD
+					//    K   K   K    K       K        E
+					//                         L       P
+					//                                 AA
+					//
+					// A: The closest way to the desired frame is to just continue draining
+
+					cout << " ## CONT DRAIN " << lastReadLoc << " @" << av_format_ctx->pb->pos << endl;
+					searchBeginLoc = false; // Signalize that the begin-location has been found
+
+				} else {
+
+					// Timeline Example
+					//
+					// WWW                            DDD
+					//    K   K   K    K       K        E
+					//                 L  P
+					//                 AAAAABBBBBBBBBBB
+					//
+					// Check if the keyframe of the requested frame and the keyframe of the playhead are the same (K)
+					// A: if yes, skip back to the current playhead (P) and iterate from there
+					// B: if not, skip to the according keyframe that was found and iterate from there
+
+					int seekRet = av_seek_frame(av_format_ctx, -1, targetPos*AV_TIME_BASE, AVSEEK_FLAG_BACKWARD); // Skip to the keyframe the requested frame is based on (Which will be probed later)
+					cout << " ## PEEK " << targetPos << ">> " << seekRet << " @" << av_format_ctx->pb->pos << endl;
+					searchBeginLoc = true; // Signalize that the begin-location still has to be found
+					
+					if (draining) {
+						flushBuffers();
+					}
+
+				}
 
 			} else {
 
@@ -330,15 +358,13 @@ Dbimg* VideoLoader::getFrame(double targetPos) {
 				// WWW                            DDD
 				//    K   K   K    K       K        E
 				//                 L  P
-				//                 AAAAABBBBBBBBBBB
+				//    AAAAAAAAAAAAAAAA
 				//
-				// Check if the keyframe of the requested frame and the keyframe of the playhead are the same (K)
-				// A: if yes, skip back to the current playhead (P) and iterate from there
-				// B: if not, skip to the according keyframe that was found and iterate from there
+				// A: Move playhead to the keyframe of the reuqested frame, since the playhead is already after the requested frame
 
-				int seekRet = av_seek_frame(av_format_ctx, -1, targetPos*AV_TIME_BASE, AVSEEK_FLAG_BACKWARD); // Skip to the keyframe the requested frame is based on (Which will be probed later)
-				cout << " ## PEEK " << targetPos << ">> " << seekRet << " @" << av_format_ctx->pb->pos << endl;
-				searchBeginLoc = true; // Signalize that the begin-location still has to be found
+				int seekRet = av_seek_frame(av_format_ctx, -1, targetPos*AV_TIME_BASE, AVSEEK_FLAG_BACKWARD); // Skip to the keyframe the requested frame is based on
+				cout << " ## JUMP " << targetPos << ">> " << seekRet << " @" << av_format_ctx->pb->pos << endl;
+				searchBeginLoc = false; // Signalize that the begin-location has been found
 				
 				if (draining) {
 					flushBuffers();
@@ -346,170 +372,159 @@ Dbimg* VideoLoader::getFrame(double targetPos) {
 
 			}
 
-		} else {
-
-			// Timeline Example
-			//
-			// WWW                            DDD
-			//    K   K   K    K       K        E
-			//                 L  P
-			//    AAAAAAAAAAAAAAAA
-			//
-			// A: Move playhead to the keyframe of the reuqested frame, since the playhead is already after the requested frame
-
-			int seekRet = av_seek_frame(av_format_ctx, -1, targetPos*AV_TIME_BASE, AVSEEK_FLAG_BACKWARD); // Skip to the keyframe the requested frame is based on
-			cout << " ## JUMP " << targetPos << ">> " << seekRet << " @" << av_format_ctx->pb->pos << endl;
-			searchBeginLoc = false; // Signalize that the begin-location has been found
-			
-			if (draining) {
-				flushBuffers();
-			}
-
 		}
 
-	}
-
-	while (true) {
-			
-		if (!draining) {
-			int nextFrameStat = av_read_frame(av_format_ctx, av_packet);
-			if (nextFrameStat == AVERROR_EOF) {
-				cout << "ENTER DRAIN!" << endl;
-				draining = true;
-				nextFrameStat = avcodec_send_packet(av_codec_ctx, NULL);
-			}
-			if (nextFrameStat < 0) {
-				char errStr[100];
-				av_strerror(nextFrameStat, errStr, 100);
-				std::string msgExcept = draining ? "Failed to enter draining: " : "Failed to decode packet: ";
-				msgExcept += errStr;
-				cout << "NEXT FRAME STAT E" << nextFrameStat << " " << msgExcept << endl;
+		while (true) {
 				
-				break;
+			if (!draining) {
+				int nextFrameStat = av_read_frame(av_format_ctx, av_packet);
+				if (nextFrameStat == AVERROR_EOF) {
+					cout << "ENTER DRAIN!" << endl;
+					draining = true;
+					nextFrameStat = avcodec_send_packet(av_codec_ctx, NULL);
+				}
+				if (nextFrameStat < 0) {
+					char errStr[100];
+					av_strerror(nextFrameStat, errStr, 100);
+					std::string msgExcept = draining ? "Failed to enter draining: " : "Failed to decode packet: ";
+					msgExcept += errStr;
+					//cout << "NEXT FRAME STAT E" << nextFrameStat << " " << msgExcept << endl;
+					
+					throw runtime_error(msgExcept);
 
-			}
-			
-		}
-
-		int response;
-		
-		if (!draining) {
-			
-			if (av_packet->stream_index != video_stream_index) {
-				av_packet_unref(av_packet);
-				continue;
-			}
-
-			if (searchBeginLoc) {
-
-				searchBeginLoc = false;
-
-				double newKeyFrameLoc = av_packet->pts*video_base_time;
-				if (lastReadLoc >= newKeyFrameLoc) {
-					int seekRet = av_seek_frame(av_format_ctx, -1, lastReadLoc*AV_TIME_BASE, AVSEEK_FLAG_ANY);
-					cout << " ## BACK " << lastReadLoc << ">> " << seekRet << " @" << av_format_ctx->pb->pos << endl;
-
-					continue;
 				}
 				
-				cout << " ## SKIP TO KEY " << lastReadLoc << "=>" << newKeyFrameLoc << "@" << av_format_ctx->pb->pos << endl;
-
 			}
 
-			cout << "PTS " << av_packet->pts << " DTS " << av_packet->dts << " DUR " << av_packet->duration << " POS " << av_packet->pos << endl;
+			int response;
 			
-			
-			response = avcodec_send_packet(av_codec_ctx, av_packet);
-			// Save packet-metadata into buffer
-			FrameProperties* bufObj = av_codec_fp_buf+av_codec_fp_buf_pos;
-			bufObj->loaded = true;
-			bufObj->start = av_packet->pts*video_base_time;
-			bufObj->duration = 0.04;// FIXME Really calculate duration //av_packet->duration*video_base_time;
+			if (!draining) {
+				
+				if (av_packet->stream_index != video_stream_index) {
+					av_packet_unref(av_packet);
+					continue;
+				}
+
+				if (searchBeginLoc) {
+
+					searchBeginLoc = false;
+
+					double newKeyFrameLoc = av_packet->pts*video_base_time;
+					if (lastReadLoc >= newKeyFrameLoc) {
+						int seekRet = av_seek_frame(av_format_ctx, -1, lastReadLoc*AV_TIME_BASE, AVSEEK_FLAG_ANY);
+						cout << " ## BACK " << lastReadLoc << ">> " << seekRet << " @" << av_format_ctx->pb->pos << endl;
+
+						continue;
+					}
+					
+					cout << " ## SKIP TO KEY " << lastReadLoc << "=>" << newKeyFrameLoc << "@" << av_format_ctx->pb->pos << endl;
+
+				}
+
+				cout << "PTS " << av_packet->pts << " DTS " << av_packet->dts << " DUR " << av_packet->duration << " POS " << av_packet->pos << endl;
+				
+				
+				response = avcodec_send_packet(av_codec_ctx, av_packet);
+				// Save packet-metadata into buffer
+				FrameProperties* bufObj = av_codec_fp_buf+av_codec_fp_buf_pos;
+				bufObj->loaded = true;
+				bufObj->start = av_packet->pts*video_base_time;
+				bufObj->duration = 0.04;// FIXME Really calculate duration //av_packet->duration*video_base_time;
 
 
-			cout << lastReadLoc << "=>";
-			lastReadLoc = bufObj->start+bufObj->duration;
-			cout << lastReadLoc << endl;
+				cout << lastReadLoc << "=>";
+				lastReadLoc = bufObj->start+bufObj->duration;
+				cout << lastReadLoc << endl;
 
-			if (response < 0) {
+				if (response < 0) {
+					char errStr[100];
+					av_strerror(response, errStr, 100);
+					std::string msgExcept = "Failed to decode packet: ";
+					msgExcept += errStr;
+					throw runtime_error(msgExcept);
+				}
+			}
+
+			av_codec_fp_buf_pos++;
+
+			if (av_codec_fp_buf_pos >= av_codec_fp_buf_len) {
+				av_codec_fp_buf_pos = 0;
+			}
+
+			av_packet_unref(av_packet);
+
+
+			response = avcodec_receive_frame(av_codec_ctx, av_frame);
+
+
+			if (response == AVERROR(EAGAIN)) {
+				cout << "== EAGAIN" << endl;
+				//av_seek_frame(av_format_ctx, -1, 0, 0); // Appearently adds two still frames to the start
+				continue;
+			} else if (response == AVERROR_EOF) {
+				//cout << "EOF REC-FRAME" << endl;
+				//animate = false;
+				throw runtime_error("Requested frame is out of bounds!");
+			} else if (response < 0) {
 				char errStr[100];
 				av_strerror(response, errStr, 100);
-				std::string msgExcept = "Failed to decode packet: ";
+				std::string msgExcept = "Failed to recieve frame: ";
 				msgExcept += errStr;
 				throw runtime_error(msgExcept);
 			}
-		}
 
-		av_codec_fp_buf_pos++;
+			FrameProperties* currFP = av_codec_fp_buf+av_codec_fp_buf_pos;
 
-		if (av_codec_fp_buf_pos >= av_codec_fp_buf_len) {
-			av_codec_fp_buf_pos = 0;
-		}
-
-
-		response = avcodec_receive_frame(av_codec_ctx, av_frame);
-
-
-		if (response == AVERROR(EAGAIN)) {
-			cout << "== EAGAIN" << endl;
-			//av_seek_frame(av_format_ctx, -1, 0, 0); // Appearently adds two still frames to the start
-			continue;
-		} else if (response == AVERROR_EOF) {
-			//cout << "EOF REC-FRAME" << endl;
-			//animate = false;
-			throw runtime_error("Requested frame is out of bounds!");
-		} else if (response < 0) {
-			char errStr[100];
-			av_strerror(response, errStr, 100);
-			std::string msgExcept = "Failed to recieve frame: ";
-			msgExcept += errStr;
-			throw runtime_error(msgExcept);
-		}
-
-		FrameProperties* currFP = av_codec_fp_buf+av_codec_fp_buf_pos;
-
-		if (currFP->start > targetPos) {
-			cout << "  - SKIP TOO LATE FRAME " << currFP->start << endl;
-			continue;
-		}
-
-		if (currFP->start+currFP->duration < targetPos) {
-			cout << "  - SKIP TOO EARLY FRAME " << currFP->start << endl;
-			continue;
-		}
-
-		cout << "pkt_duration " << av_frame->pkt_duration << " pkt_pos " << av_frame->pkt_pos << " pkt_dts " << av_frame->pkt_dts << endl;
-		
-		cout << "ld " << currFP->loaded << " start " << currFP->start << " dur " << currFP->duration << endl;
-		currFP->loaded = false;
-
-		
-		if (!sws_scaler_ctx) {
-
-			sws_scaler_ctx = sws_getContext(av_frame->width, av_frame->height, av_codec_ctx->pix_fmt,
-											av_frame->width, av_frame->height, AV_PIX_FMT_RGB0,
-											SWS_FAST_BILINEAR, NULL, NULL, NULL);
-			if (!sws_scaler_ctx) {
-				throw runtime_error("Failed to create sws_scaler_ctx!");
+			if (currFP->start > targetPos) {
+				cout << "  - SKIP TOO LATE FRAME " << currFP->start << endl;
+				continue;
 			}
 
+			if (currFP->start+currFP->duration < targetPos) {
+				cout << "  - SKIP TOO EARLY FRAME " << currFP->start << endl;
+				continue;
+			}
+
+			cout << "pkt_duration " << av_frame->pkt_duration << " pkt_pos " << av_frame->pkt_pos << " pkt_dts " << av_frame->pkt_dts << endl;
+			
+			cout << "ld " << currFP->loaded << " start " << currFP->start << " dur " << currFP->duration << endl;
+			
+			current_fp = *currFP;
+
+			currFP->loaded = false;
+
+			break;
 		}
 
-		Dbimg* dbimg = new Dbimg(av_frame->width, av_frame->height); 
-		uint8_t* dst[4] = {dbimg->getImageData()->data(), NULL, NULL, NULL};
-		int dest_linesize[4] = { av_frame->width*4, 0, 0, 0 };
-		sws_scale(sws_scaler_ctx, av_frame->data, av_frame->linesize, 0, av_frame->height,dst, dest_linesize);
-
-		av_packet_unref(av_packet);
-
-		return dbimg;
+	} else {
+		cout << "::SAME FRAME" << endl;
 	}
+
+		
+	if (!sws_scaler_ctx) {
+
+		sws_scaler_ctx = sws_getContext(av_frame->width, av_frame->height, av_codec_ctx->pix_fmt,
+										av_frame->width, av_frame->height, AV_PIX_FMT_RGB0,
+										SWS_FAST_BILINEAR, NULL, NULL, NULL);
+		if (!sws_scaler_ctx) {
+			throw runtime_error("Failed to create sws_scaler_ctx!");
+		}
+
+	}
+
+	Dbimg* dbimg = new Dbimg(av_frame->width, av_frame->height); 
+	uint8_t* dst[4] = {dbimg->getImageData()->data(), NULL, NULL, NULL};
+	int dest_linesize[4] = { av_frame->width*4, 0, 0, 0 };
+	sws_scale(sws_scaler_ctx, av_frame->data, av_frame->linesize, 0, av_frame->height,dst, dest_linesize);
+
+
+
+	return dbimg;
 }
 
 void VideoLoader::video_decode_example() {
 
 	int frameNum = 0;
-	int response;
 	cout << "FNUM " << frameNum << endl;
 	//av_seek_frame(av_format_ctx, video_stream_index, 0, 0);
 
@@ -526,7 +541,7 @@ void VideoLoader::video_decode_example() {
 
 		cout << "==== FRAME " << frameNum << " ====" << endl;
 
-		double targetPos = ((double)frameNum/25)+( 1.0 / 50);
+		double targetPos = ((double)frameNum/50)+( 1.0 / 100);
 		//double targetPos = total_duration-((double)(frameNum+1)/25)+( 1.0 / 50);
 		cout << "TargetPos " << frameNum << " -> " << targetPos << endl;
 		if (targetPos >= total_duration || targetPos < 0) {
@@ -548,6 +563,8 @@ void VideoLoader::video_decode_example() {
 		} else {
 			cout << "Saved " << out_name.str() << endl;
 		}
+
+		delete nextFrame;
 
 		frameNum++;
 
