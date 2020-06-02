@@ -129,11 +129,54 @@ void avTest() {
 
 	EIcore_runner* runner = new EIcore_runner();
 	ExecutionInterface* ei = runner->createInterface();
-	Rlocal_file file("test-res/in.mp4");
-	//Rnet_file file("https://cdn.discordapp.com/attachments/598323767202152458/666010465809465410/8807502_Bender_and_penguins.mp4");
-	imgc::VideoLoader vidld(&file);
-	vidld.load(ei);
-	vidld.video_decode_example();
+
+	//Rlocal_file file("test-res/in.mp4");
+	
+	Rnet_file file("https://cdn.discordapp.com/attachments/598323767202152458/666010465809465410/8807502_Bender_and_penguins.mp4");
+	imgc::VideoLoader tree(&file);
+
+	tools::RenderInstructionBuilder rib;
+
+	Dbimg_FORMAT format(2900, 2000);
+
+	auto rf = format.asFormat();
+
+	auto handle = rib.addSegmentWithHandle<Dbimg>(TORASU_STD_PL_VIS, &rf);
+
+	cout << "RENDER BEGIN" << endl;
+
+	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+
+	auto result = rib.runRender(&tree, NULL, ei);
+
+	std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+	std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
+	cout << "RENDER FIN" << endl;
+
+	auto castedRes = handle.getFrom(result);
+
+	ResultSegmentStatus rss = castedRes.getStatus();
+
+	cout << "STATUS " << rss << endl;
+
+	if (rss >= ResultSegmentStatus::ResultSegmentStatus_OK) {
+		Dbimg* bimg = castedRes.getResult();
+
+		
+		int width = bimg->getWidth();
+		int height = bimg->getHeight();
+
+		unsigned error = lodepng::encode("test-res/out.png", *bimg->getImageData(), width, height);
+
+		cout << "ENCODE STAT " << error << endl;
+	}
+
+
+	delete result;
+
+	// tree.load(ei);
+	// tree.video_decode_example();
+	//tree.debugPackets();
 
 	delete ei;
 	delete runner;

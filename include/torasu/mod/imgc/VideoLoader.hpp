@@ -49,6 +49,7 @@ private:
 	AVCodecContext* av_codec_ctx = NULL;
 	AVCodec* av_codec = NULL;
 	AVCodecParameters* av_codec_params = NULL;
+	int av_codec_video_delay;
 
 	VideoLoader::FrameProperties* av_codec_fp_buf = NULL;
 	int av_codec_fp_buf_len;
@@ -70,10 +71,11 @@ private:
 	VideoLoader::FileReader in_stream;
 	torasu::RenderResult* sourceFetchResult = NULL;
 
-	double lastReadLoc = 0;
+	int64_t lastReadDts = INT64_MIN;
 	bool draining = false;
 
-	torasu::tstd::Dbimg* getFrame(double targetPos);
+	void nextPacket();
+	torasu::tstd::Dbimg* getFrame(double targetPos, int32_t width, int32_t height);
 
 protected: 
 	torasu::ResultSegment* renderSegment(torasu::ResultSegmentSettings* resSettings, torasu::RenderInstruction* ri);
@@ -87,6 +89,7 @@ public:
 
 	void load(torasu::ExecutionInterface* ei);
 	void flushBuffers();
+	void debugPackets();
 	void video_decode_example();
 	
 };
