@@ -10,7 +10,9 @@
 
 #include <torasu/render_tools.hpp>
 #include <torasu/std/pipeline_names.hpp>
+#include <torasu/std/context_names.hpp>
 #include <torasu/std/Dfile.hpp>
+#include <torasu/std/Dnum.hpp>
 #include <torasu/std/Dbimg.hpp>
 
 #include <lodepng.h>
@@ -127,6 +129,19 @@ ResultSegment* VideoLoader::renderSegment(ResultSegmentSettings* resSettings, Re
 			loaded = true;
 		}
 
+		double time = 0;
+
+		RenderContext* rctx = ri->getRenderContext();
+		if (rctx != NULL) {
+			auto found = rctx->find(TORASU_STD_CTX_TIME);
+			if (found != rctx->end()) {
+				auto timeObj = found->second;
+				if (Dnum* timeNum = dynamic_cast<Dnum*>(timeObj)) {
+					time = timeNum->getNum();
+				}
+			}
+		}
+
 		ResultFormatSettings* format = resSettings->getResultFormatSettings();
 
 		if (format == NULL || format->getFormat().compare("STD::DBIMG") == 0) {
@@ -147,7 +162,7 @@ ResultSegment* VideoLoader::renderSegment(ResultSegmentSettings* resSettings, Re
 			}
 			
 
-			Dbimg* resImg = getFrame(0, rWidth, rHeight);
+			Dbimg* resImg = getFrame(time, rWidth, rHeight);
 
 			return new ResultSegment(ResultSegmentStatus::ResultSegmentStatus_OK, resImg, true);
 

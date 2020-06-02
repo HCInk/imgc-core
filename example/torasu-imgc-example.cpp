@@ -6,9 +6,11 @@
 #include <torasu/torasu.hpp>
 #include <torasu/render_tools.hpp>
 #include <torasu/std/pipeline_names.hpp>
+#include <torasu/std/context_names.hpp>
 #include <torasu/std/EIcore_runner.hpp>
 #include <torasu/std/Dstring.hpp>
 #include <torasu/std/Dbimg.hpp>
+#include <torasu/std/Dnum.hpp>
 #include <torasu/std/Dfile.hpp>
 #include <torasu/std/Rlocal_file.hpp>
 #include <torasu/std/Rnet_file.hpp>
@@ -147,7 +149,12 @@ void avTest() {
 
 	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
-	auto result = rib.runRender(&tree, NULL, ei);
+	Dnum timeBuf(3.0);
+
+	RenderContext rctx;
+	rctx[TORASU_STD_CTX_TIME] = &timeBuf;
+
+	auto result = rib.runRender(&tree, &rctx, ei);
 
 	std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 	std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
