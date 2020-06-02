@@ -16,7 +16,7 @@
 #include <torasu/std/Rnet_file.hpp>
 
 #include <torasu/mod/imgc/Rimg_file.hpp>
-#include <torasu/mod/imgc/VideoLoader.hpp>
+#include <torasu/mod/imgc/Rvideo_file.hpp>
 
 
 using namespace std;

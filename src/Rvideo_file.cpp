@@ -1,4 +1,4 @@
-#include "../include/torasu/mod/imgc/VideoLoader.hpp"
+#include "../include/torasu/mod/imgc/Rvideo_file.hpp"
 
 #include <string>
 #include <sstream>

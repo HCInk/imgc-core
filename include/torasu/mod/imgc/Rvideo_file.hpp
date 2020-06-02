@@ -12,6 +12,7 @@ extern "C" {
 }
 
 #include <string>
+#include <map>
 #include <istream>
 
 #include <torasu/torasu.hpp>
