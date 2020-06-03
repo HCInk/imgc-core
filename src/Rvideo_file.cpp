@@ -7,6 +7,7 @@
 #include <vector>
 #include <istream>
 #include <fstream>
+#include <chrono>
 
 #include <torasu/render_tools.hpp>
 #include <torasu/std/pipeline_names.hpp>
@@ -329,8 +330,10 @@ void VideoLoader::flushBuffers() {
 }
 
 Dbimg* VideoLoader::getFrame(double targetPos, int32_t width, int32_t height) {
+	std::chrono::steady_clock::time_point begin, end;
 	
-	
+	begin = std::chrono::steady_clock::now();
+
 	if (!(current_fp.loaded && current_fp.start <= targetPos && current_fp.start+current_fp.duration > targetPos)) {
 		cout << "::NOT SAME FRAME MEM: L" << current_fp.loaded << " S" << current_fp.start << " T" << targetPos << "E" << (current_fp.start+current_fp.duration) << endl;
 		bool searchBeginLoc = true;
@@ -612,17 +615,33 @@ Dbimg* VideoLoader::getFrame(double targetPos, int32_t width, int32_t height) {
 		}
 	}
 
-	sws_scaler_ctx = sws_getContext(av_frame->width, av_frame->height, av_codec_ctx->pix_fmt,
-									rWidth, rHeight, AV_PIX_FMT_RGB0,
-									SWS_FAST_BILINEAR, NULL, NULL, NULL);
-	if (!sws_scaler_ctx) {
-		throw runtime_error("Failed to create sws_scaler_ctx!");
-	}
+	end = std::chrono::steady_clock::now();
+	std::cout << "    Decode Time = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
+
+	begin = std::chrono::steady_clock::now();
 
 	Dbimg* dbimg = new Dbimg(rWidth, rHeight);
+
+	end = std::chrono::steady_clock::now();
+	std::cout << "    Alloc Time = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
+
+	begin = std::chrono::steady_clock::now();
+	
+	if (sws_scaler_ctx == NULL) {
+		sws_scaler_ctx = sws_getContext(av_frame->width, av_frame->height, av_codec_ctx->pix_fmt,
+										rWidth, rHeight, AV_PIX_FMT_RGB0,
+										SWS_FAST_BILINEAR, NULL, NULL, NULL);
+		if (!sws_scaler_ctx) {
+			throw runtime_error("Failed to create sws_scaler_ctx!");
+		}
+	}
+
 	uint8_t* dst[4] = {dbimg->getImageData()->data(), NULL, NULL, NULL};
 	int dest_linesize[4] = { rWidth*4, 0, 0, 0 };
 	sws_scale(sws_scaler_ctx, av_frame->data, av_frame->linesize, 0, av_frame->height, dst, dest_linesize);
+	
+	end = std::chrono::steady_clock::now();
+	std::cout << "    Scale Time = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
 
 	return dbimg;
 }

@@ -138,48 +138,64 @@ void avTest() {
 	imgc::VideoLoader tree(&file);
 
 	tools::RenderInstructionBuilder rib;
-
-	Dbimg_FORMAT format(2900, 2000);
+	
+	//Dbimg_FORMAT format(1340, 1200);
+	Dbimg_FORMAT format(4096, 2160);
 
 	auto rf = format.asFormat();
 
 	auto handle = rib.addSegmentWithHandle<Dbimg>(TORASU_STD_PL_VIS, &rf);
+	std::chrono::steady_clock::time_point benchStep, benchEnd, benchBegin;
+	for (int i = 0; i < 100; i++) {
 
-	cout << "RENDER BEGIN" << endl;
+		cout << "RENDER BEGIN" << endl;
 
-	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+		benchBegin = std::chrono::steady_clock::now();
+		benchStep = std::chrono::steady_clock::now();
 
-	Dnum timeBuf(3.0);
+		Dnum timeBuf((double)i/25);
 
-	RenderContext rctx;
-	rctx[TORASU_STD_CTX_TIME] = &timeBuf;
+		RenderContext rctx;
+		rctx[TORASU_STD_CTX_TIME] = &timeBuf;
 
-	auto result = rib.runRender(&tree, &rctx, ei);
+		auto result = rib.runRender(&tree, &rctx, ei);
 
-	std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-	std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
-	cout << "RENDER FIN" << endl;
+		benchEnd = std::chrono::steady_clock::now();
+		std::cout << "  Render Time = " << std::chrono::duration_cast<std::chrono::milliseconds>(benchEnd - benchStep).count() << "[ms]" << std::endl;
 
-	auto castedRes = handle.getFrom(result);
+		benchStep = std::chrono::steady_clock::now();
 
-	ResultSegmentStatus rss = castedRes.getStatus();
+		auto castedRes = handle.getFrom(result);
 
-	cout << "STATUS " << rss << endl;
+		ResultSegmentStatus rss = castedRes.getStatus();
 
-	if (rss >= ResultSegmentStatus::ResultSegmentStatus_OK) {
-		Dbimg* bimg = castedRes.getResult();
+		cout << "STATUS " << rss << endl;
 
+		if (rss >= ResultSegmentStatus::ResultSegmentStatus_OK) {
+			// Dbimg* bimg = castedRes.getResult();
+			
+			// int width = bimg->getWidth();
+			// int height = bimg->getHeight();
+
+			//unsigned error = lodepng::encode("test-res/out.png", *bimg->getImageData(), width, height);
+
+			//cout << "ENCODE STAT " << error << endl;
+		}
 		
-		int width = bimg->getWidth();
-		int height = bimg->getHeight();
+		benchEnd = std::chrono::steady_clock::now();
+		std::cout << "  Unpack Time = " << std::chrono::duration_cast<std::chrono::milliseconds>(benchEnd - benchStep).count() << "[ms]" << std::endl;
+		
+		benchStep = std::chrono::steady_clock::now();
 
-		unsigned error = lodepng::encode("test-res/out.png", *bimg->getImageData(), width, height);
+		delete result;
 
-		cout << "ENCODE STAT " << error << endl;
+		benchEnd = std::chrono::steady_clock::now();
+		std::cout << "  Delete Time = " << std::chrono::duration_cast<std::chrono::milliseconds>(benchEnd - benchStep).count() << "[ms]" << std::endl;
+
+		std::cout << "Total Time = " << std::chrono::duration_cast<std::chrono::milliseconds>(benchEnd - benchBegin).count() << "[ms]" << std::endl;
+
+		cout << "RENDER FIN" << endl;
 	}
-
-
-	delete result;
 
 	// tree.load(ei);
 	// tree.video_decode_example();
