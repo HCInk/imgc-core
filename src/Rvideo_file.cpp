@@ -461,6 +461,7 @@ Dbimg* VideoLoader::getFrame(double targetPos, int32_t width, int32_t height) {
 							int64_t seekPos = lastReadDts+dtsOffset;
 							int seekRet = av_seek_frame(av_format_ctx, video_stream_index, seekPos, AVSEEK_FLAG_ANY);
 							cout << " ## BACK " << seekPos << " >> " << seekRet << " [CAUSE: LAST " << lastReadDts << ">=" << newKeyFrameDts << " KEY]" << endl;
+							av_packet_unref(av_packet);
 							skipNextPacket = true;
 							continue;
 						}
@@ -473,6 +474,7 @@ Dbimg* VideoLoader::getFrame(double targetPos, int32_t width, int32_t height) {
 				if (skipNextPacket) {
 					skipNextPacket = false;
 					cout << " ## SKIP PACK" << av_packet->pts << endl;
+					av_packet_unref(av_packet);
 					continue;
 				}
 
@@ -627,13 +629,19 @@ Dbimg* VideoLoader::getFrame(double targetPos, int32_t width, int32_t height) {
 
 	begin = std::chrono::steady_clock::now();
 	
-	if (sws_scaler_ctx == NULL) {
-		sws_scaler_ctx = sws_getContext(av_frame->width, av_frame->height, av_codec_ctx->pix_fmt,
-										rWidth, rHeight, AV_PIX_FMT_RGB0,
-										SWS_FAST_BILINEAR, NULL, NULL, NULL);
-		if (!sws_scaler_ctx) {
-			throw runtime_error("Failed to create sws_scaler_ctx!");
-		}
+	if (sws_scaler_ctx != NULL) {
+		sws_freeContext(sws_scaler_ctx);
+	}
+
+	// if (av_frame->width == 0 || av_frame->height == 0) {
+	// 	cerr << " QESTIONABLE FRAME SIZE: " << av_frame->width << "x" << av_frame->height << endl;
+	// }
+
+	sws_scaler_ctx = sws_getContext(av_frame->width, av_frame->height, av_codec_ctx->pix_fmt,
+									rWidth, rHeight, AV_PIX_FMT_RGB0,
+									SWS_FAST_BILINEAR, NULL, NULL, NULL);
+	if (!sws_scaler_ctx) {
+		throw runtime_error("Failed to create sws_scaler_ctx!");
 	}
 
 	uint8_t* dst[4] = {dbimg->getImageData()->data(), NULL, NULL, NULL};
@@ -642,7 +650,9 @@ Dbimg* VideoLoader::getFrame(double targetPos, int32_t width, int32_t height) {
 	
 	end = std::chrono::steady_clock::now();
 	std::cout << "    Scale Time = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
-
+	
+	//av_frame_unref(av_frame); // Causes issues, making av_frame is invalid sometimes - this probably shouldnt be here then?
+	
 	return dbimg;
 }
 

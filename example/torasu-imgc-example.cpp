@@ -177,9 +177,14 @@ void avTest() {
 			// int width = bimg->getWidth();
 			// int height = bimg->getHeight();
 
-			//unsigned error = lodepng::encode("test-res/out.png", *bimg->getImageData(), width, height);
+			// stringstream out_name;
+			// out_name << "test-res/out";
+			// out_name << std::setfill('0') << std::setw(5) << i;
+			// out_name << ".png";
 
-			//cout << "ENCODE STAT " << error << endl;
+			// unsigned error = lodepng::encode(out_name.str(), *bimg->getImageData(), width, height);
+
+			// cerr << "ENCODE STAT[" << i << "] " << error << endl;
 		}
 		
 		benchEnd = std::chrono::steady_clock::now();
