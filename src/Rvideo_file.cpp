@@ -49,7 +49,7 @@ namespace {
 	// whence: SEEK_SET, SEEK_CUR, SEEK_END (like fseek) and AVSEEK_SIZE, which is meant to return the video's size without changing the position
 	int64_t SeekFunc(void* ptr, int64_t pos, int whence) {
 		VideoLoader::FileReader* reader = reinterpret_cast<VideoLoader::FileReader*>(ptr);
-		
+
 		//cout << "SEEK " << pos << " WHENCE " << whence << endl;
 		switch (whence) {
 		case SEEK_SET:
@@ -146,7 +146,7 @@ ResultSegment* VideoLoader::renderSegment(ResultSegmentSettings* resSettings, Re
 		ResultFormatSettings* format = resSettings->getResultFormatSettings();
 
 		if (format == NULL || format->getFormat().compare("STD::DBIMG") == 0) {
-			
+
 			int32_t rWidth, rHeight;
 			if (format == NULL) {
 				rWidth = -1;
@@ -161,7 +161,7 @@ ResultSegment* VideoLoader::renderSegment(ResultSegmentSettings* resSettings, Re
 				rHeight = bimgFormat->getHeight();
 				cout << "Rvideo_file RENDER " << rWidth << "x" << rHeight << endl;
 			}
-			
+
 
 			Dbimg* resImg = getFrame(time, rWidth, rHeight);
 
@@ -195,17 +195,17 @@ void VideoLoader::load(torasu::ExecutionInterface* ei) {
 		throw runtime_error("Sub-render of file failed");
 	}
 
-	auto data = castedResultSeg.getResult()->getFileData();
-	
-	in_stream.data = data->data();
-	in_stream.size = data->size();
+	auto data = castedResultSeg.getResult();
+
+	in_stream.data = data->getFileData();
+	in_stream.size = data->getFileSize();
 	in_stream.pos = 0;
 
 	// Open file
     /*if (avformat_open_input(&av_format_ctx, "test-res/in.mp4", NULL, NULL) != 0) {
 		throw runtime_error("Failed to open input file");
     }*/
-	
+
 	uint8_t* alloc_buf = (uint8_t*) av_malloc(alloc_buf_len);
 
 	av_format_ctx->pb = avio_alloc_context(alloc_buf, alloc_buf_len, false, &in_stream, ReadFunc, NULL, SeekFunc);
@@ -218,22 +218,21 @@ void VideoLoader::load(torasu::ExecutionInterface* ei) {
 	av_format_ctx->probesize = 1200000;
 
 	// Need to probe buffer for input format unless you already know it
-	AVProbeData probeData;
-	probeData.buf = alloc_buf;
-	probeData.buf_size = alloc_buf_len;
-	probeData.filename = "";
+	// AVProbeData probeData;
+	// probeData.buf = alloc_buf;
+	// probeData.buf_size = alloc_buf_len;
+	// probeData.filename = "";
 
-	AVInputFormat* av_input_format;// = av_probe_input_format(&probeData, 1);
+	// AVInputFormat* av_input_format;// = av_probe_input_format(&probeData, 1);
 
-	//if(!pAVInputFormat)
-	av_input_format = av_probe_input_format(&probeData, 1);
+	// av_input_format = av_probe_input_format(&probeData, 1);
 
-	if(!av_input_format) {
-		throw runtime_error("Failed to create input-format!");
-	}
+	// if(!av_input_format) {
+	// 	throw runtime_error("Failed to create input-format!");
+	// }
 
-	av_input_format->flags |= AVFMT_NOFILE;
-	
+	// av_input_format->flags |= AVFMT_NOFILE;
+
 	if (avformat_open_input(&av_format_ctx, "", NULL, NULL) != 0) {
 		throw runtime_error("Failed to open input stream");
     }
@@ -286,7 +285,7 @@ void VideoLoader::load(torasu::ExecutionInterface* ei) {
 	if (avcodec_open2(av_codec_ctx, av_codec, NULL) < 0) {
 		throw runtime_error("Failed to initialize av_codec_ctx with av_codec!");
 	}
-	
+
 	width   = av_codec_ctx->width;
 	height  = av_codec_ctx->height;
 
@@ -294,7 +293,7 @@ void VideoLoader::load(torasu::ExecutionInterface* ei) {
 			<< "FPS	" << video_framees_per_second << endl
 			<< "TIME-BASE	" << video_base_time << endl
 			<< "RES " << width << "x" << height << endl;
-	
+
 
 	av_frame = av_frame_alloc();
 	if (!av_frame) {
@@ -331,7 +330,7 @@ void VideoLoader::flushBuffers() {
 
 Dbimg* VideoLoader::getFrame(double targetPos, int32_t width, int32_t height) {
 	std::chrono::steady_clock::time_point begin, end;
-	
+
 	begin = std::chrono::steady_clock::now();
 
 	if (!(current_fp.loaded && current_fp.start <= targetPos && current_fp.start+current_fp.duration > targetPos)) {
@@ -339,7 +338,7 @@ Dbimg* VideoLoader::getFrame(double targetPos, int32_t width, int32_t height) {
 		bool searchBeginLoc = true;
 
 
-		
+
 		for (FrameProperties* fp = av_codec_fp_buf; fp < av_codec_fp_buf+av_codec_fp_buf_len;fp++) {
 			if (fp->loaded && fp->start <= targetPos && fp->start+fp->duration > targetPos) {
 				cout << " ## IN PIPE " << targetPos <<"{" << fp->start << " - " << fp->start+fp->duration<< "}" << endl;
@@ -347,14 +346,14 @@ Dbimg* VideoLoader::getFrame(double targetPos, int32_t width, int32_t height) {
 				break;
 			}
 		}
-		
-		
+
+
 		if (searchBeginLoc) {
 
 			if (current_fp.start <= targetPos) {
 
 				if (draining) {
-					
+
 					// Timeline Example
 					//
 					// WWW                            DDD
@@ -383,7 +382,7 @@ Dbimg* VideoLoader::getFrame(double targetPos, int32_t width, int32_t height) {
 					int seekRet = av_seek_frame(av_format_ctx, -1, targetPos*AV_TIME_BASE, AVSEEK_FLAG_BACKWARD); // Skip to the keyframe the requested frame is based on (Which will be probed later)
 					cout << " ## PEEK " << targetPos << ">> " << seekRet << " @" << av_format_ctx->pb->pos << endl;
 					searchBeginLoc = true; // Signalize that the begin-location still has to be found
-					
+
 					if (draining) {
 						flushBuffers();
 					}
@@ -404,7 +403,7 @@ Dbimg* VideoLoader::getFrame(double targetPos, int32_t width, int32_t height) {
 				int seekRet = av_seek_frame(av_format_ctx, -1, targetPos*AV_TIME_BASE, AVSEEK_FLAG_BACKWARD); // Skip to the keyframe the requested frame is based on
 				cout << " ## JUMP " << targetPos << ">> " << seekRet << " @" << av_format_ctx->pb->pos << endl;
 				searchBeginLoc = false; // Signalize that the begin-location has been found
-				
+
 				if (draining) {
 					flushBuffers();
 				}
@@ -416,7 +415,7 @@ Dbimg* VideoLoader::getFrame(double targetPos, int32_t width, int32_t height) {
 		bool skipNextPacket = false;
 
 		while (true) {
-				
+
 			if (!draining) {
 				int nextFrameStat = av_read_frame(av_format_ctx, av_packet);
 				if (nextFrameStat == AVERROR_EOF) {
@@ -430,14 +429,14 @@ Dbimg* VideoLoader::getFrame(double targetPos, int32_t width, int32_t height) {
 					std::string msgExcept = draining ? "Failed to enter draining: " : "Failed to decode packet: ";
 					msgExcept += errStr;
 					//cout << "NEXT FRAME STAT E" << nextFrameStat << " " << msgExcept << endl;
-					
+
 					throw runtime_error(msgExcept);
 
 				}
 			}
 
 			int response;
-			
+
 			if (!draining) {
 
 				if (av_packet->stream_index != video_stream_index) {
@@ -466,7 +465,7 @@ Dbimg* VideoLoader::getFrame(double targetPos, int32_t width, int32_t height) {
 							continue;
 						}
 					}
-					
+
 					cout << " ## SKIP TO KEY " << lastReadDts << "=>" << newKeyFrameDts << "@" << av_format_ctx->pb->pos << endl;
 
 				}
@@ -479,11 +478,11 @@ Dbimg* VideoLoader::getFrame(double targetPos, int32_t width, int32_t height) {
 				}
 
 				cout << "PTS " << av_packet->pts << " DTS " << av_packet->dts << " DUR " << av_packet->duration << " POS " << av_packet->pos << endl;
-				
+
 				response = avcodec_send_packet(av_codec_ctx, av_packet);
 
 				lastReadDts = av_packet->dts;
-				
+
 				// Save packet-metadata into buffer
 				FrameProperties* bufObj = NULL;
 				for (int i = 0; i < av_codec_fp_buf_len; i++) {
@@ -503,7 +502,7 @@ Dbimg* VideoLoader::getFrame(double targetPos, int32_t width, int32_t height) {
 				// if (bufObj->duration != 0) {
 					// bufObj->duration = 0.4;
 					bufObj->duration = 1.0/video_framees_per_second;// FIXME Really calculate duration by time difference between two packets
-				
+
 				// 	cerr << "WARN: av_packet->duration unset! (falling back to fps-calculated solution: " << bufObj->duration << ")" << endl;
 				// }
 
@@ -584,9 +583,9 @@ Dbimg* VideoLoader::getFrame(double targetPos, int32_t width, int32_t height) {
 			}
 
 			cout << "pkt_duration " << av_frame->pkt_duration << " pkt_pos " << av_frame->pkt_pos << " pkt_dts " << av_frame->pkt_dts << endl;
-			
+
 			cout << "ld " << currFP->loaded << " start " << currFP->start << " dur " << currFP->duration << endl;
-			
+
 			current_fp = *currFP;
 
 			current_fp.loaded = true;
@@ -628,7 +627,7 @@ Dbimg* VideoLoader::getFrame(double targetPos, int32_t width, int32_t height) {
 	std::cout << "    Alloc Time = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
 
 	begin = std::chrono::steady_clock::now();
-	
+
 	if (sws_scaler_ctx != NULL) {
 		sws_freeContext(sws_scaler_ctx);
 	}
@@ -644,15 +643,15 @@ Dbimg* VideoLoader::getFrame(double targetPos, int32_t width, int32_t height) {
 		throw runtime_error("Failed to create sws_scaler_ctx!");
 	}
 
-	uint8_t* dst[4] = {dbimg->getImageData()->data(), NULL, NULL, NULL};
+	uint8_t* dst[4] = {dbimg->getImageData(), NULL, NULL, NULL};
 	int dest_linesize[4] = { rWidth*4, 0, 0, 0 };
 	sws_scale(sws_scaler_ctx, av_frame->data, av_frame->linesize, 0, av_frame->height, dst, dest_linesize);
-	
+
 	end = std::chrono::steady_clock::now();
 	std::cout << "    Scale Time = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
-	
+
 	//av_frame_unref(av_frame); // Causes issues, making av_frame is invalid sometimes - this probably shouldnt be here then?
-	
+
 	return dbimg;
 }
 
@@ -662,10 +661,10 @@ void VideoLoader::debugPackets() {
 	int64_t lastPts = 0;
 	int64_t lastDts = 0;
 	int64_t lastPackPos = 0;
-	
+
 	double lastPos = 0;
 	int toSkipNextFrames = 0;
-		
+
 	// if (av_format_ctx->iformat->flags & AVFMT_NO_BYTE_SEEK) {
 	// 	throw runtime_error("NO BYTE SEEK!"); // yes we appearently cant seek by bytes here
 	// }
@@ -686,7 +685,7 @@ void VideoLoader::debugPackets() {
 			std::string msgExcept = draining ? "Failed to enter draining: " : "Failed to decode packet: ";
 			msgExcept += errStr;
 			//cout << "NEXT FRAME STAT E" << nextFrameStat << " " << msgExcept << endl;
-			
+
 			throw runtime_error(msgExcept);
 		}
 
@@ -714,7 +713,7 @@ void VideoLoader::debugPackets() {
 			// int seekRet = avformat_seek_file
 			// 				(av_format_ctx, video_stream_index, INT64_MIN, lastPackPos, INT64_MAX, AVSEEK_FLAG_BYTE | AVSEEK_FLAG_ANY);
 			// cout << " ## SEEK " << lastPackPos << " >> " << seekRet << endl;
-			
+
 			toSkipNextFrames = 1;
 
 
@@ -766,7 +765,7 @@ void VideoLoader::video_decode_example() {
 
 		Dbimg* nextFrame = getFrame(targetPos, -1, -1);
 
-		unsigned error = lodepng::encode(out_name.str(), *(nextFrame->getImageData()), nextFrame->getWidth(), nextFrame->getHeight());
+		unsigned error = lodepng::encode(out_name.str(), nextFrame->getImageData(), nextFrame->getWidth(), nextFrame->getHeight());
 
 		if (error) {
 			cerr << "Failed encoding png: " << lodepng_error_text(error) << endl;

@@ -25,7 +25,7 @@ using namespace torasu::tstd;
 using namespace imgc;
 
 inline const char* printCode(u_int8_t value, const char** codeSet) {
-	
+
 	if (value > 0xf2) {
 		return codeSet[3];
 	} else if (value > 0xd0) {
@@ -43,7 +43,7 @@ void netImageTest() {
 	Rnet_file file("https://assets.gitlab-static.net/uploads/-/system/project/avatar/14033279/TorasuLogo2Color.png");
 
 	Rimg_file tree(&file);
-	
+
 
 	EIcore_runner* runner = new EIcore_runner();
 
@@ -84,13 +84,13 @@ void netImageTest() {
 	if (rss >= ResultSegmentStatus::ResultSegmentStatus_OK) {
 		Dbimg* bimg = castedRes.getResult();
 
-		
+
 		int width = bimg->getWidth();
 		int height = bimg->getHeight();
 		/*int channels = 4;
 		uint8_t* data = &(*bimg->getImageData())[0];
 
-				
+
 		const char* redCodes[] = {"\33[31m|", "\33[31;1m|", "\33[30m\33[101m|", "\33[31;1m\33[101m|"};
 		const char* greenCodes[] = {"\33[32m|", "\33[32;1m|", "\33[30m\33[102m|", "\33[32;1m\33[102m|"};
 		const char* blueCodes[] = {"\33[34m|", "\33[34;1m|", "\33[30m\33[104m|", "\33[34;1m\33[104m|"};
@@ -102,7 +102,7 @@ void netImageTest() {
 				u_int8_t red = data[i];
 				u_int8_t green = data[i+1];
 				u_int8_t blue = data[i+2];
-				
+
 				cout << printCode(red, redCodes) << "\33[0m";
 				cout << printCode(green, greenCodes) << "\33[0m";
 				cout << printCode(blue, blueCodes)  << "\33[0m";
@@ -112,7 +112,7 @@ void netImageTest() {
 			cout << endl;
 		}*/
 
-		unsigned error = lodepng::encode("test-res/out.png", *bimg->getImageData(), width, height);
+		unsigned error = lodepng::encode("test-res/out.png", bimg->getImageData(), width, height);
 
 		cout << "ENCODE STAT " << error;
 	}
@@ -133,14 +133,14 @@ void avTest() {
 	ExecutionInterface* ei = runner->createInterface();
 
 	//Rlocal_file file("test-res/in.mp4");
-	
+
 	Rnet_file file("https://cdn.discordapp.com/attachments/598323767202152458/666010465809465410/8807502_Bender_and_penguins.mp4");
 	imgc::VideoLoader tree(&file);
 
 	tools::RenderInstructionBuilder rib;
-	
-	//Dbimg_FORMAT format(1340, 1200);
-	Dbimg_FORMAT format(4096, 2160);
+
+	Dbimg_FORMAT format(1340, 1200);
+	//Dbimg_FORMAT format(1600, 812);
 
 	auto rf = format.asFormat();
 
@@ -173,7 +173,6 @@ void avTest() {
 
 		if (rss >= ResultSegmentStatus::ResultSegmentStatus_OK) {
 			// Dbimg* bimg = castedRes.getResult();
-			
 			// int width = bimg->getWidth();
 			// int height = bimg->getHeight();
 
@@ -182,14 +181,20 @@ void avTest() {
 			// out_name << std::setfill('0') << std::setw(5) << i;
 			// out_name << ".png";
 
-			// unsigned error = lodepng::encode(out_name.str(), *bimg->getImageData(), width, height);
+			// uint8_t* imgData = bimg->getImageData();
+			// size_t imgSize = bimg->getHeight()*bimg->getWidth()*4;
 
+			// vector<uint8_t> lpngVec(imgSize);
+
+			// unsigned error = lodepng::encode(out_name.str(), imgData, width, height);
 			// cerr << "ENCODE STAT[" << i << "] " << error << endl;
+			//delete[] t;
+			//delete[] z;
 		}
-		
+
 		benchEnd = std::chrono::steady_clock::now();
 		std::cout << "  Unpack Time = " << std::chrono::duration_cast<std::chrono::milliseconds>(benchEnd - benchStep).count() << "[ms]" << std::endl;
-		
+
 		benchStep = std::chrono::steady_clock::now();
 
 		delete result;

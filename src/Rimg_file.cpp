@@ -17,7 +17,7 @@ using namespace torasu::tstd;
 
 namespace imgc {
 
-Rimg_file::Rimg_file(Renderable* file) 
+Rimg_file::Rimg_file(Renderable* file)
 	: SimpleRenderable("STD::RIMG_FILE", false, true),
 	resHandle(rib.addSegmentWithHandle<Dfile>(TORASU_STD_PL_FILE, NULL)) {
 	this->rfile = file;
@@ -45,12 +45,11 @@ ResultSegment* Rimg_file::renderSegment(ResultSegmentSettings* resSettings, Rend
 			}
 
 
-			
 			auto ei = ri->getExecutionInterface();
 			auto rctx = ri->getRenderContext();
 
 			RenderResult* fileRenderResult = rib.runRender(rfile, rctx, ei);
-			
+
 			auto fileRes = resHandle.getFrom(fileRenderResult);
 
 			if (fileRes.getStatus() < ResultSegmentStatus_OK) {
@@ -59,13 +58,11 @@ ResultSegment* Rimg_file::renderSegment(ResultSegmentSettings* resSettings, Rend
 			}
 
 			Dfile* file = fileRes.getResult();
-			std::vector<uint8_t>* srcData = file->getFileData();
-			cout << "SRC DATA" << srcData << endl;
-			cout << "DATA SIZE" << srcData->size() << endl;
-			vector<uint8_t>* image = new vector<uint8_t>();
 
+			vector<uint8_t> loadedImage;
 			uint32_t srcWidth, srcHeight;
-			uint32_t error = lodepng::decode(*image, srcWidth, srcHeight, *srcData);
+			
+			uint32_t error = lodepng::decode(loadedImage, srcWidth, srcHeight, file->getFileData(), file->getFileSize());
 
 			delete fileRenderResult;
 
@@ -84,15 +81,17 @@ ResultSegment* Rimg_file::renderSegment(ResultSegmentSettings* resSettings, Rend
 				rHeight = srcHeight;
 			}
 
-			Dbimg* bimg;
+			Dbimg* resultImage;
 
 			if (rWidth == ((int32_t)srcWidth) && rHeight == ((int32_t)srcHeight)) {
-				bimg = new Dbimg(rWidth, rHeight, image);
+				resultImage = new Dbimg(rWidth, rHeight);
+				copy(loadedImage.data(), loadedImage.data()+loadedImage.size(), resultImage->getImageData());
+
 			} else {
-				
-				bimg = new Dbimg(rWidth, rHeight);
-				uint8_t* data = &(*(bimg->getImageData()))[0];
-				uint8_t* imgaddr = &(*image)[0];
+
+				resultImage = new Dbimg(rWidth, rHeight);
+				uint8_t* resData = resultImage->getImageData();
+				uint8_t* srcData = loadedImage.data();
 
 				uint8_t channels = 4;
 				uint64_t i = 0;
@@ -114,11 +113,11 @@ ResultSegment* Rimg_file::renderSegment(ResultSegmentSettings* resSettings, Rend
 					for (int32_t x = 0; x < rWidth; x++) {
 						posX = ((float)x)*xFact;
 						posY = ((float)y)*yFact;
-						
+
 						//cout << (std::fmod(posX, 1)) << " ";
 						// A B
 						// C D
-						addrA = imgaddr + ( ((uint32_t)posX) + ((uint32_t)posY)*srcWidth ) * channels;
+						addrA = srcData + ( ((uint32_t)posX) + ((uint32_t)posY)*srcWidth ) * channels;
 						addrB = addrA + channels;
 						addrC = addrA + widthB;
 						addrD = addrC + channels;
@@ -129,7 +128,7 @@ ResultSegment* Rimg_file::renderSegment(ResultSegmentSettings* resSettings, Rend
 						fYi = 1-fY;
 
 						for (int32_t c = 0; c < channels; c++) {
-							data[i] =  ( (*addrA)*fXi + (*addrB)*fX ) * fYi
+							resData[i] =  ( (*addrA)*fXi + (*addrB)*fX ) * fYi
 									+ ( (*addrC)*fXi + (*addrD)*fX ) * fY;
 
 							addrA++;
@@ -141,11 +140,9 @@ ResultSegment* Rimg_file::renderSegment(ResultSegmentSettings* resSettings, Rend
 					}
 					//cout << endl;
 				}
-
-				delete image;
 			}
 
-			return new ResultSegment(ResultSegmentStatus_OK, bimg, true);
+			return new ResultSegment(ResultSegmentStatus_OK, resultImage, true);
 
 		} else {
 			return new ResultSegment(ResultSegmentStatus_INVALID_FORMAT);
