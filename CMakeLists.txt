@@ -31,7 +31,6 @@ if (IMGC_DEBUG_ASAN)
 endif()
 
 if(APPLE)
-	set_target_properties(imgc PROPERTIES LINK_FLAGS "-Wl,-rpath,/usr/local/lib")
 	add_subdirectory(thirdparty/FFmpeg)
 	include_directories(/usr/local/include)
 	target_link_directories(imgc PUBLIC /usr/local/lib)
