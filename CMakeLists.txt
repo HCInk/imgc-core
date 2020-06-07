@@ -6,9 +6,15 @@ if (NOT MINGW AND NOT APPLE)
 	set(IMGC_DEBUG_ASAN true)
 endif()
 
+if(APPLE)
+	set(IMGC_SRC
+			${CMAKE_CURRENT_LIST_DIR}/src/Rimg_file.cpp
+			${CMAKE_CURRENT_LIST_DIR}/src/Rvideo_file.cpp thirdparty/lodepng.cpp thirdparty/lodepng.h)
+	else()
 set(IMGC_SRC
 	${CMAKE_CURRENT_LIST_DIR}/src/Rimg_file.cpp
 	${CMAKE_CURRENT_LIST_DIR}/src/Rvideo_file.cpp)
+endif()
 add_library(imgc SHARED ${IMGC_SRC})
 
 set(IMGC_EXAMPLE_SRC
@@ -24,12 +30,21 @@ if (IMGC_DEBUG_ASAN)
 	target_link_libraries(imgc-example asan)
 endif()
 
+if(APPLE)
+	set_target_properties(imgc PROPERTIES LINK_FLAGS "-Wl,-rpath,/usr/local/lib")
+	add_subdirectory(thirdparty/FFmpeg)
+	include_directories(/usr/local/include)
+	target_link_directories(imgc PUBLIC /usr/local/lib)
+	target_link_directories(imgc-example PUBLIC /usr/local/lib)
+	target_link_libraries(imgc torasu torasustd FFmpeg)
+	target_link_libraries(imgc-example torasu torasustd imgc FFmpeg)
+else()
 
 target_link_libraries(imgc torasu torasustd)
 target_link_libraries(imgc-example torasu torasustd imgc avcodec avformat swscale avutil)
 
 target_link_libraries(imgc lodepng)
-
+endif()
 # Includes for others
 
 include_directories(${CMAKE_CURRENT_LIST_DIR}/include)

@@ -1,2 +1,4 @@
 build
 test-res
+.idea
+cmake-build-debug

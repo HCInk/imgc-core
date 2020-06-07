@@ -16,8 +16,11 @@
 #include <torasu/std/Dnum.hpp>
 #include <torasu/std/Dbimg.hpp>
 
+#ifdef __APPLE__
+#include "../thirdparty/lodepng.h"
+#else
 #include <lodepng.h>
-
+#endif
 using namespace std;
 using namespace torasu;
 using namespace torasu::tstd;
