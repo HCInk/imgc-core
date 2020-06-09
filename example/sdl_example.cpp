@@ -18,29 +18,34 @@ using namespace torasu;
 using namespace torasu::tstd;
 using namespace imgc;
 
+constexpr int w = 1280;
+constexpr int h = 720;
+constexpr int frameRate = 25;
+
 void avTest() {
     std::vector<uint8_t *> frames;
     bool decodingDone = false;
-    auto *rendererThread = new std::thread([&frames, &decodingDone]() {
+    int totalFrames = 0;
+    auto *rendererThread = new std::thread([&frames, &decodingDone, &totalFrames]() {
         EIcore_runner *runner = new EIcore_runner();
         ExecutionInterface *ei = runner->createInterface();
         Rnet_file file(
-                "https://cdn.discordapp.com/attachments/609022154213949461/717606443586682889/143386147_Superstar_W.mp4");
+                "https://cdn.discordapp.com/attachments/598323767202152458/719988881700945920/110038564_What_You_Want_Ilkay_Sencan.mp4");
         imgc::VideoLoader tree(&file);
 
         tools::RenderInstructionBuilder rib;
 
-        Dbimg_FORMAT format(1599, 812);
+        Dbimg_FORMAT format(w, h);
 
         auto rf = format.asFormat();
 
         auto handle = rib.addSegmentWithHandle<Dbimg>(TORASU_STD_PL_VIS, &rf);
-
-        for (int i = 0; i < 300; ++i) {
+        int i = 0;
+        while (true) {
             double start = 0.00;
             cout << "RENDER BEGIN" << endl;
             std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-            start = ((double) i / 25) + 0.02;
+            start = ((double) i / frameRate) + 0.02;
             Dnum timeBuf(start);
             RenderContext rctx;
             rctx[TORASU_STD_CTX_TIME] = &timeBuf;
@@ -58,32 +63,35 @@ void avTest() {
                 uint8_t *d = bimg->getImageData();
 
                 frames.push_back(d);
+            }else {
+                break;
             }
 
             //  delete result;
-
+            i++;
         }
         delete ei;
         delete runner;
+        totalFrames = i;
         decodingDone = true;
     });
     rendererThread->detach();
 
-    while (frames.size() < 40) {
+    while (frames.size() < 40)
         std::this_thread::sleep_for(std::chrono::milliseconds(40));
 
-    }
+
     SDL_Event event;
     SDL_Renderer *renderer;
     SDL_Window *window;
     SDL_Init(SDL_INIT_VIDEO);
     TTF_Init();
-    SDL_CreateWindowAndRenderer(1599, 812, SDL_RENDERER_ACCELERATED, &window, &renderer);
+    SDL_CreateWindowAndRenderer(w, h, SDL_RENDERER_ACCELERATED, &window, &renderer);
     SDL_SetWindowTitle(window, "Playback test");
     TTF_Font *Sans = TTF_OpenFont("/System/Library/Fonts/Supplemental/Arial.ttf",
                                   16);
     SDL_Texture *texture = SDL_CreateTexture(renderer,
-                                             SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, 1599, 812);
+                                             SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, w, h);
     SDL_Color White = {255, 255,
                        255};
 
@@ -97,7 +105,7 @@ void avTest() {
     std::chrono::steady_clock::time_point begin2 = std::chrono::steady_clock::now();
     int j = 0;
     while (true) {
-        if (j >= frames.size()) break;
+        if (j >= totalFrames && decodingDone) break;
         begin = std::chrono::steady_clock::now();
         if (j % 25 == 0) {
             std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
@@ -109,7 +117,7 @@ void avTest() {
                 break;
         }
         auto p = frames[j];
-        SDL_UpdateTexture(texture, NULL, &p[0], 1599 * 4);
+        SDL_UpdateTexture(texture, NULL, &p[0], w * 4);
         SDL_RenderCopy(renderer, texture, NULL, NULL);
         if (!decodingDone) {
             SDL_Rect Message_rect;
