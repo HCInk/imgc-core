@@ -39,28 +39,20 @@ void avTest() {
         for (int i = 0; i < 300; ++i) {
             double start = 0.00;
             cout << "RENDER BEGIN" << endl;
-
             std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
             start = ((double) i / 25) + 0.02;
             Dnum timeBuf(start);
-
             RenderContext rctx;
             rctx[TORASU_STD_CTX_TIME] = &timeBuf;
-
             auto result = rib.runRender(&tree, &rctx, ei);
-
             auto castedRes = handle.getFrom(result);
-
             ResultSegmentStatus rss = castedRes.getStatus();
-
             std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
             std::cout << "Time difference = "
                       << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]"
                       << std::endl;
             cout << "RENDER FIN" << endl;
-
             cout << "STATUS " << rss << endl;
-
             if (rss >= ResultSegmentStatus::ResultSegmentStatus_OK) {
                 Dbimg *bimg = castedRes.getResult();
                 uint8_t *d = bimg->getImageData();
@@ -147,7 +139,7 @@ void avTest() {
     Message_rect.w = 200;
     Message_rect.h = 100;
     SDL_RenderCopy(renderer, Message, NULL,
-                   &Message_rect); //you put the renderer's name first, the Message, the crop size(you can ignore this if you don't want to dabble with cropping), and the rect which is the size and coordinate of your texture
+                   &Message_rect);
     SDL_RenderPresent(renderer);
 
     while (true)
