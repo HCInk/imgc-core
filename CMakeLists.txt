@@ -43,10 +43,8 @@ if (APPLE)
     target_link_libraries(imgc torasu torasustd FFmpeg)
     target_link_libraries(imgc-example torasu torasustd imgc FFmpeg)
 else ()
-
     target_link_libraries(imgc torasu torasustd)
     target_link_libraries(imgc-example torasu torasustd imgc avcodec avformat swscale avutil)
-
     target_link_libraries(imgc lodepng)
 endif ()
 # Includes for others
@@ -54,6 +52,8 @@ endif ()
 if(IMGC_SDL_EXAMPLE)
     target_link_libraries(imgc-example SDL2)
     target_link_libraries(imgc-example SDL2_ttf)
+    configure_file(assets/Roboto-Regular.ttf . COPYONLY)
+
 endif()
 
 include_directories(${CMAKE_CURRENT_LIST_DIR}/include)

@@ -88,7 +88,7 @@ void avTest() {
     TTF_Init();
     SDL_CreateWindowAndRenderer(w, h, SDL_RENDERER_ACCELERATED, &window, &renderer);
     SDL_SetWindowTitle(window, "Playback test");
-    TTF_Font *Sans = TTF_OpenFont("../assets/Roboto-Regular.ttf",
+    TTF_Font *Sans = TTF_OpenFont("Roboto-Regular.ttf",
                                   16);
     SDL_Texture *texture = SDL_CreateTexture(renderer,
                                              SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, w, h);
