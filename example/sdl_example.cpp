@@ -18,8 +18,8 @@ using namespace torasu;
 using namespace torasu::tstd;
 using namespace imgc;
 
-constexpr int w = 1280;
-constexpr int h = 720;
+constexpr int w = 1600;
+constexpr int h = 900;
 constexpr int frameRate = 25;
 
 void avTest() {
@@ -88,7 +88,7 @@ void avTest() {
     TTF_Init();
     SDL_CreateWindowAndRenderer(w, h, SDL_RENDERER_ACCELERATED, &window, &renderer);
     SDL_SetWindowTitle(window, "Playback test");
-    TTF_Font *Sans = TTF_OpenFont("/System/Library/Fonts/Supplemental/Arial.ttf",
+    TTF_Font *Sans = TTF_OpenFont("../assets/Roboto-Regular.ttf",
                                   16);
     SDL_Texture *texture = SDL_CreateTexture(renderer,
                                              SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, w, h);
@@ -107,7 +107,7 @@ void avTest() {
     while (true) {
         if (j >= totalFrames && decodingDone) break;
         begin = std::chrono::steady_clock::now();
-        if (j % 25 == 0) {
+        if (j % frameRate == 0) {
             std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
             std::cout << "PLAYBACK AFTER 25 FRAMES = "
                       << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin2).count() << "[ms]"

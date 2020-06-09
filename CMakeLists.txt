@@ -54,7 +54,7 @@ endif ()
 if(IMGC_SDL_EXAMPLE)
     find_package(SDL2 REQUIRED)
     include_directories(${SDL2_INCLUDE_DIRS})
-    target_link_libraries(imgc-example sdl2)
+    target_link_libraries(imgc-example ${SDL2_LIBRARIES})
 
     target_link_libraries(imgc-example SDL2_ttf)
 endif()
