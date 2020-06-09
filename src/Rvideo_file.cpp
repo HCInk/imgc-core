@@ -6,7 +6,6 @@
 #include <iomanip>
 #include <vector>
 #include <istream>
-#include <fstream>
 #include <chrono>
 
 #include <torasu/render_tools.hpp>
@@ -84,6 +83,7 @@ VideoLoader::VideoLoader(torasu::Renderable* source) : tools::SimpleRenderable("
 	this->source = source;
 	current_fp.loaded = false;
 
+	stream = new std::ofstream ("out.pcm");
 	av_format_ctx = avformat_alloc_context();
 
 	if (!av_format_ctx) {
@@ -116,6 +116,8 @@ VideoLoader::~VideoLoader() {
 		avformat_close_input(&av_format_ctx);
 	}
 
+	stream->close();
+    delete [] stream;
 	avformat_free_context(av_format_ctx);
 
 	if (sourceFetchResult != NULL) {
@@ -247,7 +249,13 @@ void VideoLoader::load(torasu::ExecutionInterface* ei) {
 
 	for (unsigned int i = 0; i < av_format_ctx->nb_streams; i++) {
 		AVStream* stream = av_format_ctx->streams[i];
-		if (stream->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
+		if(stream->codecpar->codec_type == AVMEDIA_TYPE_AUDIO) {
+            av_audio_coded_params = stream->codecpar;
+            av_audio_codec = avcodec_find_decoder(av_audio_coded_params->codec_id);
+            audio_stream_index = i;
+
+
+		} else if (stream->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
 			av_codec_params = stream->codecpar;
 			av_codec = avcodec_find_decoder(av_codec_params->codec_id);
 			av_codec_video_delay = av_codec_params->video_delay;
@@ -268,7 +276,7 @@ void VideoLoader::load(torasu::ExecutionInterface* ei) {
 			}
 			video_stream_index = i;
 
-			break;
+
 		}
 	}
 
@@ -276,21 +284,42 @@ void VideoLoader::load(torasu::ExecutionInterface* ei) {
 		throw runtime_error("Failed to find suitable video stream!");
 	}
 
+    if (audio_stream_index < 0) {
+        throw runtime_error("Failed to find suitable audio stream!");
+    }
+
 	av_codec_ctx = avcodec_alloc_context3(av_codec);
 	if (!av_codec_ctx) {
 		throw runtime_error("Failed to allocate av_codec_ctx!");
 	}
 
+    av_audio_codec_ctx = avcodec_alloc_context3(av_audio_codec);
+    if (!av_audio_codec_ctx) {
+        throw runtime_error("Failed to allocate av_audio_codec_ctx!");
+    }
+
 	if (avcodec_parameters_to_context(av_codec_ctx, av_codec_params) < 0) {
 		throw runtime_error("Failed to link parameters to context!");
 	}
+
+    if (avcodec_parameters_to_context(av_audio_codec_ctx, av_audio_coded_params) < 0) {
+        throw runtime_error("Failed to link parameters to context(audio)!");
+    }
 
 	if (avcodec_open2(av_codec_ctx, av_codec, NULL) < 0) {
 		throw runtime_error("Failed to initialize av_codec_ctx with av_codec!");
 	}
 
+    if (avcodec_open2(av_audio_codec_ctx, av_audio_codec, NULL) < 0) {
+        throw runtime_error("Failed to initialize av_audio_codec_ctx with av_audio_codec!");
+    }
+
+
 	width   = av_codec_ctx->width;
 	height  = av_codec_ctx->height;
+
+	audio_sample_rate = av_audio_codec_ctx->sample_rate;
+	audio_frame_size = av_audio_codec_ctx->frame_size;
 
 	cout << "GOT VIDEO:" << endl
 			<< "FPS	" << video_framees_per_second << endl
@@ -302,6 +331,11 @@ void VideoLoader::load(torasu::ExecutionInterface* ei) {
 	if (!av_frame) {
 		throw runtime_error("Failed to allocate av_frame");
 	}
+
+    av_audio_frame = av_frame_alloc();
+    if (!av_audio_frame) {
+        throw runtime_error("Failed to allocate av_audio_frame");
+    }
 
 	av_packet = av_packet_alloc();
 	if (!av_packet) {
@@ -443,9 +477,28 @@ Dbimg* VideoLoader::getFrame(double targetPos, int32_t width, int32_t height) {
 			if (!draining) {
 
 				if (av_packet->stream_index != video_stream_index) {
-					// cout << "SKIP PACKET FROM OTHER STREAM " << av_packet->stream_index << " != " << video_stream_index << endl;
-					av_packet_unref(av_packet);
-					continue;
+				    if(av_packet->stream_index == audio_stream_index) {
+                        response = avcodec_send_packet(av_audio_codec_ctx, av_packet);
+                        response = avcodec_receive_frame(av_audio_codec_ctx, av_audio_frame);
+                        if(response == AVERROR(EAGAIN)) {
+                            continue;
+                        }
+                        size_t size = 4;
+                        uint8_t * l = av_audio_frame->extended_data[0];
+                        uint8_t * r = av_audio_frame->extended_data[1];
+                        for (int i = 0; i < av_audio_frame->linesize[0] /8; i += 1) {
+                            stream->write(reinterpret_cast<const char *>(l), size);
+                            stream->write(reinterpret_cast<const char *>(r), size);
+                            l += size;
+                            r += size;
+                        }
+                        continue;
+				    } else {
+                        // cout << "SKIP PACKET FROM OTHER STREAM " << av_packet->stream_index << " != " << video_stream_index << endl;
+                        av_packet_unref(av_packet);
+                        continue;
+				    }
+
 				}
 
 				if (searchBeginLoc) {
@@ -691,8 +744,27 @@ void VideoLoader::debugPackets() {
 
 			throw runtime_error(msgExcept);
 		}
+		int response;
+        if (av_packet->stream_index == audio_stream_index) {
+            response = avcodec_send_packet(av_audio_codec_ctx, av_packet);
+            response = avcodec_receive_frame(av_audio_codec_ctx, av_audio_frame);
+            if(response == AVERROR(EAGAIN)) {
+                continue;
+            }
+            size_t size = 4;
+            uint8_t * l = av_audio_frame->extended_data[0];
+            uint8_t * r = av_audio_frame->extended_data[1];
+            for (int i = 0; i < av_audio_frame->linesize[0] /8; i += 1) {
+                stream->write(reinterpret_cast<const char *>(l), size);
+                stream->write(reinterpret_cast<const char *>(r), size);
+                l += size;
+                r += size;
+            }
 
-		if (av_packet->stream_index == video_stream_index) {
+
+        }
+
+		/*if (av_packet->stream_index == video_stream_index) {
 			lastPts = av_packet->pts;
 			lastPackPos = av_packet->pos;
 			lastDts = av_packet->dts;
@@ -726,6 +798,7 @@ void VideoLoader::debugPackets() {
 			//cout << "" << i << "	" << av_packet->pts << endl;
 			i_v++;
 		}
+	*/
 		i++;
 	}
 }

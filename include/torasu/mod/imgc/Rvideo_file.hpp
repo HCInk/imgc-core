@@ -14,6 +14,7 @@ extern "C" {
 #include <string>
 #include <map>
 #include <istream>
+#include <fstream>
 
 #include <torasu/torasu.hpp>
 #include <torasu/SimpleRenderable.hpp>
@@ -46,11 +47,18 @@ private:
 	bool input_laoded = false;
 
 	int video_stream_index = -1;
+	int audio_stream_index = -1;
 	int width, height;
 	AVCodecContext* av_codec_ctx = NULL;
 	AVCodec* av_codec = NULL;
 	AVCodecParameters* av_codec_params = NULL;
 	int av_codec_video_delay;
+
+    AVCodecParameters* av_audio_coded_params = NULL;
+    AVCodec* av_audio_codec = NULL;
+    AVCodecContext* av_audio_codec_ctx = NULL;
+    int32_t audio_sample_rate;
+    int32_t audio_frame_size;
 
 	VideoLoader::FrameProperties* av_codec_fp_buf = NULL;
 	int av_codec_fp_buf_len;
@@ -63,9 +71,14 @@ private:
 
 	FrameProperties current_fp;
 	AVFrame* av_frame = NULL;
-	AVPacket* av_packet = NULL;
+    AVFrame* av_audio_frame = NULL;
 
-	bool loaded = false;
+    AVPacket* av_packet = NULL;
+
+    std::ofstream* stream;
+
+
+    bool loaded = false;
 
 	const size_t alloc_buf_len = 32 * 1024;
 

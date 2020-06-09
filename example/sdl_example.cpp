@@ -79,8 +79,6 @@ void avTest() {
 
     while (frames.size() < 40)
         std::this_thread::sleep_for(std::chrono::milliseconds(40));
-
-
     SDL_Event event;
     SDL_Renderer *renderer;
     SDL_Window *window;
@@ -94,13 +92,10 @@ void avTest() {
                                              SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, w, h);
     SDL_Color White = {255, 255,
                        255};
-
     SDL_Surface *surfaceMessage = TTF_RenderText_Solid(Sans, "Decoding",
                                                        White);
-
     SDL_Texture *Message = SDL_CreateTextureFromSurface(renderer,
                                                         surfaceMessage);
-
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     std::chrono::steady_clock::time_point begin2 = std::chrono::steady_clock::now();
     int j = 0;
@@ -134,13 +129,11 @@ void avTest() {
         std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
         auto t = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
         std::this_thread::sleep_for(std::chrono::milliseconds(39 - t));
-
     }
     surfaceMessage = TTF_RenderText_Solid(Sans, "Done",
                                           White);
     SDL_DestroyTexture(Message);
     Message = SDL_CreateTextureFromSurface(renderer, surfaceMessage);
-
     SDL_Rect Message_rect;
     Message_rect.x = 0;
     Message_rect.y = 0;
@@ -149,13 +142,11 @@ void avTest() {
     SDL_RenderCopy(renderer, Message, NULL,
                    &Message_rect);
     SDL_RenderPresent(renderer);
-
     while (true)
         if (SDL_PollEvent(&event) && event.type == SDL_QUIT)
             break;
 
     SDL_DestroyTexture(Message);
-
     SDL_DestroyTexture(texture);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
@@ -163,6 +154,16 @@ void avTest() {
 
 int main() {
     avTest();
+
+  // AUDIO SORTING DEBUG TEST
+//    EIcore_runner *runner = new EIcore_runner();
+//    ExecutionInterface *ei = runner->createInterface();
+//    Rnet_file file(
+//            "https://cdn.discordapp.com/attachments/598323767202152458/719988881700945920/110038564_What_You_Want_Ilkay_Sencan.mp4");
+//    imgc::VideoLoader tree(&file);
+//
+//    tree.load(ei);
+//    tree.debugPackets();
 
     return 0;
 }
