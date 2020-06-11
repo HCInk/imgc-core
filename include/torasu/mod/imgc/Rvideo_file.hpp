@@ -89,7 +89,7 @@ private:
 	bool draining = false;
 
 	void nextPacket();
-	torasu::tstd::Dbimg* getFrame(double targetPos, int32_t width, int32_t height);
+	void getFrame(double targetPos, const torasu::tstd::Dbimg_FORMAT& imageFormat, torasu::tstd::Dbimg** outImageFrame);
 
 protected: 
 	torasu::ResultSegment* renderSegment(torasu::ResultSegmentSettings* resSettings, torasu::RenderInstruction* ri);

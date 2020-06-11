@@ -178,8 +178,9 @@ ResultSegment* VideoLoader::renderSegment(ResultSegmentSettings* resSettings, Re
 				cout << "Rvideo_file RENDER " << rWidth << "x" << rHeight << endl;
 			}
 
-
-			Dbimg* resImg = getFrame(time, rWidth, rHeight);
+			Dbimg* resImg;
+			Dbimg_FORMAT frameFormat(rWidth, rHeight);
+			getFrame(time, frameFormat, &resImg);
 
 			return new ResultSegment(ResultSegmentStatus::ResultSegmentStatus_OK, resImg, true);
 
@@ -376,7 +377,7 @@ void VideoLoader::flushBuffers() {
 
 }
 
-Dbimg* VideoLoader::getFrame(double targetPos, int32_t width, int32_t height) {
+void VideoLoader::getFrame(double targetPos, const Dbimg_FORMAT& imageFormat, Dbimg** outImageFrame) {
 	std::chrono::steady_clock::time_point begin, end;
 
 	begin = std::chrono::steady_clock::now();
@@ -692,7 +693,7 @@ Dbimg* VideoLoader::getFrame(double targetPos, int32_t width, int32_t height) {
 
 	begin = std::chrono::steady_clock::now();
 
-	Dbimg* dbimg = new Dbimg(rWidth, rHeight);
+	*outImageFrame = new Dbimg(rWidth, rHeight);
 
 	end = std::chrono::steady_clock::now();
 	std::cout << "    Alloc Time = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
@@ -714,7 +715,7 @@ Dbimg* VideoLoader::getFrame(double targetPos, int32_t width, int32_t height) {
 		throw runtime_error("Failed to create sws_scaler_ctx!");
 	}
 
-	uint8_t* dst[4] = {dbimg->getImageData(), NULL, NULL, NULL};
+	uint8_t* dst[4] = {(*outImageFrame)->getImageData(), NULL, NULL, NULL};
 	int dest_linesize[4] = { rWidth*4, 0, 0, 0 };
 	sws_scale(sws_scaler_ctx, av_frame->data, av_frame->linesize, 0, av_frame->height, dst, dest_linesize);
 
@@ -722,8 +723,6 @@ Dbimg* VideoLoader::getFrame(double targetPos, int32_t width, int32_t height) {
 	std::cout << "    Scale Time = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
 
 	//av_frame_unref(av_frame); // Causes issues, making av_frame is invalid sometimes - this probably shouldnt be here then?
-
-	return dbimg;
 }
 
 void VideoLoader::debugPackets() {
@@ -854,7 +853,9 @@ void VideoLoader::video_decode_example() {
 		out_name << std::setfill('0') << std::setw(5) << frameNum;
 		out_name << ".png";
 
-		Dbimg* nextFrame = getFrame(targetPos, -1, -1);
+		Dbimg_FORMAT format(-1, -1);
+		Dbimg* nextFrame = NULL;
+		getFrame(targetPos, format, &nextFrame);
 
 		unsigned error = lodepng::encode(out_name.str(), nextFrame->getImageData(), nextFrame->getWidth(), nextFrame->getHeight());
 
