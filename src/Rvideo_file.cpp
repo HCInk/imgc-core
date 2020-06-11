@@ -83,7 +83,7 @@ VideoLoader::VideoLoader(torasu::Renderable* source) : tools::SimpleRenderable("
 	this->source = source;
 	current_fp.loaded = false;
 
-	stream = new std::ofstream ("out.pcm");
+	audio_out_stream = new std::ofstream ("out.pcm");
 	av_format_ctx = avformat_alloc_context();
 
 	if (!av_format_ctx) {
@@ -99,36 +99,36 @@ VideoLoader::~VideoLoader() {
 		sws_freeContext(sws_scaler_ctx);
 	}
 
-	if (av_frame != NULL) {
-		av_frame_free(&av_frame);
+	if (video_frame != NULL) {
+		av_frame_free(&video_frame);
 	}
 
-	if (av_audio_frame != NULL) {
-		av_frame_free(&av_audio_frame);
+	if (audio_frame != NULL) {
+		av_frame_free(&audio_frame);
 	}
 
 	if (av_packet != NULL) {
 		av_packet_free(&av_packet);
 	}
 
-	if (av_codec_ctx != NULL) {
-		avcodec_free_context(&av_codec_ctx);
+	if (video_codec_ctx != NULL) {
+		avcodec_free_context(&video_codec_ctx);
 	}
 	
-	if (av_audio_codec_ctx != NULL) {
-		avcodec_free_context(&av_audio_codec_ctx);
+	if (audio_codec_ctx != NULL) {
+		avcodec_free_context(&audio_codec_ctx);
 	}
 
-	if (av_codec_fp_buf != NULL) {
-		delete[] av_codec_fp_buf;
+	if (video_codec_fp_buf != NULL) {
+		delete[] video_codec_fp_buf;
 	}
 
 	if (input_laoded) {
 		avformat_close_input(&av_format_ctx);
 	}
 
-	stream->close();
-    delete stream;
+	audio_out_stream->close();
+    delete audio_out_stream;
 	avformat_free_context(av_format_ctx);
 
 	if (sourceFetchResult != NULL) {
@@ -251,39 +251,39 @@ void VideoLoader::load(torasu::ExecutionInterface* ei) {
 	// av_input_format->flags |= AVFMT_NOFILE;
 
 	if (avformat_open_input(&av_format_ctx, "", NULL, NULL) != 0) {
-		throw runtime_error("Failed to open input stream");
+		throw runtime_error("Failed to open input audio_out_stream");
     }
 
     // Get infromation about streams
     if (avformat_find_stream_info(av_format_ctx, NULL) < 0) {
-		throw runtime_error("Failed to find stream info");
+		throw runtime_error("Failed to find audio_out_stream info");
     }
 
 	for (unsigned int i = 0; i < av_format_ctx->nb_streams; i++) {
-		AVStream* stream = av_format_ctx->streams[i];
-		if(stream->codecpar->codec_type == AVMEDIA_TYPE_AUDIO) {
-            av_audio_coded_params = stream->codecpar;
-            av_audio_codec = avcodec_find_decoder(av_audio_coded_params->codec_id);
+		AVStream* audio_out_stream = av_format_ctx->streams[i];
+		if(audio_out_stream->codecpar->codec_type == AVMEDIA_TYPE_AUDIO) {
+            audio_codec_params = audio_out_stream->codecpar;
+            audio_codec = avcodec_find_decoder(audio_codec_params->codec_id);
             audio_stream_index = i;
 
 
-		} else if (stream->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
-			av_codec_params = stream->codecpar;
-			av_codec = avcodec_find_decoder(av_codec_params->codec_id);
-			av_codec_video_delay = av_codec_params->video_delay;
-			av_codec_fp_buf_len = av_codec_video_delay+1;
-			av_codec_fp_buf = new FrameProperties[av_codec_fp_buf_len];
-			for (int i = 0; i < av_codec_fp_buf_len; i++) {
-				av_codec_fp_buf[i].loaded = false;
+		} else if (audio_out_stream->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
+			video_codec_params = audio_out_stream->codecpar;
+			video_codec = avcodec_find_decoder(video_codec_params->codec_id);
+			video_codec_delay = video_codec_params->video_delay;
+			video_codec_fp_buf_len = video_codec_delay+1;
+			video_codec_fp_buf = new FrameProperties[video_codec_fp_buf_len];
+			for (int i = 0; i < video_codec_fp_buf_len; i++) {
+				video_codec_fp_buf[i].loaded = false;
 			}
-			av_codec_fp_buf_pos = 0;
+			video_codec_fp_buf_pos = 0;
 
 			// Frames per second of the video
-			video_framees_per_second = av_q2d(stream->r_frame_rate);
+			video_framees_per_second = av_q2d(audio_out_stream->r_frame_rate);
 			// Base for video-timestamples
-			video_base_time = av_q2d(stream->time_base);
+			video_base_time = av_q2d(audio_out_stream->time_base);
 
-			if (!av_codec) {
+			if (!video_codec) {
 				continue;
 			}
 			video_stream_index = i;
@@ -293,60 +293,60 @@ void VideoLoader::load(torasu::ExecutionInterface* ei) {
 	}
 
 	if (video_stream_index < 0) {
-		throw runtime_error("Failed to find suitable video stream!");
+		throw runtime_error("Failed to find suitable video audio_out_stream!");
 	}
 
     if (audio_stream_index < 0) {
-        throw runtime_error("Failed to find suitable audio stream!");
+        throw runtime_error("Failed to find suitable audio audio_out_stream!");
     }
 
-	av_codec_ctx = avcodec_alloc_context3(av_codec);
-	if (!av_codec_ctx) {
+	video_codec_ctx = avcodec_alloc_context3(video_codec);
+	if (!video_codec_ctx) {
 		throw runtime_error("Failed to allocate av_codec_ctx!");
 	}
 
-    av_audio_codec_ctx = avcodec_alloc_context3(av_audio_codec);
-    if (!av_audio_codec_ctx) {
-        throw runtime_error("Failed to allocate av_audio_codec_ctx!");
+    audio_codec_ctx = avcodec_alloc_context3(audio_codec);
+    if (!audio_codec_ctx) {
+        throw runtime_error("Failed to allocate audio_codec_ctx!");
     }
 
-	if (avcodec_parameters_to_context(av_codec_ctx, av_codec_params) < 0) {
+	if (avcodec_parameters_to_context(video_codec_ctx, video_codec_params) < 0) {
 		throw runtime_error("Failed to link parameters to context!");
 	}
 
-    if (avcodec_parameters_to_context(av_audio_codec_ctx, av_audio_coded_params) < 0) {
+    if (avcodec_parameters_to_context(audio_codec_ctx, audio_codec_params) < 0) {
         throw runtime_error("Failed to link parameters to context(audio)!");
     }
 
-	if (avcodec_open2(av_codec_ctx, av_codec, NULL) < 0) {
+	if (avcodec_open2(video_codec_ctx, video_codec, NULL) < 0) {
 		throw runtime_error("Failed to initialize av_codec_ctx with av_codec!");
 	}
 
-    if (avcodec_open2(av_audio_codec_ctx, av_audio_codec, NULL) < 0) {
-        throw runtime_error("Failed to initialize av_audio_codec_ctx with av_audio_codec!");
+    if (avcodec_open2(audio_codec_ctx, audio_codec, NULL) < 0) {
+        throw runtime_error("Failed to initialize audio_codec_ctx with audio_codec!");
     }
 
 
-	width   = av_codec_ctx->width;
-	height  = av_codec_ctx->height;
+	video_width   = video_codec_ctx->width;
+	video_height  = video_codec_ctx->height;
 
-	audio_sample_rate = av_audio_codec_ctx->sample_rate;
-	audio_frame_size = av_audio_codec_ctx->frame_size;
+	audio_sample_rate = audio_codec_ctx->sample_rate;
+	audio_frame_size = audio_codec_ctx->frame_size;
 
 	cout << "GOT VIDEO:" << endl
 			<< "FPS	" << video_framees_per_second << endl
 			<< "TIME-BASE	" << video_base_time << endl
-			<< "RES " << width << "x" << height << endl;
+			<< "RES " << video_width << "x" << video_height << endl;
 
 
-	av_frame = av_frame_alloc();
-	if (!av_frame) {
+	video_frame = av_frame_alloc();
+	if (!video_frame) {
 		throw runtime_error("Failed to allocate av_frame");
 	}
 
-    av_audio_frame = av_frame_alloc();
-    if (!av_audio_frame) {
-        throw runtime_error("Failed to allocate av_audio_frame");
+    audio_frame = av_frame_alloc();
+    if (!audio_frame) {
+        throw runtime_error("Failed to allocate audio_frame");
     }
 
 	av_packet = av_packet_alloc();
@@ -366,13 +366,13 @@ void VideoLoader::setElement(std::string key, Element* elem) {
 
 void VideoLoader::flushBuffers() {
 
-	for (int i = 0; i < av_codec_fp_buf_len; i++) {
-		av_codec_fp_buf[i].loaded = false;
+	for (int i = 0; i < video_codec_fp_buf_len; i++) {
+		video_codec_fp_buf[i].loaded = false;
 	}
 
 	lastReadDts = INT64_MIN;
 
-	avcodec_flush_buffers(av_codec_ctx);
+	avcodec_flush_buffers(video_codec_ctx);
 	draining = false;
 
 }
@@ -388,7 +388,7 @@ void VideoLoader::getFrame(double targetPos, const Dbimg_FORMAT& imageFormat, Db
 
 
 
-		for (FrameProperties* fp = av_codec_fp_buf; fp < av_codec_fp_buf+av_codec_fp_buf_len;fp++) {
+		for (FrameProperties* fp = video_codec_fp_buf; fp < video_codec_fp_buf+video_codec_fp_buf_len;fp++) {
 			if (fp->loaded && fp->start <= targetPos && fp->start+fp->duration > targetPos) {
 				cout << " ## IN PIPE " << targetPos <<"{" << fp->start << " - " << fp->start+fp->duration<< "}" << endl;
 				searchBeginLoc = false;
@@ -470,7 +470,7 @@ void VideoLoader::getFrame(double targetPos, const Dbimg_FORMAT& imageFormat, Db
 				if (nextFrameStat == AVERROR_EOF) {
 					cout << "ENTER DRAIN!" << endl;
 					draining = true;
-					nextFrameStat = avcodec_send_packet(av_codec_ctx, NULL);
+					nextFrameStat = avcodec_send_packet(video_codec_ctx, NULL);
 				}
 				if (nextFrameStat < 0) {
 					char errStr[100];
@@ -490,8 +490,8 @@ void VideoLoader::getFrame(double targetPos, const Dbimg_FORMAT& imageFormat, Db
 
 				if (av_packet->stream_index != video_stream_index) {
 				    if(av_packet->stream_index == audio_stream_index) {
-                        response = avcodec_send_packet(av_audio_codec_ctx, av_packet);
-                        response = avcodec_receive_frame(av_audio_codec_ctx, av_audio_frame);
+                        response = avcodec_send_packet(audio_codec_ctx, av_packet);
+                        response = avcodec_receive_frame(audio_codec_ctx, audio_frame);
 						
 						av_packet_unref(av_packet);
 
@@ -499,11 +499,11 @@ void VideoLoader::getFrame(double targetPos, const Dbimg_FORMAT& imageFormat, Db
                             continue;
                         }
                         size_t size = 4;
-                        uint8_t * l = av_audio_frame->extended_data[0];
-                        uint8_t * r = av_audio_frame->extended_data[1];
-                        for (int i = 0; i < av_audio_frame->linesize[0] /8; i += 1) {
-                            stream->write(reinterpret_cast<const char *>(l), size);
-                            stream->write(reinterpret_cast<const char *>(r), size);
+                        uint8_t * l = audio_frame->extended_data[0];
+                        uint8_t * r = audio_frame->extended_data[1];
+                        for (int i = 0; i < audio_frame->linesize[0] /8; i += 1) {
+                            audio_out_stream->write(reinterpret_cast<const char *>(l), size);
+                            audio_out_stream->write(reinterpret_cast<const char *>(r), size);
                             l += size;
                             r += size;
                         }
@@ -527,7 +527,7 @@ void VideoLoader::getFrame(double targetPos, const Dbimg_FORMAT& imageFormat, Db
 							cout << " ## STAY INIT @" << av_format_ctx->pb->pos << endl;
 						} else {
 
-							int dtsOffset = av_codec_video_delay/video_base_time/video_framees_per_second;
+							int dtsOffset = video_codec_delay/video_base_time/video_framees_per_second;
 							cout << "DTS-OFF " << dtsOffset << endl;
 							int64_t seekPos = lastReadDts+dtsOffset;
 							int seekRet = av_seek_frame(av_format_ctx, video_stream_index, seekPos, AVSEEK_FLAG_ANY);
@@ -551,15 +551,15 @@ void VideoLoader::getFrame(double targetPos, const Dbimg_FORMAT& imageFormat, Db
 
 				cout << "PTS " << av_packet->pts << " DTS " << av_packet->dts << " DUR " << av_packet->duration << " POS " << av_packet->pos << endl;
 
-				response = avcodec_send_packet(av_codec_ctx, av_packet);
+				response = avcodec_send_packet(video_codec_ctx, av_packet);
 
 				lastReadDts = av_packet->dts;
 
 				// Save packet-metadata into buffer
 				FrameProperties* bufObj = NULL;
-				for (int i = 0; i < av_codec_fp_buf_len; i++) {
-					if ( !(av_codec_fp_buf[i].loaded) ) {
-						bufObj = av_codec_fp_buf+i;
+				for (int i = 0; i < video_codec_fp_buf_len; i++) {
+					if ( !(video_codec_fp_buf[i].loaded) ) {
+						bufObj = video_codec_fp_buf+i;
 						break;
 					}
 				}
@@ -581,8 +581,8 @@ void VideoLoader::getFrame(double targetPos, const Dbimg_FORMAT& imageFormat, Db
 				cout << "PACK " << bufObj->start << " DUR " << bufObj->duration << endl;
 				//double dur = bufObj->duration;
 
-				cout << ":: ADD TO PIPE[" << av_codec_fp_buf_len << "] ";
-				for (FrameProperties* fp = av_codec_fp_buf; fp < av_codec_fp_buf+av_codec_fp_buf_len;fp++) {
+				cout << ":: ADD TO PIPE[" << video_codec_fp_buf_len << "] ";
+				for (FrameProperties* fp = video_codec_fp_buf; fp < video_codec_fp_buf+video_codec_fp_buf_len;fp++) {
 					if (fp->loaded) {
 						cout << " " <<  fp->start;
 					} else {
@@ -600,16 +600,16 @@ void VideoLoader::getFrame(double targetPos, const Dbimg_FORMAT& imageFormat, Db
 				}
 			}
 
-			av_codec_fp_buf_pos++;
+			video_codec_fp_buf_pos++;
 
-			if (av_codec_fp_buf_pos >= av_codec_fp_buf_len) {
-				av_codec_fp_buf_pos = 0;
+			if (video_codec_fp_buf_pos >= video_codec_fp_buf_len) {
+				video_codec_fp_buf_pos = 0;
 			}
 
 			av_packet_unref(av_packet);
 
 
-			response = avcodec_receive_frame(av_codec_ctx, av_frame);
+			response = avcodec_receive_frame(video_codec_ctx, video_frame);
 
 
 			if (response == AVERROR(EAGAIN)) {
@@ -628,12 +628,12 @@ void VideoLoader::getFrame(double targetPos, const Dbimg_FORMAT& imageFormat, Db
 				throw runtime_error(msgExcept);
 			}
 
-			double packetStart = av_frame->pts*video_base_time;
+			double packetStart = video_frame->pts*video_base_time;
 
 			FrameProperties* currFP = NULL;
-			for (int i = 0; i < av_codec_fp_buf_len; i++) {
-				if ( (av_codec_fp_buf[i].loaded) && av_codec_fp_buf[i].start == packetStart) {
-					currFP = av_codec_fp_buf+i;
+			for (int i = 0; i < video_codec_fp_buf_len; i++) {
+				if ( (video_codec_fp_buf[i].loaded) && video_codec_fp_buf[i].start == packetStart) {
+					currFP = video_codec_fp_buf+i;
 					break;
 				}
 			}
@@ -654,7 +654,7 @@ void VideoLoader::getFrame(double targetPos, const Dbimg_FORMAT& imageFormat, Db
 				continue;
 			}
 
-			cout << "pkt_duration " << av_frame->pkt_duration << " pkt_pos " << av_frame->pkt_pos << " pkt_dts " << av_frame->pkt_dts << endl;
+			cout << "pkt_duration " << video_frame->pkt_duration << " pkt_pos " << video_frame->pkt_pos << " pkt_dts " << video_frame->pkt_dts << endl;
 
 			cout << "ld " << currFP->loaded << " start " << currFP->start << " dur " << currFP->duration << endl;
 
@@ -670,21 +670,21 @@ void VideoLoader::getFrame(double targetPos, const Dbimg_FORMAT& imageFormat, Db
 	}
 
 	int32_t rWidth, rHeight;
-	if (width < 0) {
-		if (height < 0) {
-			rWidth = av_frame->width;
-			rHeight = av_frame->height;
+	if (video_width < 0) {
+		if (video_height < 0) {
+			rWidth = video_frame->width;
+			rHeight = video_frame->height;
 		} else {
-			rWidth = height*( static_cast<double>(av_frame->width)/av_frame->height );
-			rHeight = height;
+			rWidth = video_height*( static_cast<double>(video_frame->width)/video_frame->height );
+			rHeight = video_height;
 		}
 	} else {
-		if (height < 0) {
-			rWidth = width;
-			rHeight = width*( static_cast<double>(av_frame->height)/av_frame->width );
+		if (video_height < 0) {
+			rWidth = video_width;
+			rHeight = video_width*( static_cast<double>(video_frame->height)/video_frame->width );
 		} else {
-			rWidth = width;
-			rHeight = height;
+			rWidth = video_width;
+			rHeight = video_height;
 		}
 	}
 
@@ -708,7 +708,7 @@ void VideoLoader::getFrame(double targetPos, const Dbimg_FORMAT& imageFormat, Db
 	// 	cerr << " QESTIONABLE FRAME SIZE: " << av_frame->width << "x" << av_frame->height << endl;
 	// }
 
-	sws_scaler_ctx = sws_getContext(av_frame->width, av_frame->height, av_codec_ctx->pix_fmt,
+	sws_scaler_ctx = sws_getContext(video_frame->width, video_frame->height, video_codec_ctx->pix_fmt,
 									rWidth, rHeight, AV_PIX_FMT_RGB0,
 									SWS_FAST_BILINEAR, NULL, NULL, NULL);
 	if (!sws_scaler_ctx) {
@@ -717,7 +717,7 @@ void VideoLoader::getFrame(double targetPos, const Dbimg_FORMAT& imageFormat, Db
 
 	uint8_t* dst[4] = {(*outImageFrame)->getImageData(), NULL, NULL, NULL};
 	int dest_linesize[4] = { rWidth*4, 0, 0, 0 };
-	sws_scale(sws_scaler_ctx, av_frame->data, av_frame->linesize, 0, av_frame->height, dst, dest_linesize);
+	sws_scale(sws_scaler_ctx, video_frame->data, video_frame->linesize, 0, video_frame->height, dst, dest_linesize);
 
 	end = std::chrono::steady_clock::now();
 	std::cout << "    Scale Time = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
@@ -739,7 +739,7 @@ void VideoLoader::debugPackets() {
 	// 	throw runtime_error("NO BYTE SEEK!"); // yes we appearently cant seek by bytes here
 	// }
 
-	int dtsOffset = av_codec_video_delay/video_base_time/video_framees_per_second;
+	int dtsOffset = video_codec_delay/video_base_time/video_framees_per_second;
 	cout << "DTS-OFF " << dtsOffset << endl;
 	while (true) {
 
@@ -747,7 +747,7 @@ void VideoLoader::debugPackets() {
 		if (nextFrameStat == AVERROR_EOF) {
 			cout << "ENTER DRAIN!" << endl;
 			draining = true;
-			nextFrameStat = avcodec_send_packet(av_codec_ctx, NULL);
+			nextFrameStat = avcodec_send_packet(video_codec_ctx, NULL);
 		}
 		if (nextFrameStat < 0) {
 			char errStr[100];
@@ -760,17 +760,17 @@ void VideoLoader::debugPackets() {
 		}
 		int response;
         if (av_packet->stream_index == audio_stream_index) {
-            response = avcodec_send_packet(av_audio_codec_ctx, av_packet);
-            response = avcodec_receive_frame(av_audio_codec_ctx, av_audio_frame);
+            response = avcodec_send_packet(audio_codec_ctx, av_packet);
+            response = avcodec_receive_frame(audio_codec_ctx, audio_frame);
             if(response == AVERROR(EAGAIN)) {
                 continue;
             }
             size_t size = 4;
-            uint8_t * l = av_audio_frame->extended_data[0];
-            uint8_t * r = av_audio_frame->extended_data[1];
-            for (int i = 0; i < av_audio_frame->linesize[0] /8; i += 1) {
-                stream->write(reinterpret_cast<const char *>(l), size);
-                stream->write(reinterpret_cast<const char *>(r), size);
+            uint8_t * l = audio_frame->extended_data[0];
+            uint8_t * r = audio_frame->extended_data[1];
+            for (int i = 0; i < audio_frame->linesize[0] /8; i += 1) {
+                audio_out_stream->write(reinterpret_cast<const char *>(l), size);
+                audio_out_stream->write(reinterpret_cast<const char *>(r), size);
                 l += size;
                 r += size;
             }
@@ -829,9 +829,9 @@ void VideoLoader::video_decode_example() {
 
 	//av_seek_frame(av_format_ctx, -1, 0, 0);
 
-    // auto stream = av_format_ctx->streams[video_stream_index];
+    // auto audio_out_stream = av_format_ctx->streams[video_stream_index];
     // avio_seek(av_format_ctx->pb, 0, SEEK_SET);
-    // avformat_seek_file(av_format_ctx, video_stream_index, 0, 0, stream->duration, 0);
+    // avformat_seek_file(av_format_ctx, video_stream_index, 0, 0, audio_out_stream->duration, 0);
 
 	int totalFrames = total_duration*50;
 	for (int i = 0; i < 100; i++) {

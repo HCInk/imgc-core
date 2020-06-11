@@ -42,51 +42,57 @@ public:
 	};
 
 private:
+
+	// Input/Reading
+	
+	const size_t alloc_buf_len = 32 * 1024;
+
 	torasu::Renderable* source;
 	AVFormatContext* av_format_ctx;
 	bool input_laoded = false;
-
-	int video_stream_index = -1;
-	int audio_stream_index = -1;
-	int width, height;
-	AVCodecContext* av_codec_ctx = NULL;
-	AVCodec* av_codec = NULL;
-	AVCodecParameters* av_codec_params = NULL;
-	int av_codec_video_delay;
-
-    AVCodecParameters* av_audio_coded_params = NULL;
-    AVCodec* av_audio_codec = NULL;
-    AVCodecContext* av_audio_codec_ctx = NULL;
-    int32_t audio_sample_rate;
-    int32_t audio_frame_size;
-
-	VideoLoader::FrameProperties* av_codec_fp_buf = NULL;
-	int av_codec_fp_buf_len;
-	int av_codec_fp_buf_pos;
-	
-	SwsContext* sws_scaler_ctx = NULL;
-	
-	double video_framees_per_second;
-	double video_base_time;
-
-	FrameProperties current_fp;
-	AVFrame* av_frame = NULL;
-    AVFrame* av_audio_frame = NULL;
-
-    AVPacket* av_packet = NULL;
-
-    std::ofstream* stream;
-
-
     bool loaded = false;
 
-	const size_t alloc_buf_len = 32 * 1024;
+    AVPacket* av_packet = NULL;
 
 	VideoLoader::FileReader in_stream;
 	torasu::RenderResult* sourceFetchResult = NULL;
 
 	int64_t lastReadDts = INT64_MIN;
 	bool draining = false;
+
+	// Video Data
+
+	int video_stream_index = -1;
+	int video_width, video_height;
+	AVCodec* video_codec = NULL;
+	AVCodecContext* video_codec_ctx = NULL;
+	AVCodecParameters* video_codec_params = NULL;
+	int video_codec_delay;
+	
+	SwsContext* sws_scaler_ctx = NULL;
+	double video_framees_per_second;
+	double video_base_time;
+
+	AVFrame* video_frame = NULL;
+
+	FrameProperties current_fp;
+	VideoLoader::FrameProperties* video_codec_fp_buf = NULL;
+	int video_codec_fp_buf_len;
+	int video_codec_fp_buf_pos;
+
+	// Audio Data
+
+	int audio_stream_index = -1;
+    AVCodec* audio_codec = NULL;
+    AVCodecContext* audio_codec_ctx = NULL;
+    AVCodecParameters* audio_codec_params = NULL;
+    int32_t audio_sample_rate;
+    int32_t audio_frame_size;
+
+    AVFrame* audio_frame = NULL;
+
+    std::ofstream* audio_out_stream;
+
 
 	void nextPacket();
 	void getFrame(double targetPos, const torasu::tstd::Dbimg_FORMAT& imageFormat, torasu::tstd::Dbimg** outImageFrame);
