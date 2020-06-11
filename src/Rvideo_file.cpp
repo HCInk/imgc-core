@@ -98,14 +98,25 @@ VideoLoader::~VideoLoader() {
 	if (sws_scaler_ctx != NULL) {
 		sws_freeContext(sws_scaler_ctx);
 	}
+
 	if (av_frame != NULL) {
 		av_frame_free(&av_frame);
 	}
+
+	if (av_audio_frame != NULL) {
+		av_frame_free(&av_audio_frame);
+	}
+
 	if (av_packet != NULL) {
 		av_packet_free(&av_packet);
 	}
+
 	if (av_codec_ctx != NULL) {
 		avcodec_free_context(&av_codec_ctx);
+	}
+	
+	if (av_audio_codec_ctx != NULL) {
+		avcodec_free_context(&av_audio_codec_ctx);
 	}
 
 	if (av_codec_fp_buf != NULL) {
@@ -117,7 +128,7 @@ VideoLoader::~VideoLoader() {
 	}
 
 	stream->close();
-    delete [] stream;
+    delete stream;
 	avformat_free_context(av_format_ctx);
 
 	if (sourceFetchResult != NULL) {
@@ -480,6 +491,9 @@ Dbimg* VideoLoader::getFrame(double targetPos, int32_t width, int32_t height) {
 				    if(av_packet->stream_index == audio_stream_index) {
                         response = avcodec_send_packet(av_audio_codec_ctx, av_packet);
                         response = avcodec_receive_frame(av_audio_codec_ctx, av_audio_frame);
+						
+						av_packet_unref(av_packet);
+
                         if(response == AVERROR(EAGAIN)) {
                             continue;
                         }
@@ -492,6 +506,7 @@ Dbimg* VideoLoader::getFrame(double targetPos, int32_t width, int32_t height) {
                             l += size;
                             r += size;
                         }
+						
                         continue;
 				    } else {
                         // cout << "SKIP PACKET FROM OTHER STREAM " << av_packet->stream_index << " != " << video_stream_index << endl;

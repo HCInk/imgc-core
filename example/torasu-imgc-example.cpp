@@ -223,7 +223,7 @@ void anotherIMGCTest() {
 	
 	// Tree building
 
-	Rnet_file file("https://coubsecure-s.akamaihd.net/get/b207/p/coub/simple/cw_file/4380b2a069e/a65a195473fcc2fc93530/muted_mp4_huge_size_1567749208_muted_huge.mp4");
+	Rnet_file file("https://cdn.discordapp.com/attachments/598323767202152458/666010465809465410/8807502_Bender_and_penguins.mp4");
 	// Rnet_file file("https://cdn.discordapp.com/attachments/598323767202152458/666010465809465410/8807502_Bender_and_penguins.mp4");
 	// Rlocal_file file("/home/cedric/git/imgc/test-res/in.mp4");
 	imgc::VideoLoader tree(&file);
@@ -280,7 +280,7 @@ void anotherIMGCTest() {
 
 			unsigned error = lodepng::encode(out_name.str(), bimg->getImageData(), width, height);
 			if (error) {
-				cerr << "ENCODE STAT[" << i << "] " << error << endl;
+				cerr << "ENCODE STAT[" << i << "] " << lodepng_error_text(error) << endl;
 			}
 		}
 
