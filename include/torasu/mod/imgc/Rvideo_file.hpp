@@ -57,7 +57,9 @@ private:
 	VideoLoader::FileReader in_stream;
 	torasu::RenderResult* sourceFetchResult = NULL;
 
-	int64_t lastReadDts = INT64_MIN;
+    int64_t lastReadDts = INT64_MIN;
+    int64_t lastReadPackPos = INT64_MIN;
+
 	bool draining = false;
 
 	// Video Data

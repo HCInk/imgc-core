@@ -8,6 +8,7 @@
 #include <torasu/std/Dbimg.hpp>
 #include <torasu/std/Dnum.hpp>
 #include <torasu/std/Rnet_file.hpp>
+#include <torasu/std/Rlocal_file.hpp>
 #include <torasu/mod/imgc/Rvideo_file.hpp>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
@@ -18,8 +19,8 @@ using namespace torasu;
 using namespace torasu::tstd;
 using namespace imgc;
 
-constexpr int w = 1600;
-constexpr int h = 900;
+constexpr int w = 1280;
+constexpr int h = 720;
 constexpr int frameRate = 25;
 
 void avTest() {
@@ -63,7 +64,7 @@ void avTest() {
                 uint8_t *d = bimg->getImageData();
 
                 frames.push_back(d);
-            }else {
+            } else {
                 break;
             }
 
@@ -155,15 +156,16 @@ void avTest() {
 int main() {
     avTest();
 
-  // AUDIO SORTING DEBUG TEST
-//    EIcore_runner *runner = new EIcore_runner();
-//    ExecutionInterface *ei = runner->createInterface();
+   //AUDIO SORTING DEBUG TEST;
+/*    EIcore_runner *runner = new EIcore_runner();
+    ExecutionInterface *ei = runner->createInterface();
 //    Rnet_file file(
-//            "https://cdn.discordapp.com/attachments/598323767202152458/719988881700945920/110038564_What_You_Want_Ilkay_Sencan.mp4");
-//    imgc::VideoLoader tree(&file);
-//
-//    tree.load(ei);
-//    tree.debugPackets();
+//            "https://cdn.discordapp.com/attachments/609022154213949461/717606443586682889/143386147_Superstar_W.mp4");
+    auto file = Rlocal_file("/Users/liz3/Desktop/Just Pedro - Belong-ZhPxnB9hJE8.mkv");
+    imgc::VideoLoader tree(&file);
+
+    tree.load(ei);
+    tree.debugPackets();*/
 
     return 0;
 }

@@ -3,9 +3,9 @@
 #include <iostream>
 #include <cmath>
 #ifdef __APPLE__
-#include "../thirdparty/lodepng.h"
+	#include "../thirdparty/lodepng.h"
 #else
-#include <lodepng.h>
+	#include <lodepng.h>
 #endif
 
 #include <torasu/torasu.hpp>
@@ -23,7 +23,7 @@ namespace imgc {
 
 Rimg_file::Rimg_file(Renderable* file)
 	: SimpleRenderable("STD::RIMG_FILE", false, true),
-	resHandle(rib.addSegmentWithHandle<Dfile>(TORASU_STD_PL_FILE, NULL)) {
+	  resHandle(rib.addSegmentWithHandle<Dfile>(TORASU_STD_PL_FILE, NULL)) {
 	this->rfile = file;
 }
 
@@ -65,7 +65,7 @@ ResultSegment* Rimg_file::renderSegment(ResultSegmentSettings* resSettings, Rend
 
 			vector<uint8_t> loadedImage;
 			uint32_t srcWidth, srcHeight;
-			
+
 			uint32_t error = lodepng::decode(loadedImage, srcWidth, srcHeight, file->getFileData(), file->getFileSize());
 
 			delete fileRenderResult;
@@ -133,7 +133,7 @@ ResultSegment* Rimg_file::renderSegment(ResultSegmentSettings* resSettings, Rend
 
 						for (int32_t c = 0; c < channels; c++) {
 							resData[i] =  ( (*addrA)*fXi + (*addrB)*fX ) * fYi
-									+ ( (*addrC)*fXi + (*addrD)*fX ) * fY;
+										  + ( (*addrC)*fXi + (*addrD)*fX ) * fY;
 
 							addrA++;
 							addrB++;
