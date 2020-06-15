@@ -13,6 +13,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 #include <thread>
+#include "../src/VideoFileDeserializer.hpp"
 
 using namespace std;
 using namespace torasu;
@@ -154,9 +155,44 @@ void avTest() {
 }
 
 int main() {
-    avTest();
+    //   avTest();
+    VideoFileDeserializer des;
+    auto result = des.getSegment(0, 0.05);
+    auto result2 = des.getSegment(0.26, 0.30);
+    for (int i = 0; i < result->vidFrames.size(); ++i) {
+        auto curr = result->vidFrames[i];
+        unsigned error = lodepng::encode(std::string("test_files/") + "out" + std::to_string(i) + ".png",
+                                         curr.data, result->frameWidth, result->frameHeight);
 
-   //AUDIO SORTING DEBUG TEST;
+    }
+    for (int i = 0; i < result2->vidFrames.size(); ++i) {
+        auto curr = result2->vidFrames[i];
+        unsigned error = lodepng::encode(std::string("test_files/") + "outb" + std::to_string(i) + ".png",
+                                         curr.data, result2->frameWidth, result2->frameHeight);
+
+    }
+//    des.getFrame(3);
+//    des.getFrame(0.04);
+//(targetPosition - lastPos) > ( (1.0 / getEntryById(vid_stream_id - 1)->vid_fps)) || (targetPosition - lastPos) < -( (1.0 / getEntryById(vid_stream_id - 1)->vid_fps))
+//    des.getFrame(3);
+//    des.getFrame(0.18);
+//    des.getFrame(2.4);
+//    des.getFrame(2.44);
+//    des.getFrame(2.48);
+//
+//    //des.getFrame(6.34);
+//
+//
+//    float start = 0.00;
+//    for (int i = 0; i < 40; ++i) {
+//        des.getFrame(start);
+//        start += 0.04;
+//    }
+
+
+
+
+    //AUDIO SORTING DEBUG TEST;
 /*    EIcore_runner *runner = new EIcore_runner();
     ExecutionInterface *ei = runner->createInterface();
 //    Rnet_file file(
