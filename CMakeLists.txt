@@ -11,11 +11,14 @@ endif ()
 if (APPLE)
     set(IMGC_SRC
             ${CMAKE_CURRENT_LIST_DIR}/src/Rimg_file.cpp
-            ${CMAKE_CURRENT_LIST_DIR}/src/Rvideo_file.cpp thirdparty/lodepng.cpp thirdparty/lodepng.h src/VideoFileDeserializer.cpp src/VideoFileDeserializer.hpp)
+            ${CMAKE_CURRENT_LIST_DIR}/src/Rvideo_file.cpp 
+            ${CMAKE_CURRENT_LIST_DIR}/thirdparty/lodepng.cpp 
+            ${CMAKE_CURRENT_LIST_DIR}/src/VideoFileDeserializer.cpp)
 else ()
     set(IMGC_SRC
             ${CMAKE_CURRENT_LIST_DIR}/src/Rimg_file.cpp
-            ${CMAKE_CURRENT_LIST_DIR}/src/Rvideo_file.cpp)
+            ${CMAKE_CURRENT_LIST_DIR}/src/Rvideo_file.cpp
+            ${CMAKE_CURRENT_LIST_DIR}/src/VideoFileDeserializer.cpp)
 endif ()
 add_library(imgc SHARED ${IMGC_SRC})
 if (IMGC_SDL_EXAMPLE)
