@@ -157,20 +157,39 @@ void avTest() {
 int main() {
     //   avTest();
     VideoFileDeserializer des;
-    auto result = des.getSegment(0, 0.05);
-    auto result2 = des.getSegment(0.26, 0.30);
+    auto wtf = des.streams[0]->duration * av_q2d(des.streams[0]->base_time);
+    auto result = des.getSegment(0, wtf);
+
+  //  auto result2 = des.getSegment(0.04, 0.12);
+    ofstream out("out.pcm");
+    for (int j = 0; j < result->audioParts.size(); ++j) {
+        auto part = result->audioParts[j];
+        size_t size = 4;
+        uint8_t *l = part.data[0];
+        uint8_t *r = part.data[1];
+
+        for (int i = 0; i < part.numSamples; i++) {
+            out.write(reinterpret_cast<const char *>(l), size);
+            out.write(reinterpret_cast<const char *>(r), size);
+            l += size;
+            r += size;
+        }
+
+    }
+    out.close();
     for (int i = 0; i < result->vidFrames.size(); ++i) {
         auto curr = result->vidFrames[i];
         unsigned error = lodepng::encode(std::string("test_files/") + "out" + std::to_string(i) + ".png",
                                          curr.data, result->frameWidth, result->frameHeight);
 
     }
-    for (int i = 0; i < result2->vidFrames.size(); ++i) {
-        auto curr = result2->vidFrames[i];
-        unsigned error = lodepng::encode(std::string("test_files/") + "outb" + std::to_string(i) + ".png",
-                                         curr.data, result2->frameWidth, result2->frameHeight);
 
-    }
+//    for (int i = 0; i < result2->vidFrames.size(); ++i) {
+//        auto curr = result2->vidFrames[i];
+//        unsigned error = lodepng::encode(std::string("test_files/") + "outb" + std::to_string(i) + ".png",
+//                                         curr.data, result2->frameWidth, result2->frameHeight);
+//
+//    }
 //    des.getFrame(3);
 //    des.getFrame(0.04);
 //(targetPosition - lastPos) > ( (1.0 / getEntryById(vid_stream_id - 1)->vid_fps)) || (targetPosition - lastPos) < -( (1.0 / getEntryById(vid_stream_id - 1)->vid_fps))

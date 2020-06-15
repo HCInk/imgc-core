@@ -65,8 +65,9 @@ namespace {
 }
 
 VideoFileDeserializer::VideoFileDeserializer() {
-    // ifstream is = ifstream("/Users/liz3/Desktop/143386147_Superstar_W.mp4");
-    ifstream is = ifstream("/home/cedric/Downloads/143386147_Superstar_W.mp4");
+     ifstream is = ifstream("/Users/liz3/Desktop/143386147_Superstar_W.mp4");
+  //   ifstream is = ifstream("/Users/liz3/Desktop/8807502_Bender_and_penguins.mp4");
+   // ifstream is = ifstream("/home/cedric/Downloads/143386147_Superstar_W.mp4");
     is.seekg(0, is.end);
     size_t length = is.tellg();
     is.seekg(0, is.beg);
@@ -80,7 +81,6 @@ VideoFileDeserializer::VideoFileDeserializer() {
 }
 
 void VideoFileDeserializer::prepare() {
-    drainingIndex = -1;
     uint8_t *alloc_buf = (uint8_t *) av_malloc(32 * 1024);
     av_format_ctx = avformat_alloc_context();
     if (!av_format_ctx) {
@@ -113,6 +113,7 @@ void VideoFileDeserializer::prepare() {
         entry->ctx = avcodec_alloc_context3(entry->codec);
         entry->ctx_params = stream->codecpar;
         entry->base_time = stream->time_base;
+        entry->duration = stream->duration;
 
         if (stream->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
             if (!entry->codec) {
@@ -163,6 +164,8 @@ VideoFileDeserializer::~VideoFileDeserializer() {
 
 void VideoFileDeserializer::flushBuffers(StreamEntry *entry) {
     avcodec_flush_buffers(entry->ctx);
+    entry->cachedFrames.clear();
+    entry->flushCount = 0;
 
 }
 
@@ -236,9 +239,12 @@ int64_t VideoFileDeserializer::toBaseTime(double value, AVRational base) {
     return round((value * base.den) / base.num);
 }
 
-DecodingState * VideoFileDeserializer::getSegment(double start, double end) {
-    DecodingState* decodingState = new DecodingState();
-    
+DecodingState *VideoFileDeserializer::getSegment(double start, double end) {
+
+
+
+    DecodingState *decodingState = new DecodingState();
+
     decodingState->requestStart = start;
     decodingState->requestEnd = end;
 
@@ -246,10 +252,7 @@ DecodingState * VideoFileDeserializer::getSegment(double start, double end) {
     decodingState->frameWidth = vidStream->ctx->width;
     decodingState->frameHeight = vidStream->ctx->height;
 
-    int64_t targetPosition = toBaseTime(start, vidStream->base_time);
-    int64_t targetPositionEnd = toBaseTime(end, vidStream->base_time);
-
-    // fetchBuffered(decodingState); // TODO Needs approval
+    fetchBuffered(decodingState); // TODO Needs approval
 
     initializePosition(decodingState);
 
@@ -261,41 +264,18 @@ DecodingState * VideoFileDeserializer::getSegment(double start, double end) {
         av_packet_unref(av_packet);
         int nextFrameStat = av_read_frame(av_format_ctx, av_packet);
         auto stream = getEntryById(av_packet->stream_index);
-
-        if (draining) {
-            loopCount++;
-
-            int response = avcodec_receive_frame(stream->ctx, stream->frame);
-            if (response == AVERROR(EAGAIN)) {
-                continue;
-            }
-            if (response == AVERROR_EOF) {
-                break;
-            }
-
-            if (response != 0) {
-                flushBuffers(stream);
-                drainingIndex = -1;
-                draining = false;
-            }
-            removeCacheFrame(stream->frame->pkt_pos, &stream->cachedFrames);
-            handleFrame(stream, decodingState);
-            continue;
-        }
         if (nextFrameStat == AVERROR_EOF) {
-            if (draining) break;
-            std::cout << "entering drain\n";
-            draining = true;
-            drainingIndex = stream->id;
-            nextFrameStat = avcodec_send_packet(stream->ctx, NULL);
-            if (nextFrameStat < 0) {
-                break;
+            for(int i = 0; i < streams.size(); i++) {
+              drainStream(streams[i], decodingState);
             }
-            continue;
+            break;
         }
         int response = avcodec_send_packet(stream->ctx, av_packet);
         if (response == AVERROR(EAGAIN)) {
             continue;
+        }
+        if(response == AVERROR(ENOMEM)){
+          throw runtime_error("Send packet returned ENOMEM");
         }
         auto fr = BufferedFrame{av_packet->pts, av_packet->pos};
         stream->cachedFrames.push_back(fr);
@@ -327,7 +307,7 @@ bool VideoFileDeserializer::checkFrameTargetBound(AVFrame *frame, int64_t start,
         if (frame->pts >= start) {
             return true;
         } else {
-            if (frame->pts+frame->pkt_duration > start) {
+            if (frame->pts + frame->pkt_duration > start) {
                 return true;
             } else {
                 return false;
@@ -336,11 +316,10 @@ bool VideoFileDeserializer::checkFrameTargetBound(AVFrame *frame, int64_t start,
     } else {
         return false;
     }
-    //    return (frame->pts + frame->pkt_duration) > start &&
-//           (end + frame->pkt_duration) >= frame->pts;
+
 }
 
-void VideoFileDeserializer::handleFrame(StreamEntry* stream, DecodingState* decodingState) {
+void VideoFileDeserializer::handleFrame(StreamEntry *stream, DecodingState *decodingState) {
 
     int64_t targetPosition = toBaseTime(decodingState->requestStart, stream->base_time);
     int64_t targetPositionEnd = toBaseTime(decodingState->requestEnd, stream->base_time);
@@ -354,10 +333,11 @@ void VideoFileDeserializer::handleFrame(StreamEntry* stream, DecodingState* deco
             int32_t rHeight = stream->frame->height;
             uint32_t frameSize = rWidth * rHeight * 4;
 
-            auto* target = new uint8_t [rWidth * rHeight * 4];
+            auto *target = new uint8_t[rWidth * rHeight * 4];
             extractVideoFrame(stream, target);
 
-            auto frame = VideoFrame{stream->frame->pts, stream->frame->pts + stream->frame->pkt_duration,frameSize,target};
+            auto frame = VideoFrame{stream->frame->pts, stream->frame->pts + stream->frame->pkt_duration, frameSize,
+                                    target};
             decodingState->vidFrames.push_back(frame);
 
         } else if (targetPositionEnd < (stream->frame->pts + stream->frame->pkt_duration)) {
@@ -371,10 +351,14 @@ void VideoFileDeserializer::handleFrame(StreamEntry* stream, DecodingState* deco
             auto frameDuration = stream->frame->pkt_duration;
             std::cout << "[AUDIO-FRAME] OFFSET " << frameOffset << " DURATION " << frameDuration << std::endl;
             std::vector<uint8_t *> data;
+            size_t memSize = stream->frame->nb_samples * 4;
             for (int i = 0; i < stream->frame->channels; ++i) {
-                data.push_back(stream->frame->extended_data[i]);
+                uint8_t * cp = new uint8_t[memSize];
+                std::copy(stream->frame->extended_data[i], stream->frame->extended_data[i]+memSize, cp);
+                data.push_back(cp);
             }
-            auto part = AudioFrame{stream->frame->pts, stream->frame->pts + stream->frame->pkt_duration, stream->frame->nb_samples * 4, data};
+            auto part = AudioFrame{stream->frame->pts, stream->frame->pts + stream->frame->pkt_duration,
+                                   stream->frame->nb_samples, stream->frame->nb_samples * 4, data};
             decodingState->audioParts.push_back(part);
         } else if (targetPositionEnd < (stream->frame->pts + stream->frame->pkt_duration)) {
             decodingState->audioPresent = true;
@@ -382,36 +366,37 @@ void VideoFileDeserializer::handleFrame(StreamEntry* stream, DecodingState* deco
     }
 }
 
-void VideoFileDeserializer::fetchBuffered(DecodingState* decodingState) {
+void VideoFileDeserializer::fetchBuffered(DecodingState *decodingState) {
 
     auto vidStream = getEntryById(vid_stream_id - 1);
     int64_t targetPosition = toBaseTime(decodingState->requestStart, vidStream->base_time);
     int64_t targetPositionEnd = toBaseTime(decodingState->requestEnd, vidStream->base_time);
 
-    if (vidStream->frameIsPresent) {
-       auto frameStart = vidStream->frame->pts;
-       auto frameEnd = vidStream->frame->pts+vidStream->frame->pkt_duration;
-       if (frameStart <= targetPosition && frameEnd >= targetPositionEnd) {
+    if (!vidStream->frameIsPresent) return;
 
-            int32_t rWidth = vidStream->frame->width;
-            int32_t rHeight = vidStream->frame->height;
-            uint32_t frameSize = rWidth * rHeight * 4;
+    auto frameStart = vidStream->frame->pts;
+    auto frameEnd = vidStream->frame->pts + vidStream->frame->pkt_duration;
+    if (frameStart <= targetPosition && frameEnd >= targetPositionEnd) {
 
-            auto* target = new uint8_t [rWidth * rHeight * 4];
-            extractVideoFrame(vidStream, target);
+        int32_t rWidth = vidStream->frame->width;
+        int32_t rHeight = vidStream->frame->height;
+        uint32_t frameSize = rWidth * rHeight * 4;
 
-            auto frame = VideoFrame{frameStart, frameEnd, frameSize, target};
-            decodingState->vidFrames.push_back(frame);
-            decodingState->videoPresent = true;
-            return;
-       }
-   }
+        auto *target = new uint8_t[rWidth * rHeight * 4];
+        extractVideoFrame(vidStream, target);
+
+        auto frame = VideoFrame{frameStart, frameEnd, frameSize, target};
+        decodingState->vidFrames.push_back(frame);
+        decodingState->videoPresent = true;
+        return;
+    }
+
 
 }
 
 
-void VideoFileDeserializer::initializePosition(DecodingState* decodingState) {
-    
+void VideoFileDeserializer::initializePosition(DecodingState *decodingState) {
+
     // FIXME Do proper seeking
 
     auto vidStream = getEntryById(vid_stream_id - 1);
@@ -423,10 +408,31 @@ void VideoFileDeserializer::initializePosition(DecodingState* decodingState) {
         (targetPosition - lastPos) == 0) {
         av_seek_frame(av_format_ctx, -1, decodingState->requestStart * AV_TIME_BASE,
                       AVSEEK_FLAG_BACKWARD); //Assuming the -1 includes all streams
-        for (int i = 0; i < streams.size(); ++i) {
-            streams[i]->flushCount = streams[i]->vid_delay;
+        for (auto & stream : streams) {
+          stream->flushCount = stream->cachedFrames.size();
         }
     }
-
 }
 
+
+void VideoFileDeserializer::drainStream(StreamEntry* stream, DecodingState* decodingState) {
+  int drainingRequest = avcodec_send_packet(stream->ctx, NULL);
+  if(drainingRequest != 0) return;
+  stream->draining = true;
+  while(true) {
+    int response = avcodec_receive_frame(stream->ctx, stream->frame);
+    if (response == AVERROR(EAGAIN))
+      continue;
+
+    if (response == AVERROR_EOF)
+      break;
+
+    if (response != 0)
+      throw runtime_error("non 0 response code from receive frame while draining");
+
+    removeCacheFrame(stream->frame->pkt_pos, &stream->cachedFrames);
+    handleFrame(stream, decodingState);
+  }
+  flushBuffers(stream);
+  stream->draining = false;
+}

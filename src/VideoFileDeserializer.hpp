@@ -20,6 +20,7 @@ extern "C" {
 struct AudioFrame {
     int64_t start;
     int64_t end;
+    int numSamples;
     int size;
     std::vector<uint8_t*> data;
 };
@@ -62,7 +63,8 @@ struct StreamEntry {
     int vid_delay = 0;
     AVRational vid_fps;
     int flushCount = 0;
-
+    int64_t duration;
+    bool draining = false;
 };
 class VideoFileDeserializer {
 public:
@@ -72,10 +74,10 @@ public:
         size_t size;
         size_t pos;
     };
+    std::vector<StreamEntry*> streams;
 private:
     FileReader in_stream;
     void prepare();
-    std::vector<StreamEntry*> streams;
     AVFormatContext* av_format_ctx;
 
     int vid_stream_id = -1;
@@ -84,8 +86,7 @@ private:
     double decoderPosition = -1;
     SwsContext* sws_scaler_ctx = nullptr;
 
-    bool draining = false;
-    int drainingIndex;
+
     AVPacket* av_packet;
     StreamEntry* getEntryById(int index);
     void removeCacheFrame(int64_t pos, std::vector<BufferedFrame>* list);
@@ -125,11 +126,11 @@ private:
      * @param  decodingState: The current DecodingState to be updated
      */
     void initializePosition(DecodingState* decodingState);
-
+    void flushBuffers(StreamEntry* stream);
+    void drainStream(StreamEntry* stream, DecodingState* decodingState);
 public:
 
     VideoFileDeserializer();
-    void flushBuffers(StreamEntry* entry);
     DecodingState * getSegment(double start, double end);
 
 };
