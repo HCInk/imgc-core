@@ -126,8 +126,23 @@ private:
      * @param  decodingState: The current DecodingState to be updated
      */
     void initializePosition(DecodingState* decodingState);
+    /**
+     * @brief Flushes buffers of stream to be reused after drain
+     * @param stream The stream to be flushed
+     */
     void flushBuffers(StreamEntry* stream);
+    /**
+     * @brief Drain a stream
+     * @param stream The stream to be drained
+     * @param decodingState The current DecodingState to be updated
+     */
     void drainStream(StreamEntry* stream, DecodingState* decodingState);
+    /**
+     * @brief Concatenates audio into one single frame, matching the requested size
+     * @param decodingState The current DecodingState to be updated
+     */
+    void concatAudio(DecodingState* decodingState);
+
 public:
 
     VideoFileDeserializer();

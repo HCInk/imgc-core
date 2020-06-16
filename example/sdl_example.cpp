@@ -158,7 +158,7 @@ int main() {
     //   avTest();
     VideoFileDeserializer des;
     auto wtf = des.streams[0]->duration * av_q2d(des.streams[0]->base_time);
-    auto result = des.getSegment(0, wtf);
+    auto result = des.getSegment(0.05, 3);
 
   //  auto result2 = des.getSegment(0.04, 0.12);
     ofstream out("out.pcm");

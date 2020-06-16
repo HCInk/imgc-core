@@ -166,7 +166,6 @@ void VideoFileDeserializer::flushBuffers(StreamEntry *entry) {
     avcodec_flush_buffers(entry->ctx);
     entry->cachedFrames.clear();
     entry->flushCount = 0;
-
 }
 
 StreamEntry *VideoFileDeserializer::getEntryById(int index) {
@@ -241,8 +240,6 @@ int64_t VideoFileDeserializer::toBaseTime(double value, AVRational base) {
 
 DecodingState *VideoFileDeserializer::getSegment(double start, double end) {
 
-
-
     DecodingState *decodingState = new DecodingState();
 
     decodingState->requestStart = start;
@@ -297,6 +294,7 @@ DecodingState *VideoFileDeserializer::getSegment(double start, double end) {
         handleFrame(stream, decodingState);
     }
 
+    concatAudio(decodingState);
     cout << "Decoding of all components done!\n";
     return decodingState;
 }
@@ -435,4 +433,62 @@ void VideoFileDeserializer::drainStream(StreamEntry* stream, DecodingState* deco
   }
   flushBuffers(stream);
   stream->draining = false;
+}
+
+void VideoFileDeserializer::concatAudio(DecodingState *decodingState) {
+    auto audioStream = getEntryById(audio_stream_id-1);
+
+    auto audioCtx = audioStream->ctx;
+    auto audioBaseTime = audioStream->base_time;
+    int channelCount = audioCtx->channels;
+    int sampleRate = audioCtx->sample_rate;
+
+    std::vector<uint8_t*> resultData(channelCount);
+
+    size_t sampleSize = 4;
+
+    // Channel-size in samples
+    int channelSize = sampleRate * (decodingState->requestEnd - decodingState->requestStart);
+    cout << "CP-ALLOC " << channelSize << endl;
+    for (int i = 0; i < channelCount; ++i) {
+        resultData[i] = new uint8_t[channelSize*sampleSize];
+    }
+
+    // Requested start/end in base-time
+    int64_t requestStartBased = toBaseTime(decodingState->requestStart, audioBaseTime);
+    int64_t requestEndBased = toBaseTime(decodingState->requestEnd, audioBaseTime);
+
+    for (AudioFrame& frame : decodingState->audioParts) {
+
+        int64_t copySrcStart, copySrcEnd, copyDestPos;
+
+        copyDestPos = (frame.start-requestStartBased) * audioBaseTime.num*sampleRate/audioBaseTime.den;
+        copySrcEnd = (frame.end - frame.start) * audioBaseTime.num * sampleRate / audioBaseTime.den;
+
+        if (copyDestPos < 0) {
+            // Crop beginning
+            copySrcStart = -copyDestPos;
+            copyDestPos = 0;
+        } else {
+            copySrcStart = 0;
+        }
+
+        int64_t copyOverflow = (copyDestPos + (copySrcEnd-copySrcStart)) - channelSize;
+        if (copyOverflow > 0) {
+            // Crop end
+            copySrcEnd -= copyOverflow;
+        }
+
+        cout << "CP " << copyDestPos << "-" << (copyDestPos+(copySrcEnd-copySrcStart)) << endl;
+
+        for (int i = 0; i < channelCount; ++i) {
+            std::copy(frame.data[i]+(copySrcStart * sampleSize), frame.data[i] + (copySrcEnd * sampleSize), resultData[i] + (copyDestPos * sampleSize) );
+            // TODO free audio data of frames
+        }
+
+    }
+
+    decodingState->audioParts.clear();
+    decodingState->audioParts.push_back((AudioFrame){requestStartBased, requestEndBased, channelSize, (int) (channelSize*sampleSize), resultData});
+
 }
