@@ -47,24 +47,28 @@ struct DecodingState {
 struct BufferedFrame {
   int64_t startTime;
   int64_t pos;
+  int64_t duration;
 };
 
 struct StreamEntry {
     int id;
     AVMediaType codecType;
     AVCodec* codec = nullptr;
-    AVCodecContext * ctx = nullptr;
-    AVCodecParameters * ctx_params = nullptr;
-    AVFrame * frame;
+    AVCodecContext* ctx = nullptr;
+    AVCodecParameters* ctx_params = nullptr;
     AVRational base_time;
-    bool frameIsPresent = false;
-    std::vector<BufferedFrame> cachedFrames;
     //video specific
     int vid_delay = 0;
     AVRational vid_fps;
     int flushCount = 0;
+
+    // Stream-state
+    bool frameIsPresent = false;
+    AVFrame* frame;
+    std::vector<BufferedFrame> cachedFrames;
     int64_t duration;
     bool draining = false;
+    int64_t nextFramePts = -1;
 };
 class VideoFileDeserializer {
 public:
@@ -91,9 +95,7 @@ private:
     StreamEntry* getEntryById(int index);
     void removeCacheFrame(int64_t pos, std::vector<BufferedFrame>* list);
     void extractVideoFrame(StreamEntry* stream, uint8_t* outPt);
-    int32_t* getRealBounds(StreamEntry* stream);
-
-    int64_t lastPos = 0;
+//    int32_t* getRealBounds(StreamEntry* stream);
 
     /**
      * @brief  Converts float time into an base_time-format, by applying the AVStream->base_time

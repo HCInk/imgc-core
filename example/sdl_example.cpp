@@ -160,7 +160,11 @@ int main() {
     auto wtf = des.streams[0]->duration * av_q2d(des.streams[0]->base_time);
     auto result = des.getSegment(0.05, 3);
 
-  //  auto result2 = des.getSegment(0.04, 0.12);
+    auto result2 = des.getSegment(0.04, 0.12);
+    auto result3 = des.getSegment(3.04, 4.08);
+    auto result4 = des.getSegment(4.08, 5);
+    auto result5 = des.getSegment(5.04, 5.33);
+    
     ofstream out("out.pcm");
     for (int j = 0; j < result->audioParts.size(); ++j) {
         auto part = result->audioParts[j];
