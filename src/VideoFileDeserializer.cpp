@@ -406,8 +406,6 @@ void VideoFileDeserializer::fetchBuffered(DecodingState *decodingState) {
 
 void VideoFileDeserializer::initializePosition(DecodingState *decodingState) {
 
-    // FIXME Do proper seeking
-
     auto vidStream = getEntryById(vid_stream_id - 1);
     auto audStream = getEntryById(audio_stream_id - 1);
 
@@ -442,6 +440,8 @@ void VideoFileDeserializer::initializePosition(DecodingState *decodingState) {
     }
 
     cout << "SEEK DECISION VB " << vidSeekBack << " AB " << audSeekBack << " VF " << vidSeekForward << endl;
+
+    // TODO Seek inidividual streams if required
 
     if (vidSeekBack || audSeekBack || vidSeekForward) {
         av_seek_frame(av_format_ctx, -1, decodingState->requestStart * AV_TIME_BASE,
