@@ -18,8 +18,9 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -yq \
 
 
 WORKDIR /build
-ARG build_hash
 RUN git clone https://gitlab.com/HCInk/torasu/torasu-cpp.git
+ARG build_hash
+RUN git pull
 WORKDIR /build/torasu-cpp
 RUN ./setup.sh
 RUN ./build.sh install nosudo
