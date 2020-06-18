@@ -9,10 +9,10 @@ pipeline{
     }
 	stages{
 		stage("Build"){
-			agent { dockerfile {
+			agent dockerfile {
 				filename '.ci/Dockerfiles/Build'
 				args: '-u root'
-				} }
+				}
 			steps{
 				sh 'umask 000'
 				sh "./setup.sh"
