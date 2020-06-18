@@ -58,6 +58,8 @@ endif()
 if(IMGC_TESTS)
     add_executable(imgc-tests ${CMAKE_CURRENT_LIST_DIR}/tests/extraction.cpp)
     target_link_libraries(imgc-tests torasu torasustd imgc avcodec avformat swscale avutil)
+    set_target_properties(imgc-tests PROPERTIES LINK_FLAGS "-Wl,-rpath,/usr/local/lib")
+
 
 endif()
 include_directories(${CMAKE_CURRENT_LIST_DIR}/include)
