@@ -8,11 +8,10 @@ fi
 
 cd torasu-cpp
 ./setup.sh
-./build.sh install
+./build.sh install nosudo
 
 cd ..
 
 cd ../../
-
 
 git submodule update --init

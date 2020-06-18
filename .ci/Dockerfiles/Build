@@ -9,8 +9,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -yq \
     make \
     nlohmann-json3-dev \
 	libcurl4-openssl-dev \
-	git \
-	sudo
+	git
 
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -yq \
 	libavcodec-dev \
