@@ -1,5 +1,5 @@
 #include <iostream>
-#include <../thirdparty/lodepng.h>
+#include <lodepng.h>
 #include <torasu/torasu.hpp>
 #include <torasu/render_tools.hpp>
 #include <torasu/std/pipeline_names.hpp>

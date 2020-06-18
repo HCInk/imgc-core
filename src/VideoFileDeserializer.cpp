@@ -9,7 +9,7 @@
 #include <iostream>
 #include <math.h>
 #include "VideoFileDeserializer.hpp"
-#include "../thirdparty/lodepng.h"
+#include <lodepng.h>
 
 using namespace std;
 namespace {

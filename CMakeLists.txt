@@ -8,18 +8,14 @@ if (NOT MINGW AND NOT APPLE)
     set(IMGC_DEBUG_ASAN true)
 endif ()
 
-if (APPLE)
-    set(IMGC_SRC
-            ${CMAKE_CURRENT_LIST_DIR}/src/Rimg_file.cpp
-            ${CMAKE_CURRENT_LIST_DIR}/src/Rvideo_file.cpp 
-            ${CMAKE_CURRENT_LIST_DIR}/thirdparty/lodepng.cpp 
-            ${CMAKE_CURRENT_LIST_DIR}/src/VideoFileDeserializer.cpp)
-else ()
-    set(IMGC_SRC
-            ${CMAKE_CURRENT_LIST_DIR}/src/Rimg_file.cpp
-            ${CMAKE_CURRENT_LIST_DIR}/src/Rvideo_file.cpp
-            ${CMAKE_CURRENT_LIST_DIR}/src/VideoFileDeserializer.cpp)
-endif ()
+include_directories(${CMAKE_CURRENT_LIST_DIR}/thirdparty/lodepng)
+
+set(IMGC_SRC
+		${CMAKE_CURRENT_LIST_DIR}/src/Rimg_file.cpp
+		${CMAKE_CURRENT_LIST_DIR}/src/Rvideo_file.cpp
+		${CMAKE_CURRENT_LIST_DIR}/thirdparty/lodepng/lodepng.cpp 
+		${CMAKE_CURRENT_LIST_DIR}/src/VideoFileDeserializer.cpp)
+
 add_library(imgc SHARED ${IMGC_SRC})
 if (IMGC_SDL_EXAMPLE)
     set(IMGC_EXAMPLE_SRC ${CMAKE_CURRENT_LIST_DIR}/example/sdl_example.cpp)
@@ -48,7 +44,7 @@ if (APPLE)
 else ()
     target_link_libraries(imgc torasu torasustd)
     target_link_libraries(imgc-example torasu torasustd imgc avcodec avformat swscale avutil)
-    target_link_libraries(imgc lodepng)
+#    target_link_libraries(imgc lodepng)
 endif ()
 # Includes for others
 

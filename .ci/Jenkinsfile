@@ -1,0 +1,28 @@
+pipeline{
+	agent none
+	options {
+        gitLabConnection('gitlab.com')
+        gitlabBuilds(builds: ['Build'])
+    }
+    triggers {
+        gitlab(triggerOnPush: true, triggerOnMergeRequest: true, branchFilterType: 'All')
+    }
+	stages{
+		stage("Build"){
+			agent { dockerfile { filename '.ci/Dockerfiles/Build' } }
+			steps{
+				sh "./setup.sh"
+				sh "./build.sh"
+			}
+			post{
+				success{
+					archiveArtifacts artifacts: 'build/libimgc.so', fingerprint: true
+					updateGitlabCommitStatus name: 'Build', state: 'success'
+				}
+				failure{
+					updateGitlabCommitStatus name: 'Build', state: 'failed'
+				}
+			}
+		}
+	}
+}
