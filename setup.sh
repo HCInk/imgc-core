@@ -4,9 +4,12 @@ cd .ci/setup
 
 if [ ! -d "torasu-cpp" ] ; then
 	git clone "https://gitlab.com/HCInk/torasu/torasu-cpp/" "torasu-cpp"
+	cd torasu-cpp
+else
+	cd torasu-cpp
+	git pull
 fi
 
-cd torasu-cpp
 ./setup.sh
 ./build.sh install nosudo
 
