@@ -9,7 +9,7 @@ pipeline{
         gitlab(triggerOnPush: true, triggerOnMergeRequest: true, branchFilterType: 'All')
     }
     stages{
-        state("Prepare") {
+        stage("Prepare") {
            agent any
            steps {
                  script {
