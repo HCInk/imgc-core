@@ -21,7 +21,7 @@ pipeline{
             agent {
                 dockerfile {
                     filename '.ci/Dockerfiles/Build'
-                    additionalBuildArgs "--build-arg build_hash=${var}"
+                    additionalBuildArgs "--build-arg build_hash=\"${var}\""
                 }
             }
             steps{
