@@ -165,5 +165,5 @@ if (options.action === "generate") {
   }
   const end = Date.now();
   fs.mkdirSync("results");
-  fs.writeFileSync(path.join("reslts", "result.xml"), generateJTestReport(results, (end - start) / 1000));
+  fs.writeFileSync(path.join("results", "result.xml"), generateJTestReport(results, (end - start) / 1000));
 }
