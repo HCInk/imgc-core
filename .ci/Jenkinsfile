@@ -1,4 +1,4 @@
- def var = Eval.me( 'new Date()' )
+def var = ""
 pipeline{
     agent none
     options {
@@ -9,6 +9,14 @@ pipeline{
         gitlab(triggerOnPush: true, triggerOnMergeRequest: true, branchFilterType: 'All')
     }
     stages{
+        state("Prepare") {
+           agent any
+           steps {
+                 script {
+                    var = Eval.me( 'new Date()' )
+                 }
+           }
+        }
         stage("Build"){
             agent {
                 dockerfile {
