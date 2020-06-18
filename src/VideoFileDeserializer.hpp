@@ -72,6 +72,8 @@ struct StreamEntry {
 };
 class VideoFileDeserializer {
 public:
+    VideoFileDeserializer(std::string path);
+
     ~VideoFileDeserializer();
     struct FileReader {
         uint8_t* data;

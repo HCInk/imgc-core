@@ -3,7 +3,7 @@ project(imgc VERSION 0.0.4)
 set(CMAKE_CXX_STANDARD 20)
 
 set(IMGC_SDL_EXAMPLE true)
-
+option(IMGC_TESTS "Generate test Executable" ON)
 if (NOT MINGW AND NOT APPLE)
     set(IMGC_DEBUG_ASAN true)
 endif ()
@@ -55,6 +55,11 @@ if(IMGC_SDL_EXAMPLE)
 
 endif()
 
+if(IMGC_TESTS)
+    add_executable(imgc-tests ${CMAKE_CURRENT_LIST_DIR}/tests/extraction.cpp)
+    target_link_libraries(imgc-tests torasu torasustd imgc avcodec avformat swscale avutil)
+
+endif()
 include_directories(${CMAKE_CURRENT_LIST_DIR}/include)
 
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall")

@@ -2,11 +2,9 @@
 
 #include <iostream>
 #include <cmath>
-#ifdef __APPLE__
-	#include "../thirdparty/lodepng.h"
-#else
-	#include <lodepng.h>
-#endif
+
+#include <lodepng.h>
+
 
 #include <torasu/torasu.hpp>
 #include <torasu/render_tools.hpp>

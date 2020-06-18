@@ -64,10 +64,8 @@ namespace {
     }
 }
 
-VideoFileDeserializer::VideoFileDeserializer() {
-    //  ifstream is = ifstream("/Users/liz3/Desktop/143386147_Superstar_W.mp4");
-    // ifstream is = ifstream("/Users/liz3/Desktop/8807502_Bender_and_penguins.mp4");
-    ifstream is = ifstream("/home/cedric/Downloads/143386147_Superstar_W.mp4");
+VideoFileDeserializer::VideoFileDeserializer(std::string path) {
+    ifstream is = ifstream(path.c_str());
     is.seekg(0, is.end);
     size_t length = is.tellg();
     is.seekg(0, is.beg);

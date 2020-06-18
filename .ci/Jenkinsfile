@@ -26,9 +26,11 @@ pipeline{
             }
             steps{
                 sh "./build.sh"
+                sh "./tests.sh"
             }
             post{
                 success{
+                    junit testResults: 'test-run/results/*'
                     archiveArtifacts artifacts: 'build/libimgc.so', fingerprint: true
                     updateGitlabCommitStatus name: 'Build', state: 'success'
                 }

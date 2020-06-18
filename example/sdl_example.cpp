@@ -156,7 +156,7 @@ void avTest() {
 
 int main() {
     //   avTest();
-    VideoFileDeserializer des;
+    VideoFileDeserializer des("");
     auto wtf = des.streams[0]->duration * av_q2d(des.streams[0]->base_time);
     auto result = des.getSegment(0.05, 3);
 

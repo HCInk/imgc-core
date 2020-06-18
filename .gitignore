@@ -3,3 +3,4 @@ test-res
 .idea
 cmake-build-debug
 .ci/setup
+test-run
