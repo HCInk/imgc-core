@@ -1,6 +1,5 @@
-FROM debian:latest
+FROM debian:10.4
 
-WORKDIR /app
 
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -yq \
     gcc \
@@ -10,11 +9,18 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -yq \
     nlohmann-json3-dev \
 	libcurl4-openssl-dev \
 	git
-
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -yq \
 	libavcodec-dev \
 	libavformat-dev \
 	libavutil-dev \
 	libswscale-dev \
 	libsdl2-dev \
 	libsdl2-ttf-dev
+
+
+WORKDIR /build
+ARG build_hash
+RUN git clone https://gitlab.com/HCInk/torasu/torasu-cpp.git
+WORKDIR /build/torasu-cpp
+RUN ./setup.sh
+RUN ./build.sh install nosudo
+WORKDIR /app

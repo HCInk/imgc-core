@@ -1,3 +1,4 @@
+ def var = Eval.me( 'new Date()' )
 pipeline{
     agent none
     options {
@@ -10,14 +11,12 @@ pipeline{
     stages{
         stage("Build"){
             agent {
-                dockerfile { 
+                dockerfile {
                     filename '.ci/Dockerfiles/Build'
-                    args '-u 0:0'   
+                    additionalBuildArgs "--build-arg build_hash=${var}"
                 }
             }
             steps{
-                sh 'umask 000'
-                sh "./setup.sh"
                 sh "./build.sh"
             }
             post{
