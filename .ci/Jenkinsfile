@@ -1,9 +1,9 @@
 def var = ""
-pipeline{
+pipeline {
 	agent none
 	options {
 		gitLabConnection('gitlab.com')
-		gitlabBuilds(builds: ['Build'])
+		gitlabBuilds(builds: ['Build', 'Test'])
 	}
 	triggers {
 		gitlab(triggerOnPush: true, triggerOnMergeRequest: true, branchFilterType: 'All')
@@ -27,11 +27,9 @@ pipeline{
 			}
 			steps{
 				sh "./build.sh"
-				sh "./tests.sh"
 			}
 			post{
 				success{
-					junit testResults: 'test-run/results/*'
 					archiveArtifacts artifacts: 'build/libimgc.so', fingerprint: true
 					archiveArtifacts artifacts: 'build/imgc-tests', fingerprint: true
 					archiveArtifacts artifacts: 'build/imgc-example', fingerprint: true
@@ -39,6 +37,31 @@ pipeline{
 				}
 				failure{
 					updateGitlabCommitStatus name: 'Build', state: 'failed'
+				}
+			}
+		}
+		stage('Test') {
+			agent {
+				dockerfile {
+					label 'hcink_vps'
+					filename '.ci/Dockerfiles/Build'
+					additionalBuildArgs "--build-arg build_hash=\"${var}\""
+				}
+			}
+			steps {
+				copyArtifacts filter: 'build/torasu-cpp-test', fingerprintArtifacts: true, projectName: '${JOB_NAME}', selector: specific('${BUILD_NUMBER}')
+				copyArtifacts filter: 'build/libtorasu.so', fingerprintArtifacts: true, projectName: '${JOB_NAME}', selector: specific('${BUILD_NUMBER}')
+				copyArtifacts filter: 'build/libtorasustd.so', fingerprintArtifacts: true, projectName: '${JOB_NAME}', selector: specific('${BUILD_NUMBER}')
+				
+				sh "./tests.sh"
+			}
+			post {
+				failure {
+					updateGitlabCommitStatus name: 'Test', state: 'failed'
+				}
+				success {
+					junit testResults: 'test-run/results/*'
+					updateGitlabCommitStatus name: 'Test', state: 'success'
 				}
 			}
 		}
