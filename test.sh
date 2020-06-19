@@ -23,7 +23,7 @@ else
 	if [ "$1" == "generate" ]; then
   	docker run -it hcink/imgc-tests:latest sh -c './test.sh no-container generate > /dev/null 2>&1 && cat results/out.json' > generated.json
 	else
-		docker run -it hcink/imgc-tests:latest bash -c './test.sh no-container > /dev/null 2>&1 && cat test-run/results/result.xml' > result.xml
+		docker run -it hcink/imgc-tests:latest sh -c './test.sh no-container > /dev/null 2>&1 && cat test-run/results/result.xml' > result.xml
 	fi
 
 fi
