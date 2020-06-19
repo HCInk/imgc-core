@@ -1,44 +1,44 @@
 def var = ""
 pipeline{
-    agent {label 'hcink_vps'}
-    options {
-        gitLabConnection('gitlab.com')
-        gitlabBuilds(builds: ['Build'])
-    }
-    triggers {
-        gitlab(triggerOnPush: true, triggerOnMergeRequest: true, branchFilterType: 'All')
-    }
-    stages{
-        stage("Prepare") {
-           agent any
-           steps {
-                 script {
-                    var = Eval.me( 'new Date()' )
-                 }
-           }
-        }
-        stage("Build"){
-            agent {
-                dockerfile {
+	agent {label 'hcink_vps'}
+	options {
+		gitLabConnection('gitlab.com')
+		gitlabBuilds(builds: ['Build'])
+	}
+	triggers {
+		gitlab(triggerOnPush: true, triggerOnMergeRequest: true, branchFilterType: 'All')
+	}
+	stages{
+		stage("Prepare") {
+		   agent { label 'hcink_vps' }
+		   steps {
+				 script {
+					var = Eval.me( 'new Date()' )
+				 }
+		   }
+		}
+		stage("Build"){
+			agent {
+				dockerfile {
 					label 'hcink_vps'
-                    filename '.ci/Dockerfiles/Build'
-                    additionalBuildArgs "--build-arg build_hash=\"${var}\""
-                }
-            }
-            steps{
-                sh "./build.sh"
-                sh "./tests.sh"
-            }
-            post{
-                success{
-                    junit testResults: 'test-run/results/*'
-                    archiveArtifacts artifacts: 'build/libimgc.so', fingerprint: true
-                    updateGitlabCommitStatus name: 'Build', state: 'success'
-                }
-                failure{
-                    updateGitlabCommitStatus name: 'Build', state: 'failed'
-                }
-            }
-        }
-    }
+					filename '.ci/Dockerfiles/Build'
+					additionalBuildArgs "--build-arg build_hash=\"${var}\""
+				}
+			}
+			steps{
+				sh "./build.sh"
+				sh "./tests.sh"
+			}
+			post{
+				success{
+					junit testResults: 'test-run/results/*'
+					archiveArtifacts artifacts: 'build/libimgc.so', fingerprint: true
+					updateGitlabCommitStatus name: 'Build', state: 'success'
+				}
+				failure{
+					updateGitlabCommitStatus name: 'Build', state: 'failed'
+				}
+			}
+		}
+	}
 }
