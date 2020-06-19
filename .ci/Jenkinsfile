@@ -33,6 +33,7 @@ pipeline {
 					archiveArtifacts artifacts: 'build/libimgc.so', fingerprint: true
 					archiveArtifacts artifacts: 'build/imgc-tests', fingerprint: true
 					archiveArtifacts artifacts: 'build/imgc-example', fingerprint: true
+					
 					updateGitlabCommitStatus name: 'Build', state: 'success'
 				}
 				failure{
