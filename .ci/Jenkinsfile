@@ -1,43 +1,69 @@
 def var = ""
-pipeline{
-    agent none
-    options {
-        gitLabConnection('gitlab.com')
-        gitlabBuilds(builds: ['Build'])
-    }
-    triggers {
-        gitlab(triggerOnPush: true, triggerOnMergeRequest: true, branchFilterType: 'All')
-    }
-    stages{
-        stage("Prepare") {
-           agent any
-           steps {
-                 script {
-                    var = Eval.me( 'new Date()' )
-                 }
-           }
-        }
-        stage("Build"){
-            agent {
-                dockerfile {
-                    filename '.ci/Dockerfiles/Build'
-                    additionalBuildArgs "--build-arg build_hash=\"${var}\""
-                }
-            }
-            steps{
-                sh "./build.sh"
-                sh "./tests.sh"
-            }
-            post{
-                success{
-                    junit testResults: 'test-run/results/*'
-                    archiveArtifacts artifacts: 'build/libimgc.so', fingerprint: true
-                    updateGitlabCommitStatus name: 'Build', state: 'success'
-                }
-                failure{
-                    updateGitlabCommitStatus name: 'Build', state: 'failed'
-                }
-            }
-        }
-    }
+pipeline {
+	agent none
+	options {
+		gitLabConnection('gitlab.com')
+		gitlabBuilds(builds: ['Build', 'Test'])
+	}
+	triggers {
+		gitlab(triggerOnPush: true, triggerOnMergeRequest: true, branchFilterType: 'All')
+	}
+	stages{
+		stage("Prepare") {
+		   agent { label 'hcink_vps' }
+		   steps {
+				 script {
+					var = Eval.me( 'new Date()' )
+				 }
+		   }
+		}
+		stage("Build"){
+			agent {
+				dockerfile {
+					label 'hcink_vps'
+					filename '.ci/Dockerfiles/Build'
+					additionalBuildArgs "--build-arg build_hash=\"${var}\""
+				}
+			}
+			steps{
+				sh "./build.sh"
+			}
+			post{
+				success{
+					archiveArtifacts artifacts: 'build/libimgc.so', fingerprint: true
+					archiveArtifacts artifacts: 'build/imgc-tests', fingerprint: true
+					archiveArtifacts artifacts: 'build/imgc-example', fingerprint: true
+					
+					updateGitlabCommitStatus name: 'Build', state: 'success'
+				}
+				failure{
+					updateGitlabCommitStatus name: 'Build', state: 'failed'
+				}
+			}
+		}
+		stage('Test') {
+			agent {
+				dockerfile {
+					label 'hcink_vps'
+					filename '.ci/Dockerfiles/Build'
+					additionalBuildArgs "--build-arg build_hash=\"${var}\""
+				}
+			}
+			steps {
+				copyArtifacts filter: 'build/libimgc.so', fingerprintArtifacts: true, projectName: '${JOB_NAME}', selector: specific('${BUILD_NUMBER}')
+				copyArtifacts filter: 'build/imgc-tests', fingerprintArtifacts: true, projectName: '${JOB_NAME}', selector: specific('${BUILD_NUMBER}')
+				
+				sh "./test.sh no-container"
+			}
+			post {
+				failure {
+					updateGitlabCommitStatus name: 'Test', state: 'failed'
+				}
+				success {
+					junit testResults: 'test-run/results/*'
+					updateGitlabCommitStatus name: 'Test', state: 'success'
+				}
+			}
+		}
+	}
 }
