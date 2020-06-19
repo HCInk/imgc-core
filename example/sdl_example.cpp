@@ -20,61 +20,25 @@ using namespace torasu;
 using namespace torasu::tstd;
 using namespace imgc;
 
-constexpr int w = 1280;
-constexpr int h = 720;
-constexpr int frameRate = 25;
-
 void avTest() {
+    VideoFileDeserializer des("/Users/liz3/Desktop/143386147_Superstar_W.mp4");
+    auto firstFrameSeek = des.getSegment(0, 0.04);
+    int w = firstFrameSeek->frameWidth;
+    int h = firstFrameSeek->frameHeight;
+    int frameRate = 25;
     std::vector<uint8_t *> frames;
     bool decodingDone = false;
-    int totalFrames = 0;
-    auto *rendererThread = new std::thread([&frames, &decodingDone, &totalFrames]() {
-        EIcore_runner *runner = new EIcore_runner();
-        ExecutionInterface *ei = runner->createInterface();
-        Rnet_file file(
-                "https://cdn.discordapp.com/attachments/598323767202152458/719988881700945920/110038564_What_You_Want_Ilkay_Sencan.mp4");
-        imgc::VideoLoader tree(&file);
+    int totalFrames = (des.streams[0]->duration * av_q2d(des.streams[0]->base_time)) * 25;
+    auto *rendererThread = new std::thread([&frames, &des, &decodingDone]() {
+        auto totalLength = des.streams[0]->duration * av_q2d(des.streams[0]->base_time);
+        double i = 0;
+        while (i < totalLength) {
+            auto currentFrame = des.getSegment(i, i + 0.04);
 
-        tools::RenderInstructionBuilder rib;
-
-        Dbimg_FORMAT format(w, h);
-
-        auto rf = format.asFormat();
-
-        auto handle = rib.addSegmentWithHandle<Dbimg>(TORASU_STD_PL_VIS, &rf);
-        int i = 0;
-        while (true) {
-            double start = 0.00;
-            cout << "RENDER BEGIN" << endl;
-            std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-            start = ((double) i / frameRate) + 0.02;
-            Dnum timeBuf(start);
-            RenderContext rctx;
-            rctx[TORASU_STD_CTX_TIME] = &timeBuf;
-            auto result = rib.runRender(&tree, &rctx, ei);
-            auto castedRes = handle.getFrom(result);
-            ResultSegmentStatus rss = castedRes.getStatus();
-            std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-            std::cout << "Time difference = "
-                      << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]"
-                      << std::endl;
-            cout << "RENDER FIN" << endl;
-            cout << "STATUS " << rss << endl;
-            if (rss >= ResultSegmentStatus::ResultSegmentStatus_OK) {
-                Dbimg *bimg = castedRes.getResult();
-                uint8_t *d = bimg->getImageData();
-
-                frames.push_back(d);
-            } else {
-                break;
-            }
-
+            frames.push_back(currentFrame->vidFrames[0].data);
             //  delete result;
-            i++;
+            i += 0.04;
         }
-        delete ei;
-        delete runner;
-        totalFrames = i;
         decodingDone = true;
     });
     rendererThread->detach();
@@ -155,64 +119,7 @@ void avTest() {
 }
 
 int main() {
-    //   avTest();
-    VideoFileDeserializer des("");
-    auto wtf = des.streams[0]->duration * av_q2d(des.streams[0]->base_time);
-    auto result = des.getSegment(0.05, 3);
-
-    auto result2 = des.getSegment(0.04, 0.12);
-    auto result3 = des.getSegment(3.04, 4.08);
-    auto result4 = des.getSegment(4.08, 5);
-    auto result5 = des.getSegment(5.04, 5.33);
-    
-    ofstream out("out.pcm");
-    for (int j = 0; j < result->audioParts.size(); ++j) {
-        auto part = result->audioParts[j];
-        size_t size = 4;
-        uint8_t *l = part.data[0];
-        uint8_t *r = part.data[1];
-
-        for (int i = 0; i < part.numSamples; i++) {
-            out.write(reinterpret_cast<const char *>(l), size);
-            out.write(reinterpret_cast<const char *>(r), size);
-            l += size;
-            r += size;
-        }
-
-    }
-    out.close();
-    for (int i = 0; i < result->vidFrames.size(); ++i) {
-        auto curr = result->vidFrames[i];
-        unsigned error = lodepng::encode(std::string("test_files/") + "out" + std::to_string(i) + ".png",
-                                         curr.data, result->frameWidth, result->frameHeight);
-
-    }
-
-//    for (int i = 0; i < result2->vidFrames.size(); ++i) {
-//        auto curr = result2->vidFrames[i];
-//        unsigned error = lodepng::encode(std::string("test_files/") + "outb" + std::to_string(i) + ".png",
-//                                         curr.data, result2->frameWidth, result2->frameHeight);
-//
-//    }
-//    des.getFrame(3);
-//    des.getFrame(0.04);
-//(targetPosition - lastPos) > ( (1.0 / getEntryById(vid_stream_id - 1)->vid_fps)) || (targetPosition - lastPos) < -( (1.0 / getEntryById(vid_stream_id - 1)->vid_fps))
-//    des.getFrame(3);
-//    des.getFrame(0.18);
-//    des.getFrame(2.4);
-//    des.getFrame(2.44);
-//    des.getFrame(2.48);
-//
-//    //des.getFrame(6.34);
-//
-//
-//    float start = 0.00;
-//    for (int i = 0; i < 40; ++i) {
-//        des.getFrame(start);
-//        start += 0.04;
-//    }
-
-
+    avTest();
 
 
     //AUDIO SORTING DEBUG TEST;
