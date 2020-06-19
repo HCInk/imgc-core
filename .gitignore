@@ -3,4 +3,6 @@ test-res
 .idea
 cmake-build-debug
 .ci/setup
+.ci/docker-wd
 test-run
+.directory
