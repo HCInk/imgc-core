@@ -10,20 +10,20 @@ if [ "$1" == "no-container" ]; then
 	mkdir -p test_files/one test_files/two test_files/three test_files/four test_files/five
 	../build/imgc-tests
 	if [ "$2" == "generate" ]; then
-		node ../assets/test.js -a generate -f ../assets/out.json -r test_files
+    mkdir ../results
+		node ../assets/test.js -a generate -f ../results/out.json -r test_files
 	else
 		node ../assets/test.js -f ../assets/out.json -r test_files
 	fi
 
 else
 
-	docker build --build-arg build_hash="$(date)" -t hcink/imgc-dev -f .ci/Dockerfiles/Build .
+	docker build --build-arg build_hash="$(date)" -t hcink/imgc-tests:latest -f .ci/Dockerfiles/Local .
 #	rm -rf .ci/docker-wd
-	mkdir -p .ci/docker-wd/build
 	if [ "$1" == "generate" ]; then
-		docker run -v $PWD:/app -v $PWD/.ci/docker-wd/build:/app/build -u $(id -u):$(id -g) -it hcink/imgc-dev bash -c './build.sh && ./test.sh no-container generate'
-	else 
-		docker run -v $PWD:/app -v $PWD/.ci/docker-wd/build:/app/build -u $(id -u):$(id -g) -it hcink/imgc-dev bash -c './build.sh && ./test.sh no-container'
+  	docker run -it hcink/imgc-tests:latest sh -c './test.sh no-container generate > /dev/null 2>&1 && cat results/out.json' > generated.json
+	else
+		docker run -it hcink/imgc-tests:latest bash -c './test.sh no-container > /dev/null 2>&1 && cat test-run/results/result.xml' > result.xml
 	fi
 
 fi
