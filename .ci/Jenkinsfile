@@ -19,6 +19,7 @@ pipeline{
         }
         stage("Build"){
             agent {
+				label 'hcink_vps'
                 dockerfile {
                     filename '.ci/Dockerfiles/Build'
                     additionalBuildArgs "--build-arg build_hash=\"${var}\""
