@@ -5,6 +5,7 @@
 #include <lodepng.h>
 #include <string>
 #include <fstream>
+#include <thread>
 #include "../src/VideoFileDeserializer.hpp"
 
 void writeFrames(std::vector<VideoFrame> frames, std::string base_path, int w, int h) {
@@ -43,23 +44,55 @@ int main() {
     auto result3 = des.getSegment(3.04, 4.08);
     auto result4 = des.getSegment(4.08, 5);
     auto result5 = des.getSegment(5.04, 5.33);
+    auto result6 = des.getSegment(5.33, 6);
+
+	std::thread write1([&result](){ 
+		
+		writeFrames(result->vidFrames, std::string("test_files/one/"), result->frameWidth, result->frameHeight);
+		writeAudio(std::string("test_files/one/audio.pcm"), result->audioParts);
+
+	});
+	std::thread write2([&result2](){ 
+		
+		writeFrames(result2->vidFrames, std::string("test_files/two/"), result2->frameWidth, result2->frameHeight);
+		writeAudio(std::string("test_files/two/audio.pcm"), result2->audioParts);
+
+	});
+	std::thread write3([&result3](){ 
+		
+		writeFrames(result3->vidFrames, std::string("test_files/three/"), result3->frameWidth, result3->frameHeight);
+		writeAudio(std::string("test_files/three/audio.pcm"), result3->audioParts);
+
+	});
+	std::thread write4([&result4](){ 
+		
+		writeFrames(result4->vidFrames, std::string("test_files/four/"), result4->frameWidth, result4->frameHeight);
+		writeAudio(std::string("test_files/four/audio.pcm"), result4->audioParts);
+
+	});
+	std::thread write5([&result5](){ 
+		
+		writeFrames(result5->vidFrames, std::string("test_files/five/"), result5->frameWidth, result5->frameHeight);
+		writeAudio(std::string("test_files/five/audio.pcm"), result5->audioParts);
+
+	});
+	std::thread write6([&result6](){ 
+		
+		writeFrames(result6->vidFrames, std::string("test_files/six/"), result6->frameWidth, result6->frameHeight);
+		writeAudio(std::string("test_files/six/audio.pcm"), result6->audioParts);
+
+	});
 
 
-    writeFrames(result->vidFrames, std::string("test_files/one/"), result->frameWidth, result->frameHeight);
-    writeAudio(std::string("test_files/one/audio.pcm"), result->audioParts);
+	write1.join();
+	write2.join();
+	write3.join();
+	write4.join();
+	write5.join();
+	write6.join();
 
-    writeFrames(result2->vidFrames, std::string("test_files/two/"), result2->frameWidth, result2->frameHeight);
-    writeAudio(std::string("test_files/two/audio.pcm"), result2->audioParts);
 
 
-    writeFrames(result3->vidFrames, std::string("test_files/three/"), result3->frameWidth, result3->frameHeight);
-    writeAudio(std::string("test_files/three/audio.pcm"), result3->audioParts);
-
-    writeFrames(result4->vidFrames, std::string("test_files/four/"), result4->frameWidth, result4->frameHeight);
-    writeAudio(std::string("test_files/four/audio.pcm"), result4->audioParts);
-
-    writeFrames(result5->vidFrames, std::string("test_files/five/"), result5->frameWidth, result5->frameHeight);
-    writeAudio(std::string("test_files/five/audio.pcm"), result5->audioParts);
 
 
 }

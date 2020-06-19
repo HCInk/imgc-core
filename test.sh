@@ -7,7 +7,7 @@ if [ "$1" == "no-container" ]; then
 	wget --no-clobber https://hcink.org/x/ci-test-sets/imgc-test-set-20200619.zip
 	unzip -o imgc-test-set-20200619.zip
 	rm -rf test_files results
-	mkdir -p test_files/one test_files/two test_files/three test_files/four test_files/five
+	mkdir -p test_files/one test_files/two test_files/three test_files/four test_files/five test_files/six
 	../build/imgc-tests
 	if [ "$2" == "generate" ]; then
     	mkdir ../results
