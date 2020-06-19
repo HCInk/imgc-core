@@ -330,7 +330,7 @@ void VideoFileDeserializer::handleFrame(StreamEntry *stream, DecodingState *deco
             int32_t rHeight = stream->frame->height;
             uint32_t frameSize = rWidth * rHeight * 4;
 
-            auto *target = new uint8_t[rWidth * rHeight * 4];
+            auto *target = new uint8_t[frameSize];
             extractVideoFrame(stream, target);
 
             auto frame = VideoFrame{stream->frame->pts, stream->frame->pts + stream->frame->pkt_duration, frameSize,
@@ -411,14 +411,14 @@ void VideoFileDeserializer::initializePosition(DecodingState *decodingState) {
     int64_t audTargetPosition = toBaseTime(decodingState->requestStart, audStream->base_time);
 
     int64_t vidPlayhead = vidStream->nextFramePts >= 0 ? 
-        vidStream->nextFramePts : INT64_MAX;
+        vidStream->nextFramePts : 0;
     int64_t audPlayhead = audStream->nextFramePts >= 0 ? 
-        audStream->nextFramePts : INT64_MAX;
+        audStream->nextFramePts : 0;
 
     bool vidSeekBack = !decodingState->videoPresent && (vidPlayhead > vidTargetPosition);
-    bool audSeekBack = !decodingState->audioPresent && (audPlayhead > audTargetPosition);
+    bool audSeekBack = !decodingState->audioPresent && (audPlayhead > (audTargetPosition + (audStream->frame->pkt_duration * 2)));
 
-    bool vidSeekForward = !decodingState->videoPresent && !vidSeekBack;
+    bool vidSeekForward = !decodingState->videoPresent && !vidSeekBack && vidTargetPosition != 0;
 
     if (vidSeekForward) {
 
@@ -431,17 +431,17 @@ void VideoFileDeserializer::initializePosition(DecodingState *decodingState) {
         }
 
         if (cacheEnd > vidTargetPosition) {
-            // Dont seek forward, since fames are already located in the buffer
+            // Dont seek forward, since frames are already located in the buffer
             vidSeekForward = false; 
         }
 
     }
-
     cout << "SEEK DECISION VB " << vidSeekBack << " AB " << audSeekBack << " VF " << vidSeekForward << endl;
 
     // TODO Seek inidividual streams if required
 
     if (vidSeekBack || audSeekBack || vidSeekForward) {
+        std::cout << "Seeking\n";
         av_seek_frame(av_format_ctx, -1, decodingState->requestStart * AV_TIME_BASE,
                       AVSEEK_FLAG_BACKWARD); //Assuming the -1 includes all streams
         for (auto & stream : streams) {

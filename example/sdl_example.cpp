@@ -29,16 +29,17 @@ void avTest() {
     std::vector<uint8_t *> frames;
     bool decodingDone = false;
     int totalFrames = (des.streams[0]->duration * av_q2d(des.streams[0]->base_time)) * 25;
-    auto *rendererThread = new std::thread([&frames, &des, &decodingDone]() {
+    auto *rendererThread = new std::thread([&frames, &des, &decodingDone, &totalFrames]() {
         auto totalLength = des.streams[0]->duration * av_q2d(des.streams[0]->base_time);
         double i = 0;
-        while (i < totalLength) {
+        for (int j = 0; j < totalFrames; ++j) {
             auto currentFrame = des.getSegment(i, i + 0.04);
 
             frames.push_back(currentFrame->vidFrames[0].data);
             //  delete result;
             i += 0.04;
         }
+
         decodingDone = true;
     });
     rendererThread->detach();
