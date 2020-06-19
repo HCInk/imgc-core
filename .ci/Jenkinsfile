@@ -1,6 +1,6 @@
 def var = ""
 pipeline{
-    agent none
+    agent {label 'hcink_vps'}
     options {
         gitLabConnection('gitlab.com')
         gitlabBuilds(builds: ['Build'])
