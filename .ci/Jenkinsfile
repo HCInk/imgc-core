@@ -52,7 +52,7 @@ pipeline {
 				copyArtifacts filter: 'build/libimgc.so', fingerprintArtifacts: true, projectName: '${JOB_NAME}', selector: specific('${BUILD_NUMBER}')
 				copyArtifacts filter: 'build/imgc-tests', fingerprintArtifacts: true, projectName: '${JOB_NAME}', selector: specific('${BUILD_NUMBER}')
 				
-				sh "./tests.sh no-container"
+				sh "./test.sh no-container"
 			}
 			post {
 				failure {

@@ -21,9 +21,9 @@ else
 #	rm -rf .ci/docker-wd
 	mkdir -p .ci/docker-wd/build
 	if [ "$1" == "generate" ]; then
-		docker run -v $PWD:/app -v $PWD/.ci/docker-wd/build:/app/build -u $(id -u):$(id -g) -it hcink/imgc-dev bash -c './build.sh && ./tests.sh no-container generate'
+		docker run -v $PWD:/app -v $PWD/.ci/docker-wd/build:/app/build -u $(id -u):$(id -g) -it hcink/imgc-dev bash -c './build.sh && ./test.sh no-container generate'
 	else 
-		docker run -v $PWD:/app -v $PWD/.ci/docker-wd/build:/app/build -u $(id -u):$(id -g) -it hcink/imgc-dev bash -c './build.sh && ./tests.sh no-container'
+		docker run -v $PWD:/app -v $PWD/.ci/docker-wd/build:/app/build -u $(id -u):$(id -g) -it hcink/imgc-dev bash -c './build.sh && ./test.sh no-container'
 	fi
 
 fi
