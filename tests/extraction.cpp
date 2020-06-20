@@ -83,16 +83,11 @@ int main() {
 
 	});
 
-
 	write1.join();
 	write2.join();
 	write3.join();
 	write4.join();
 	write5.join();
 	write6.join();
-
-
-
-
 
 }
