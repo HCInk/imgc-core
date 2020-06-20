@@ -17,6 +17,18 @@ extern "C" {
 #include <libavutil/frame.h>
 }
 
+#include <torasu/std/Dbimg.hpp>
+#include <torasu/std/Daudio_buffer.hpp>
+
+struct SegmentRequest {
+	double start;
+	double end = -1;
+	std::vector<torasu::tstd::Dbimg*>** videoBuffer = NULL;
+	const torasu::tstd::Dbimg_FORMAT* videoFormat;
+	torasu::tstd::Daudio_buffer** audioBuffer = NULL;
+	const torasu::tstd::Daudio_buffer_FORMAT* audioFormat;
+};
+
 struct AudioFrame {
 	int64_t start;
 	int64_t end;
@@ -150,7 +162,22 @@ private:
 public:
 
 	VideoFileDeserializer();
-	DecodingState* getSegment(double start, double end);
+	DecodingState* getSegment(SegmentRequest request);
+
+	inline DecodingState* getSegment(double start, double end) {
+		std::vector<torasu::tstd::Dbimg*>* vidBuffer;
+		torasu::tstd::Dbimg_FORMAT vidFormat(-1, -1);
+		torasu::tstd::Daudio_buffer* audBuffer;
+		torasu::tstd::Daudio_buffer_FORMAT audFormat(44100, torasu::tstd::Daudio_buffer_CHFMT::FLOAT32);
+		return getSegment((SegmentRequest) {
+			.start = start,
+			.end = end,
+			.videoBuffer = &vidBuffer,
+			.videoFormat = &vidFormat,
+			.audioBuffer = &audBuffer,
+			.audioFormat = &audFormat
+		});
+	}
 
 };
 

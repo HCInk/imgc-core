@@ -236,12 +236,20 @@ int64_t VideoFileDeserializer::toBaseTime(double value, AVRational base) {
 	return round((value * base.den) / base.num);
 }
 
-DecodingState* VideoFileDeserializer::getSegment(double start, double end) {
+DecodingState* VideoFileDeserializer::getSegment(SegmentRequest request) {
 
 	DecodingState* decodingState = new DecodingState();
 
-	decodingState->requestStart = start;
-	decodingState->requestEnd = end;
+	decodingState->requestStart = request.start;
+	decodingState->requestEnd = request.end;
+
+	if (request.videoBuffer == NULL) {
+		decodingState->videoPresent = true; // Set this to true since not required
+	}
+
+	if (request.audioBuffer == NULL) {
+		decodingState->audioPresent = true; // Set this to true since not required
+	}
 
 	auto vidStream = getEntryById(vid_stream_id - 1);
 	decodingState->frameWidth = vidStream->ctx->width;
