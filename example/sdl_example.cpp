@@ -21,27 +21,32 @@ using namespace torasu::tstd;
 using namespace imgc;
 
 // variable declarations
-static Uint8 *audio_pos; // global pointer to the audio buffer to be played
-static Uint32 audio_len; // remaining length of the sample we have to play
+struct audio_state {
+     Uint8 *audio_pos; // global pointer to the audio buffer to be played
+      Uint32 audio_len; // remaining length of the sample we have to play
 
+};
 void my_audio_callback(void *userdata, Uint8 *stream, int len);
 
 
 void my_audio_callback(void *userdata, Uint8 *stream, int len) {
+    audio_state* state = static_cast<audio_state *>(userdata);
+    if (state->audio_len == 0) {
+        return;// simply copy from one buffer into the other
+    }
+    len = (len > state->audio_len ? state->audio_len : len);
+    SDL_memcpy(stream, state->audio_pos, len);                    // simply copy from one buffer into the other
+    //  SDL_MixAudio(stream, state->audio_pos, len, SDL_MIX_MAXVOLUME);// mix from one buffer into another
 
-    if (audio_len == 0)
-        return;
-
-    len = (len > audio_len ? audio_len : len);
-    SDL_memcpy(stream, audio_pos, len);                    // simply copy from one buffer into the other
-    //  SDL_MixAudio(stream, audio_pos, len, SDL_MIX_MAXVOLUME);// mix from one buffer into another
-
-    audio_len -= len;
+    state->audio_len -= len;
 
 }
 
 void avTest() {
-    VideoFileDeserializer des("/Users/liz3/Desktop/143386147_Superstar_W.mp4");
+    audio_state* state = new audio_state();
+    state->audio_len = 0;
+    state->audio_pos = nullptr;
+    VideoFileDeserializer des("/Users/liz3/Desktop/110038564_What_You_Want_Ilkay_Sencan.mp4");
     auto firstFrameSeek = des.getSegment(0, 0.04);
     int w = firstFrameSeek->frameWidth;
     int h = firstFrameSeek->frameHeight;
@@ -84,42 +89,68 @@ void avTest() {
                                                        White);
     SDL_Texture *Message = SDL_CreateTextureFromSurface(renderer,
                                                         surfaceMessage);
-    SDL_AudioSpec spec;
-    spec.channels = 1;
-    spec.size = firstFrameSeek->audioParts[0].size;
-    spec.format = AUDIO_F32;
-    spec.samples = firstFrameSeek->audioParts[0].numSamples;
-    spec.freq = 44100;
-    spec.callback = my_audio_callback;
-    spec.userdata = NULL;
+
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     std::chrono::steady_clock::time_point begin2 = std::chrono::steady_clock::now();
-
+    int audioPos = 0;
     int j = 0;
-    if (SDL_OpenAudio(&spec, NULL) < 0) return;
+    int t = 0;
     while (true) {
         if (j >= totalFrames && decodingDone) break;
         // SDL_PauseAudio(1);
 
         begin = std::chrono::steady_clock::now();
-        if (j % frameRate == 0) {
-            std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-            std::cout << "PLAYBACK AFTER 25 FRAMES = "
-                      << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin2).count() << "[ms]"
-                      << std::endl;
-            begin2 = std::chrono::steady_clock::now();
+        if (j % 4 == 0) {
+            int size = 0;
+            int samples = 0;
+            for (int i = 0; i < 4; ++i) {
+                auto packet = frames[audioPos + i];
+                if(audioPos + i >= frames.size()) continue;
+                size += packet.second.numSamples * 4;
+                samples += packet.second.numSamples;
+            }
+            state->audio_pos = new uint8_t[size];
+            state->audio_len = size;
+            int offset = 0;
+            for (int i = 0; i < 4; ++i) {
+                auto packet = frames[audioPos + i];
+                if(audioPos + i >= frames.size()) continue;
+
+                std::copy(&packet.second.data[0][0], &packet.second.data[0][packet.second.size], &(state->audio_pos)[offset]);
+                offset += packet.second.size;
+            }
+            if(j == 0) {
+                SDL_AudioSpec spec;
+                spec.channels = 1;
+                spec.format = AUDIO_F32;
+                spec.samples = samples;
+                spec.size = size;
+                spec.freq = 44100;
+                spec.callback = my_audio_callback;
+                spec.userdata = state;
+                if (SDL_OpenAudio(&spec, NULL) < 0) return;
+                SDL_PauseAudio(0);
+
+            }
+
+            audioPos += 4;
+//            std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+//            std::cout << "PLAYBACK AFTER 25 FRAMES = "
+//                      << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin2).count() << "[ms]"
+//                      << std::endl;
+//            begin2 = std::chrono::steady_clock::now();
             if (SDL_PollEvent(&event) && event.type == SDL_QUIT)
                 break;
         }
 
         auto part = frames[j];
 
-        auto audioData = part.second.data[0];
-        audio_pos = &audioData[0];
-        audio_len = part.second.size;
-        if(j == 0) {
-            SDL_PauseAudio(0);
-        }
+//        auto audioData = part.second.data[0];
+//        audio_pos = &audioData[0];
+//        audio_len = part.second.size;
+//        if(j == 0) {
+//            SDL_PauseAudio(0);
+//        }
 
 //        if(part.second.numSamples < spec.samples) {
 //            uint16_t diff = spec.samples - part.second.numSamples;
@@ -150,9 +181,9 @@ void avTest() {
         SDL_RenderPresent(renderer);
         j++;
         std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-        auto t = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
-        if(t < 40)
-            SDL_Delay(39 -t);
+         t = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+        if (t < 40)
+            SDL_Delay(39 - t);
         // std::this_thread::sleep_for(std::chrono::milliseconds(39 - t));
         // SDL_PauseAudio(1);
 
