@@ -22,7 +22,7 @@ using namespace imgc;
 
 void avTest() {
     VideoFileDeserializer des("/Users/liz3/Desktop/143386147_Superstar_W.mp4");
-    auto firstFrameSeek = des.getSegment(0, 0.04);
+    auto firstFrameSeek = des.getSegment(0, 0.60);
     int w = firstFrameSeek->frameWidth;
     int h = firstFrameSeek->frameHeight;
     int frameRate = 25;

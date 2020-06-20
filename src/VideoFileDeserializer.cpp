@@ -437,14 +437,14 @@ void VideoFileDeserializer::initializePosition(DecodingState *decodingState) {
 		toBaseTime(decodingState->requestStart, audStream->base_time) : decodingState->audioParts.rbegin()->end;
 
     int64_t vidPlayhead = vidStream->nextFramePts >= 0 ? 
-        vidStream->nextFramePts : INT64_MAX;
+        vidStream->nextFramePts : 0;
     int64_t audPlayhead = audStream->nextFramePts >= 0 ? 
-        audStream->nextFramePts : INT64_MAX;
+        audStream->nextFramePts : 0;
 
     bool vidSeekBack = !decodingState->videoPresent && (vidPlayhead > vidTargetPosition);
     bool audSeekBack = !decodingState->audioPresent && (audPlayhead > audTargetPosition);
 
-    bool vidSeekForward = !decodingState->videoPresent && !vidSeekBack;
+    bool vidSeekForward = !decodingState->videoPresent && !vidSeekBack && vidTargetPosition <= 0;
 
     if (vidSeekForward) {
 
