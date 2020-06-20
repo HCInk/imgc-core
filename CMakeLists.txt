@@ -30,7 +30,6 @@ set_target_properties(imgc PROPERTIES LINK_FLAGS "-Wl,-rpath,/usr/local/lib")
 set_target_properties(imgc-example PROPERTIES LINK_FLAGS "-Wl,-rpath,/usr/local/lib")
 
 if (IMGC_DEBUG_ASAN)
-    target_link_libraries(imgc asan)
     target_link_libraries(imgc-example asan)
 endif ()
 
@@ -69,5 +68,6 @@ if(IMGC_TESTS)
 endif()
 include_directories(${CMAKE_CURRENT_LIST_DIR}/include)
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Wall")
