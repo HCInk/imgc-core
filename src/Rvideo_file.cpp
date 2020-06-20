@@ -16,7 +16,7 @@
 #include <torasu/std/Dbimg.hpp>
 
 
-	#include <lodepng.h>
+#include <lodepng.h>
 
 using namespace std;
 using namespace torasu;
@@ -25,8 +25,8 @@ using namespace torasu::tstd;
 namespace {
 using namespace imgc;
 
-int ReadFunc(void *ptr, uint8_t *buf, int buf_size) {
-	VideoLoader::FileReader *reader = reinterpret_cast<VideoLoader::FileReader *>(ptr);
+int ReadFunc(void* ptr, uint8_t* buf, int buf_size) {
+	VideoLoader::FileReader* reader = reinterpret_cast<VideoLoader::FileReader*>(ptr);
 
 	size_t nextPos = reader->pos + buf_size;
 	size_t read;
@@ -49,8 +49,8 @@ int ReadFunc(void *ptr, uint8_t *buf, int buf_size) {
 }
 
 // whence: SEEK_SET, SEEK_CUR, SEEK_END (like fseek) and AVSEEK_SIZE, which is meant to return the video's size without changing the position
-int64_t SeekFunc(void *ptr, int64_t pos, int whence) {
-	VideoLoader::FileReader *reader = reinterpret_cast<VideoLoader::FileReader *>(ptr);
+int64_t SeekFunc(void* ptr, int64_t pos, int whence) {
+	VideoLoader::FileReader* reader = reinterpret_cast<VideoLoader::FileReader*>(ptr);
 
 	//cout << "SEEK " << pos << " WHENCE " << whence << endl;
 	switch (whence) {
@@ -79,7 +79,7 @@ int64_t SeekFunc(void *ptr, int64_t pos, int whence) {
 namespace imgc {
 
 
-VideoLoader::VideoLoader(torasu::Renderable *source) : tools::SimpleRenderable("Rvideo_file", false, true) {
+VideoLoader::VideoLoader(torasu::Renderable* source) : tools::SimpleRenderable("Rvideo_file", false, true) {
 	this->source = source;
 	current_fp.loaded = false;
 
@@ -137,10 +137,10 @@ VideoLoader::~VideoLoader() {
 
 }
 
-ResultSegment *VideoLoader::renderSegment(ResultSegmentSettings *resSettings, RenderInstruction *ri) {
+ResultSegment* VideoLoader::renderSegment(ResultSegmentSettings* resSettings, RenderInstruction* ri) {
 	std::string pName = resSettings->getPipeline();
 	if (pName == TORASU_STD_PL_VIS) {
-		ExecutionInterface *ei = ri->getExecutionInterface();
+		ExecutionInterface* ei = ri->getExecutionInterface();
 		if (!loaded) {
 			load(ei);
 			loaded = true;
@@ -148,18 +148,18 @@ ResultSegment *VideoLoader::renderSegment(ResultSegmentSettings *resSettings, Re
 
 		double time = 0;
 
-		RenderContext *rctx = ri->getRenderContext();
+		RenderContext* rctx = ri->getRenderContext();
 		if (rctx != NULL) {
 			auto found = rctx->find(TORASU_STD_CTX_TIME);
 			if (found != rctx->end()) {
 				auto timeObj = found->second;
-				if (Dnum *timeNum = dynamic_cast<Dnum *>(timeObj)) {
+				if (Dnum* timeNum = dynamic_cast<Dnum*>(timeObj)) {
 					time = timeNum->getNum();
 				}
 			}
 		}
 
-		ResultFormatSettings *format = resSettings->getResultFormatSettings();
+		ResultFormatSettings* format = resSettings->getResultFormatSettings();
 
 		if (format == NULL || format->getFormat().compare("STD::DBIMG") == 0) {
 
@@ -169,8 +169,8 @@ ResultSegment *VideoLoader::renderSegment(ResultSegmentSettings *resSettings, Re
 				rHeight = -1;
 				cout << "Rvideo_file RENDER autoSize" << endl;
 			} else {
-				Dbimg_FORMAT *bimgFormat;
-				if (!(bimgFormat = dynamic_cast<Dbimg_FORMAT *>(format->getData()))) {
+				Dbimg_FORMAT* bimgFormat;
+				if (!(bimgFormat = dynamic_cast<Dbimg_FORMAT*>(format->getData()))) {
 					return new ResultSegment(ResultSegmentStatus_INVALID_FORMAT);
 				}
 				rWidth = bimgFormat->getWidth();
@@ -178,7 +178,7 @@ ResultSegment *VideoLoader::renderSegment(ResultSegmentSettings *resSettings, Re
 				cout << "Rvideo_file RENDER " << rWidth << "x" << rHeight << endl;
 			}
 
-			Dbimg *resImg;
+			Dbimg* resImg;
 			Dbimg_FORMAT frameFormat(rWidth, rHeight);
 			getFrame(time, frameFormat, &resImg);
 
@@ -194,7 +194,7 @@ ResultSegment *VideoLoader::renderSegment(ResultSegmentSettings *resSettings, Re
 	}
 }
 
-void VideoLoader::load(torasu::ExecutionInterface *ei) {
+void VideoLoader::load(torasu::ExecutionInterface* ei) {
 
 	if (sourceFetchResult != NULL) {
 		delete sourceFetchResult;
@@ -223,7 +223,7 @@ void VideoLoader::load(torasu::ExecutionInterface *ei) {
 	    throw runtime_error("Failed to open input file");
 	}*/
 
-	uint8_t *alloc_buf = (uint8_t *) av_malloc(alloc_buf_len);
+	uint8_t* alloc_buf = (uint8_t*) av_malloc(alloc_buf_len);
 
 	av_format_ctx->pb = avio_alloc_context(alloc_buf, alloc_buf_len, false, &in_stream, ReadFunc, NULL, SeekFunc);
 
@@ -260,7 +260,7 @@ void VideoLoader::load(torasu::ExecutionInterface *ei) {
 	}
 
 	for (unsigned int i = 0; i < av_format_ctx->nb_streams; i++) {
-		AVStream *audio_out_stream = av_format_ctx->streams[i];
+		AVStream* audio_out_stream = av_format_ctx->streams[i];
 		if (audio_out_stream->codecpar->codec_type == AVMEDIA_TYPE_AUDIO) {
 			audio_codec_params = audio_out_stream->codecpar;
 			audio_codec = avcodec_find_decoder(audio_codec_params->codec_id);
@@ -356,11 +356,11 @@ void VideoLoader::load(torasu::ExecutionInterface *ei) {
 }
 
 
-std::map<std::string, Element *> VideoLoader::getElements() {
+std::map<std::string, Element*> VideoLoader::getElements() {
 	throw runtime_error("getElements() not implemented yet!");
 }
 
-void VideoLoader::setElement(std::string key, Element *elem) {
+void VideoLoader::setElement(std::string key, Element* elem) {
 	throw runtime_error("setElement(...) not implemented yet!");
 }
 
@@ -377,7 +377,7 @@ void VideoLoader::flushBuffers() {
 
 }
 
-void VideoLoader::getFrame(double targetPos, const Dbimg_FORMAT &imageFormat, Dbimg **outImageFrame) {
+void VideoLoader::getFrame(double targetPos, const Dbimg_FORMAT& imageFormat, Dbimg** outImageFrame) {
 	std::chrono::steady_clock::time_point begin, end;
 
 	begin = std::chrono::steady_clock::now();
@@ -389,7 +389,7 @@ void VideoLoader::getFrame(double targetPos, const Dbimg_FORMAT &imageFormat, Db
 		bool searchBeginLoc = true;
 
 
-		for (FrameProperties *fp = video_codec_fp_buf; fp < video_codec_fp_buf + video_codec_fp_buf_len; fp++) {
+		for (FrameProperties* fp = video_codec_fp_buf; fp < video_codec_fp_buf + video_codec_fp_buf_len; fp++) {
 			if (fp->loaded && fp->start <= targetPos && fp->start + fp->duration > targetPos) {
 				cout << " ## IN PIPE " << targetPos << "{" << fp->start << " - " << fp->start + fp->duration << "}"
 					 << endl;
@@ -548,12 +548,12 @@ void VideoLoader::getFrame(double targetPos, const Dbimg_FORMAT &imageFormat, Db
 					}
 
 					size_t size = 4;
-					uint8_t *l = audio_frame->extended_data[0];
-					uint8_t *r = audio_frame->extended_data[1];
+					uint8_t* l = audio_frame->extended_data[0];
+					uint8_t* r = audio_frame->extended_data[1];
 
 					for (int i = 0; i < audio_frame->nb_samples; i++) {
-						audio_out_stream->write(reinterpret_cast<const char *>(l), size);
-						audio_out_stream->write(reinterpret_cast<const char *>(r), size);
+						audio_out_stream->write(reinterpret_cast<const char*>(l), size);
+						audio_out_stream->write(reinterpret_cast<const char*>(r), size);
 						l += size;
 						r += size;
 					}
@@ -574,7 +574,7 @@ void VideoLoader::getFrame(double targetPos, const Dbimg_FORMAT &imageFormat, Db
 					lastReadDts = av_packet->dts;
 
 					// Save packet-metadata into buffer
-					FrameProperties *bufObj = NULL;
+					FrameProperties* bufObj = NULL;
 					for (int i = 0; i < video_codec_fp_buf_len; i++) {
 						if (!(video_codec_fp_buf[i].loaded)) {
 							bufObj = video_codec_fp_buf + i;
@@ -601,7 +601,7 @@ void VideoLoader::getFrame(double targetPos, const Dbimg_FORMAT &imageFormat, Db
 					//double dur = bufObj->duration;
 
 					cout << ":: ADD TO PIPE[" << video_codec_fp_buf_len << "] ";
-					for (FrameProperties *fp = video_codec_fp_buf;
+					for (FrameProperties* fp = video_codec_fp_buf;
 							fp < video_codec_fp_buf + video_codec_fp_buf_len; fp++) {
 						if (fp->loaded) {
 							cout << " " << fp->start;
@@ -656,7 +656,7 @@ void VideoLoader::getFrame(double targetPos, const Dbimg_FORMAT &imageFormat, Db
 
 			double packetStart = video_frame->pts * video_base_time;
 
-			FrameProperties *currFP = NULL;
+			FrameProperties* currFP = NULL;
 			for (int i = 0; i < video_codec_fp_buf_len; i++) {
 				if ((video_codec_fp_buf[i].loaded) && video_codec_fp_buf[i].start == packetStart) {
 					currFP = video_codec_fp_buf + i;
@@ -745,7 +745,7 @@ void VideoLoader::getFrame(double targetPos, const Dbimg_FORMAT &imageFormat, Db
 		throw runtime_error("Failed to create sws_scaler_ctx!");
 	}
 
-	uint8_t *dst[4] = {(*outImageFrame)->getImageData(), NULL, NULL, NULL};
+	uint8_t* dst[4] = {(*outImageFrame)->getImageData(), NULL, NULL, NULL};
 	int dest_linesize[4] = {rWidth * 4, 0, 0, 0};
 	sws_scale(sws_scaler_ctx, video_frame->data, video_frame->linesize, 0, video_frame->height, dst, dest_linesize);
 
@@ -823,14 +823,14 @@ void VideoLoader::debugPackets() {
 			throw runtime_error(msgExcept);
 		}
 		size_t size = 4;
-		uint8_t *l = audio_frame->extended_data[0];
-		uint8_t *r = audio_frame->extended_data[1];
+		uint8_t* l = audio_frame->extended_data[0];
+		uint8_t* r = audio_frame->extended_data[1];
 
 
 		for (int i = 0; i <
 				audio_frame->nb_samples/*audio_frame->linesize[0]/ (audio_frame->linesize[0] / audio_frame->nb_samples)*/; i++) {
-			audio_out_stream->write(reinterpret_cast<const char *>(l), size);
-			audio_out_stream->write(reinterpret_cast<const char *>(r), size);
+			audio_out_stream->write(reinterpret_cast<const char*>(l), size);
+			audio_out_stream->write(reinterpret_cast<const char*>(r), size);
 			l += size;
 			r += size;
 		}
@@ -911,7 +911,7 @@ void VideoLoader::video_decode_example() {
 		out_name << ".png";
 
 		Dbimg_FORMAT format(-1, -1);
-		Dbimg *nextFrame = NULL;
+		Dbimg* nextFrame = NULL;
 		getFrame(targetPos, format, &nextFrame);
 
 		unsigned error = lodepng::encode(out_name.str(), nextFrame->getImageData(), nextFrame->getWidth(),
