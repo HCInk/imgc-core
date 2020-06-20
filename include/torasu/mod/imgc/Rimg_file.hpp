@@ -13,7 +13,7 @@ namespace imgc {
 class Rimg_file : public torasu::tools::SimpleRenderable {
 private:
 	const std::string pipeline = std::string(TORASU_STD_PL_FILE);
-	
+
 	torasu::Renderable* rfile;
 
 	torasu::tools::RenderInstructionBuilder rib;
