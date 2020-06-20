@@ -46,7 +46,8 @@ void avTest() {
     audio_state* state = new audio_state();
     state->audio_len = 0;
     state->audio_pos = nullptr;
-    VideoFileDeserializer des("/Users/liz3/Desktop/110038564_What_You_Want_Ilkay_Sencan.mp4");
+    // VideoFileDeserializer des("/Users/liz3/Desktop/110038564_What_You_Want_Ilkay_Sencan.mp4");
+	VideoFileDeserializer des("/home/cedric/Downloads/143386147_Superstar W.mp4");
     auto firstFrameSeek = des.getSegment(0, 0.04);
     int w = firstFrameSeek->frameWidth;
     int h = firstFrameSeek->frameHeight;
@@ -73,10 +74,19 @@ void avTest() {
     while (frames.size() < 40)
         std::this_thread::sleep_for(std::chrono::milliseconds(40));
     SDL_Event event;
-    SDL_Renderer *renderer;
-    SDL_Window *window;
-    SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
-    TTF_Init();
+    SDL_Renderer *renderer = NULL;
+    SDL_Window *window = NULL;
+
+	int ec;
+	if ((ec = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO)) < 0) {
+        printf("Error: couldn't initialize SDL2. EC %d\n", ec);
+        throw runtime_error(string("SDL Error: ") + SDL_GetError());
+    }
+
+    if (TTF_Init() < 0) {
+		throw runtime_error("Error initializing sdl-TTF");
+	}
+	
     SDL_CreateWindowAndRenderer(w, h, SDL_RENDERER_ACCELERATED, &window, &renderer);
     SDL_SetWindowTitle(window, "Playback test");
     TTF_Font *Sans = TTF_OpenFont("Roboto-Regular.ttf",
