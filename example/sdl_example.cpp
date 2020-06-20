@@ -13,7 +13,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 #include <thread>
-#include "../src/VideoFileDeserializer.hpp"
+#include "torasu/mod/imgc/VideoFileDeserializer.hpp"
 
 using namespace std;
 using namespace torasu;

@@ -8,7 +8,7 @@
 #include <fstream>
 #include <iostream>
 #include <math.h>
-#include "VideoFileDeserializer.hpp"
+#include "torasu/mod/imgc/VideoFileDeserializer.hpp"
 #include <lodepng.h>
 
 using namespace std;
@@ -251,8 +251,6 @@ DecodingState *VideoFileDeserializer::getSegment(double start, double end) {
 
     initializePosition(decodingState);
 
-    int loopCount = 0;
-
     while (true) {
         if (decodingState->videoPresent && decodingState->audioPresent) break;
 
@@ -353,8 +351,8 @@ void VideoFileDeserializer::handleFrame(StreamEntry *stream, DecodingState *deco
 
     if (!decodingState->audioPresent && audio_stream_id == stream->id) {
         if (checkFrameTargetBound(stream->frame, targetPosition, targetPositionEnd)) {
-            auto frameOffset = stream->frame->pts - targetPosition;
-            auto frameDuration = stream->frame->pkt_duration;
+         //   auto frameOffset = stream->frame->pts - targetPosition;
+         //   auto frameDuration = stream->frame->pkt_duration;
 			if (!decodingState->audioParts.empty() && decodingState->audioParts.rbegin()->end > stream->frame->pts) {
 				cout << "[AUDIO-FRAME] OLD FRAME " << stream->frame->pts << endl;
 				return;

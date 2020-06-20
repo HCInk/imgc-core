@@ -6,7 +6,7 @@
 #include <string>
 #include <fstream>
 #include <thread>
-#include "../src/VideoFileDeserializer.hpp"
+#include "torasu/mod/imgc/VideoFileDeserializer.hpp"
 
 void writeFrames(std::vector<VideoFrame> frames, std::string base_path, int w, int h) {
     for (int i = 0; i < frames.size(); ++i) {
