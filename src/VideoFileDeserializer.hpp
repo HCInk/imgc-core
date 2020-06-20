@@ -68,7 +68,7 @@ struct StreamEntry {
     std::vector<BufferedFrame> cachedFrames;
     int64_t duration;
     bool draining = false;
-    int64_t nextFramePts = -1;
+    int64_t nextFramePts = 0;
 };
 class VideoFileDeserializer {
 public:
