@@ -116,7 +116,7 @@ void VideoFileDeserializer::prepare() {
 		if (entry->codec) {
 
 			if (stream->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
-				vid_stream_index = entry->index;
+				video_stream_index = entry->index;
 				entry->vid_delay = stream->codecpar->video_delay;
 				entry->vid_fps = stream->r_frame_rate;
 			} else if (stream->codecpar->codec_type == AVMEDIA_TYPE_AUDIO) {
@@ -247,7 +247,7 @@ DecodingState* VideoFileDeserializer::getSegment(SegmentRequest request) {
 	if (request.videoBuffer == NULL) {
 		decodingState->videoDone = true; // Set this to true since not required
 	} else {
-		auto vidStream = getStreamEntryByIndex(vid_stream_index);
+		auto vidStream = getStreamEntryByIndex(video_stream_index);
 		decodingState->frameWidth = vidStream->ctx->width;
 		decodingState->frameHeight = vidStream->ctx->height;
 	}
@@ -351,7 +351,7 @@ void VideoFileDeserializer::handleFrame(StreamEntry* stream, DecodingState* deco
 		targetPositionEnd = stream->duration - stream->frame->pkt_duration;
 	}
 
-	if (!decodingState->videoDone && stream->index == vid_stream_index) {
+	if (!decodingState->videoDone && stream->index == video_stream_index) {
 		if (checkFrameTargetBound(stream->frame, targetPosition, targetPositionEnd)) {
 			if (!decodingState->vidFrames.empty() && decodingState->vidFrames.rbegin()->end > stream->frame->pts) {
 				cout << "[VIDEO-FRAME] OLD FRAME " << stream->frame->pts << endl;
@@ -408,7 +408,7 @@ void VideoFileDeserializer::handleFrame(StreamEntry* stream, DecodingState* deco
 void VideoFileDeserializer::fetchBuffered(DecodingState* decodingState) {
 
 	if (!decodingState->videoDone) {
-		auto vidStream = getStreamEntryByIndex(vid_stream_index);
+		auto vidStream = getStreamEntryByIndex(video_stream_index);
 		int64_t vidTargetPosition = toBaseTime(decodingState->requestStart, vidStream->base_time);
 		//	int64_t vidTargetPositionEnd = toBaseTime(decodingState->requestEnd, vidStream->base_time);
 
@@ -447,7 +447,7 @@ void VideoFileDeserializer::initializePosition(DecodingState* decodingState) {
 	bool vidSeekBack;
 	bool vidSeekForward;
 	if (!decodingState->videoDone) {
-		auto vidStream = getStreamEntryByIndex(vid_stream_index);
+		auto vidStream = getStreamEntryByIndex(video_stream_index);
 		int64_t vidTargetPosition = decodingState->vidFrames.empty() ?
 									toBaseTime(decodingState->requestStart, vidStream->base_time) : decodingState->vidFrames.rbegin()->end;
 

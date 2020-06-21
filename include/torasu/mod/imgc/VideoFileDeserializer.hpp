@@ -98,7 +98,7 @@ private:
 	void prepare();
 	AVFormatContext* av_format_ctx;
 
-	int vid_stream_index = -1;
+	int video_stream_index = -1;
 	int audio_stream_index = -1;
 
 	double decoderPosition = -1;
