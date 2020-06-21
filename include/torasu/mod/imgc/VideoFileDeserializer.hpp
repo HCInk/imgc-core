@@ -63,7 +63,7 @@ struct BufferedFrame {
 };
 
 struct StreamEntry {
-	int id;
+	int index;
 	AVMediaType codecType;
 	AVCodec* codec = nullptr;
 	AVCodecContext* ctx = nullptr;
@@ -98,8 +98,8 @@ private:
 	void prepare();
 	AVFormatContext* av_format_ctx;
 
-	int vid_stream_id = -1;
-	int audio_stream_id = -1;
+	int video_stream_index = -1;
+	int audio_stream_index = -1;
 
 	double decoderPosition = -1;
 	SwsContext* sws_scaler_ctx = nullptr;

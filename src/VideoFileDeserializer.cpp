@@ -105,7 +105,7 @@ void VideoFileDeserializer::prepare() {
 	for (unsigned int i = 0; i < av_format_ctx->nb_streams; i++) {
 		AVStream* stream = av_format_ctx->streams[i];
 		StreamEntry* entry = new StreamEntry();
-		entry->id = stream->id;
+		entry->index = stream->index;
 		entry->codecType = stream->codecpar->codec_type;
 		entry->codec = avcodec_find_decoder(stream->codecpar->codec_id);
 		entry->ctx = avcodec_alloc_context3(entry->codec);
@@ -119,10 +119,10 @@ void VideoFileDeserializer::prepare() {
 			}
 			entry->vid_delay = stream->codecpar->video_delay;
 			entry->vid_fps = stream->r_frame_rate;
-			vid_stream_id = entry->id;
+            video_stream_index = entry->index;
 		} else {
 			if (stream->codecpar->codec_type == AVMEDIA_TYPE_AUDIO) {
-				audio_stream_id = entry->id;
+                audio_stream_index = entry->index;
 			}
 			entry->vid_delay = -1;
 		}
@@ -169,7 +169,7 @@ void VideoFileDeserializer::flushBuffers(StreamEntry* entry) {
 StreamEntry* VideoFileDeserializer::getEntryById(int index) {
 	for (int i = 0; i < streams.size(); ++i) {
 		auto entry = streams[i];
-		if (entry->id == index + 1) return entry;
+		if (entry->index == index) return entry;
 	}
 	return nullptr;
 }
@@ -251,7 +251,7 @@ DecodingState* VideoFileDeserializer::getSegment(SegmentRequest request) {
 		decodingState->audioPresent = true; // Set this to true since not required
 	}
 
-	auto vidStream = getEntryById(vid_stream_id - 1);
+	auto vidStream = getEntryById(video_stream_index);
 	decodingState->frameWidth = vidStream->ctx->width;
 	decodingState->frameHeight = vidStream->ctx->height;
 
@@ -329,7 +329,7 @@ void VideoFileDeserializer::handleFrame(StreamEntry* stream, DecodingState* deco
 		targetPositionEnd = stream->duration - stream->frame->pkt_duration;
 	}
 
-	if (stream->id == vid_stream_id) {
+	if (stream->index == video_stream_index) {
 		if (!decodingState->videoPresent &&
 				checkFrameTargetBound(stream->frame, targetPosition, targetPositionEnd)) {
 			if (!decodingState->vidFrames.empty() && decodingState->vidFrames.rbegin()->end > stream->frame->pts) {
@@ -357,7 +357,7 @@ void VideoFileDeserializer::handleFrame(StreamEntry* stream, DecodingState* deco
 
 	}
 
-	if (!decodingState->audioPresent && audio_stream_id == stream->id) {
+	if (!decodingState->audioPresent && audio_stream_index == stream->index) {
 		if (checkFrameTargetBound(stream->frame, targetPosition, targetPositionEnd)) {
 			//   auto frameOffset = stream->frame->pts - targetPosition;
 			//   auto frameDuration = stream->frame->pkt_duration;
@@ -391,7 +391,7 @@ void VideoFileDeserializer::handleFrame(StreamEntry* stream, DecodingState* deco
 void VideoFileDeserializer::fetchBuffered(DecodingState* decodingState) {
 
 	{
-		auto vidStream = getEntryById(vid_stream_id - 1);
+		auto vidStream = getEntryById(video_stream_index);
 		int64_t vidTargetPosition = toBaseTime(decodingState->requestStart, vidStream->base_time);
 		//	int64_t vidTargetPositionEnd = toBaseTime(decodingState->requestEnd, vidStream->base_time);
 
@@ -407,7 +407,7 @@ void VideoFileDeserializer::fetchBuffered(DecodingState* decodingState) {
 
 	{
 
-		auto audStream = getEntryById(audio_stream_id - 1);
+		auto audStream = getEntryById(audio_stream_index);
 		int64_t audTargetPosition = toBaseTime(decodingState->requestStart, audStream->base_time);
 		//	int64_t audTargetPositionEnd = toBaseTime(decodingState->requestEnd, audStream->base_time);
 
@@ -427,8 +427,8 @@ void VideoFileDeserializer::fetchBuffered(DecodingState* decodingState) {
 
 void VideoFileDeserializer::initializePosition(DecodingState* decodingState) {
 
-	auto vidStream = getEntryById(vid_stream_id - 1);
-	auto audStream = getEntryById(audio_stream_id - 1);
+	auto vidStream = getEntryById(video_stream_index);
+	auto audStream = getEntryById(audio_stream_index);
 
 	int64_t vidTargetPosition = decodingState->vidFrames.empty() ?
 								toBaseTime(decodingState->requestStart, vidStream->base_time) : decodingState->vidFrames.rbegin()->end;
@@ -500,7 +500,7 @@ void VideoFileDeserializer::drainStream(StreamEntry* stream, DecodingState* deco
 }
 
 void VideoFileDeserializer::concatAudio(DecodingState* decodingState) {
-	auto audioStream = getEntryById(audio_stream_id-1);
+	auto audioStream = getEntryById(audio_stream_index);
 
 	auto audioCtx = audioStream->ctx;
 	auto audioBaseTime = audioStream->base_time;
