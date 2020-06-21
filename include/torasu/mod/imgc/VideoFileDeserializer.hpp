@@ -33,9 +33,10 @@ struct AudioFrame {
 	int64_t start;
 	int64_t end;
 	int numSamples;
-	int size;
+	size_t size;
 	std::vector<uint8_t*> data;
 };
+
 struct VideoFrame {
 	int64_t start;
 	int64_t end;
