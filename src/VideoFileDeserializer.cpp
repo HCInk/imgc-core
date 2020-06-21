@@ -305,15 +305,17 @@ DecodingState* VideoFileDeserializer::getSegment(SegmentRequest request) {
 		// Will crash if audio stream is unexistent, but audio is requested
 		std::vector<uint8_t*> data;
 
-		int channelCount = getStreamEntryByIndex(audio_stream_index)->ctx->channels;
+		auto audStream = getStreamEntryByIndex(audio_stream_index);
+
+		int channelCount = audStream->ctx->channels;
 
 		for (int i = 0; i < channelCount; i++) {
 			data.push_back(new uint8_t[0]);
 		}
 
 		decodingState->audFrames.push_back( (AudioFrame) {
-			.start = decodingState->requestStart,
-			.end = decodingState->requestEnd,
+			.start = toBaseTime(decodingState->requestStart, audStream->base_time),
+			.end = toBaseTime(decodingState->requestEnd, audStream->base_time),
 			.numSamples = 0,
 			.size = 0,
 			.data = data 
