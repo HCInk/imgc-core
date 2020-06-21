@@ -376,7 +376,7 @@ void VideoFileDeserializer::handleFrame(StreamEntry* stream, DecodingState* deco
 				data.push_back(cp);
 			}
 			auto part = AudioFrame{stream->frame->pts, stream->frame->pts + stream->frame->pkt_duration,
-								   stream->frame->nb_samples, stream->frame->nb_samples * 4, data};
+								   stream->frame->nb_samples, memSize, data};
 			decodingState->audFrames.push_back(part);
 		}
 
@@ -532,7 +532,7 @@ void VideoFileDeserializer::concatAudio(DecodingState* decodingState) {
 
 	// Channel-size in samples
 	int channelSize = sampleRate * (decodingState->requestEnd - decodingState->requestStart);
-	// cout << "CP-ALLOC " << channelSize << endl;
+	cout << "CP-ALLOC " << channelSize << endl;
 	for (int i = 0; i < channelCount; ++i) {
 		resultData[i] = new uint8_t[channelSize*sampleSize];
 	}
@@ -545,7 +545,7 @@ void VideoFileDeserializer::concatAudio(DecodingState* decodingState) {
 
 		int64_t copySrcStart, copySrcEnd, copyDestPos;
 
-		copyDestPos = (frame.start-requestStartBased) * audioBaseTime.num*sampleRate/audioBaseTime.den;
+	copyDestPos = (frame.start-requestStartBased) * audioBaseTime.num * sampleRate / audioBaseTime.den;
 		copySrcEnd = (frame.end - frame.start) * audioBaseTime.num * sampleRate / audioBaseTime.den;
 
 		if (copyDestPos < 0) {
