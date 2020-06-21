@@ -301,6 +301,24 @@ DecodingState* VideoFileDeserializer::getSegment(SegmentRequest request) {
 
 	if (!decodingState->audFrames.empty()) {
 		concatAudio(decodingState);
+	} else if (request.audioBuffer != NULL) { 
+		// TODO Better way to handle if the requested stream is not available 
+		// Will crash if audio stream is unexistent, but audio is requested
+		std::vector<uint8_t*> data;
+
+		int channelCount = getStreamEntryByIndex(audio_stream_index)->ctx->channels;
+
+		for (int i = 0; i < channelCount; i++) {
+			data.push_back(new uint8_t[0]);
+		}
+
+		decodingState->audFrames.push_back( (AudioFrame) {
+			.start = decodingState->requestStart,
+			.end = decodingState->requestEnd,
+			.numSamples = 0,
+			.size = 0,
+			.data = data 
+		} );
 	}
 
 	cout << "Decoding of all components done!\n";
