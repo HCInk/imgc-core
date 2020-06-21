@@ -298,7 +298,10 @@ DecodingState* VideoFileDeserializer::getSegment(SegmentRequest request) {
 		handleFrame(stream, decodingState);
 	}
 
-	concatAudio(decodingState);
+	if (!decodingState->audioParts.empty()) {
+		concatAudio(decodingState);
+	}
+
 	cout << "Decoding of all components done!\n";
 	return decodingState;
 }
@@ -427,38 +430,58 @@ void VideoFileDeserializer::fetchBuffered(DecodingState* decodingState) {
 
 void VideoFileDeserializer::initializePosition(DecodingState* decodingState) {
 
-	auto vidStream = getEntryById(vid_stream_id - 1);
-	auto audStream = getEntryById(audio_stream_id - 1);
+	bool vidSeekBack;
+	bool vidSeekForward;
+	if (!decodingState->videoPresent) {
+		auto vidStream = getEntryById(vid_stream_id - 1);
+		int64_t vidTargetPosition = decodingState->vidFrames.empty() ?
+									toBaseTime(decodingState->requestStart, vidStream->base_time) : decodingState->vidFrames.rbegin()->end;
 
-	int64_t vidTargetPosition = decodingState->vidFrames.empty() ?
-								toBaseTime(decodingState->requestStart, vidStream->base_time) : decodingState->vidFrames.rbegin()->end;
-	int64_t audTargetPosition = decodingState->audioParts.empty() ?
-								toBaseTime(decodingState->requestStart, audStream->base_time) : decodingState->audioParts.rbegin()->end;
+		int64_t vidPlayhead = vidStream->nextFramePts >= 0 ?
+							vidStream->nextFramePts : INT64_MAX;
 
-	int64_t vidPlayhead = vidStream->nextFramePts >= 0 ?
-						  vidStream->nextFramePts : INT64_MAX;
-	int64_t audPlayhead = audStream->nextFramePts >= 0 ?
-						  audStream->nextFramePts : INT64_MAX;
+		vidSeekBack = vidPlayhead > vidTargetPosition;
 
-	bool vidSeekBack = !decodingState->videoPresent && (vidPlayhead > vidTargetPosition);
-	bool audSeekBack = !decodingState->audioPresent && (audPlayhead > audTargetPosition);
-	bool vidSeekForward = !decodingState->videoPresent && !vidSeekBack && vidTargetPosition > 0;
 
-	if (vidSeekForward) {
+		vidSeekForward = !vidSeekBack && vidTargetPosition > 0;
 
-		int64_t cacheEnd = 0;
-		for (auto& cachedFrame : vidStream->cachedFrames) {
-			int64_t currentFrameEnd = cachedFrame.startTime + cachedFrame.duration;
-			if (cacheEnd < currentFrameEnd) {
-				cacheEnd = currentFrameEnd;
+		if (vidSeekForward) {
+
+			int64_t cacheEnd = 0;
+			for (auto& cachedFrame : vidStream->cachedFrames) {
+				int64_t currentFrameEnd = cachedFrame.startTime + cachedFrame.duration;
+				if (cacheEnd < currentFrameEnd) {
+					cacheEnd = currentFrameEnd;
+				}
 			}
+
+			if (cacheEnd > vidTargetPosition) {
+				// Dont seek forward, since frames are already located in the buffer
+				vidSeekForward = false;
+			}
+
 		}
 
-		if (cacheEnd > vidTargetPosition) {
-			// Dont seek forward, since frames are already located in the buffer
-			vidSeekForward = false;
-		}
+	} else {
+		vidSeekBack = false;
+		vidSeekForward = false;
+	}
 
+	bool audSeekBack;
+	if (!decodingState->audioPresent) {
+	
+		auto audStream = getEntryById(audio_stream_id - 1);
+
+		int64_t audTargetPosition = decodingState->audioParts.empty() ?
+									toBaseTime(decodingState->requestStart, audStream->base_time) : decodingState->audioParts.rbegin()->end;
+
+		int64_t audPlayhead = audStream->nextFramePts >= 0 ?
+							audStream->nextFramePts : INT64_MAX;
+
+		audSeekBack = (audPlayhead > audTargetPosition);
+
+	} else {
+		audSeekBack = false;
 	}
 
 	cout << "SEEK DECISION VB " << vidSeekBack << " AB " << audSeekBack << " VF " << vidSeekForward << endl;

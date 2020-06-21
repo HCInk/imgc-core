@@ -6,6 +6,7 @@
 #include <string>
 #include <fstream>
 #include <thread>
+#include <iostream>
 #include "torasu/mod/imgc/VideoFileDeserializer.hpp"
 
 void writeFrames(std::vector<VideoFrame> frames, std::string base_path, int w, int h) {
@@ -45,6 +46,29 @@ int main() {
     auto result4 = des.getSegment(4.08, 5);
     auto result5 = des.getSegment(5.04, 5.33);
     auto result6 = des.getSegment(5.33, 6);
+    
+	std::vector<torasu::tstd::Dbimg*>* videoBuffer;
+	torasu::tstd::Dbimg_FORMAT videoFmt(200, 300);
+	auto resultB1 = des.getSegment((SegmentRequest) {
+		.start = 1,
+		.end = 1.5,
+		.videoBuffer = &videoBuffer,
+		.videoFormat = &videoFmt
+	});
+
+
+	torasu::tstd::Daudio_buffer* audioBuffer;
+	torasu::tstd::Daudio_buffer_FORMAT audioFmt(44100, torasu::tstd::Daudio_buffer_CHFMT::FLOAT32);
+	auto resultB2 = des.getSegment((SegmentRequest) {
+		.start = 1,
+		.end = 1.5,
+		.audioBuffer = &audioBuffer,
+		.audioFormat = &audioFmt
+	});
+
+	std::cout << "B1 Video-Size: " << resultB1->vidFrames.size() << " AudioSize: " << resultB1->audioParts.size() << std::endl;
+
+	std::cout << "B2 Video-Size: " << resultB2->vidFrames.size() << " AudioSize: " << resultB2->audioParts.size() << std::endl;
 
 	std::thread write1([&result](){ 
 		
