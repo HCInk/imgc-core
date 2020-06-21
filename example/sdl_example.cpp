@@ -47,7 +47,7 @@ void avTest() {
     state->audio_len = 0;
     state->audio_pos = nullptr;
     // VideoFileDeserializer des("/Users/liz3/Desktop/110038564_What_You_Want_Ilkay_Sencan.mp4");
-	VideoFileDeserializer des("/home/cedric/Downloads/143386147_Superstar W.mp4");
+	VideoFileDeserializer des("/home/liz3/test-videos/143386147_Superstar W.mp4");
     auto firstFrameSeek = des.getSegment(0, 0.04);
     int w = firstFrameSeek->frameWidth;
     int h = firstFrameSeek->frameHeight;
