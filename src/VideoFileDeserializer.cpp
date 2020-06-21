@@ -113,19 +113,18 @@ void VideoFileDeserializer::prepare() {
 		entry->base_time = stream->time_base;
 		entry->duration = stream->duration;
 
+		if (!entry->codec) {
+			continue;
+		}
+
 		if (stream->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
-			if (!entry->codec) {
-				continue;
-			}
+			vid_stream_id = entry->id;
 			entry->vid_delay = stream->codecpar->video_delay;
 			entry->vid_fps = stream->r_frame_rate;
-			vid_stream_id = entry->id;
-		} else {
-			if (stream->codecpar->codec_type == AVMEDIA_TYPE_AUDIO) {
-				audio_stream_id = entry->id;
-			}
-			entry->vid_delay = -1;
+		} else if (stream->codecpar->codec_type == AVMEDIA_TYPE_AUDIO) {
+			audio_stream_id = entry->id;
 		}
+
 		if (!entry->ctx) {
 			throw runtime_error("Failed to allocate av_codec_ctx!");
 		}
@@ -245,17 +244,17 @@ DecodingState* VideoFileDeserializer::getSegment(SegmentRequest request) {
 
 	if (request.videoBuffer == NULL) {
 		decodingState->videoDone = true; // Set this to true since not required
+	} else {
+		auto vidStream = getEntryById(vid_stream_id - 1);
+		decodingState->frameWidth = vidStream->ctx->width;
+		decodingState->frameHeight = vidStream->ctx->height;
 	}
 
 	if (request.audioBuffer == NULL) {
 		decodingState->audioDone = true; // Set this to true since not required
 	}
 
-	auto vidStream = getEntryById(vid_stream_id - 1);
-	decodingState->frameWidth = vidStream->ctx->width;
-	decodingState->frameHeight = vidStream->ctx->height;
-
-	fetchBuffered(decodingState); // TODO Needs approval
+	fetchBuffered(decodingState);
 
 	initializePosition(decodingState);
 
