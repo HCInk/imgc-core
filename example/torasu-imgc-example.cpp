@@ -16,6 +16,7 @@
 
 #include <torasu/mod/imgc/Rimg_file.hpp>
 #include <torasu/mod/imgc/Rvideo_file.hpp>
+#include <torasu/mod/imgc/VideoFileDeserializer.hpp>
 
 
 using namespace std;
@@ -291,10 +292,61 @@ void anotherIMGCTest() {
 
 }
 
+void writeFrames(std::vector<VideoFrame> frames, std::string base_path, int w, int h) {
+    for (int i = 0; i < frames.size(); ++i) {
+        auto curr = frames[i];
+        unsigned error = lodepng::encode(base_path + "file-" + std::to_string(i + 1) + ".png",
+                                         curr.data, w, h);
+
+    }
+}
+
+void writeAudio(std::string path, std::vector<AudioFrame> frames) {
+    std::ofstream out(path);
+    for (int j = 0; j < frames.size(); ++j) {
+        auto part = frames[j];
+        size_t size = 4;
+        uint8_t *l = part.data[0];
+        uint8_t *r = part.data[1];
+
+        for (int i = 0; i < part.numSamples; i++) {
+            out.write(reinterpret_cast<const char *>(l), size);
+            out.write(reinterpret_cast<const char *>(r), size);
+            l += size;
+            r += size;
+        }
+
+    }
+    out.close();
+}
+
+void audioTest() {
+
+    VideoFileDeserializer des2("Hold the line Resampled.wav");
+
+	torasu::tstd::Daudio_buffer_FORMAT audioFmt(44100, torasu::tstd::Daudio_buffer_CHFMT::FLOAT32);
+	torasu::tstd::Daudio_buffer* audioBuffer;
+
+	auto result = des2.getSegment((SegmentRequest) {
+		.start = 0,
+		.end = 30,
+		.videoBuffer = NULL,
+		.videoFormat = NULL,
+		.audioBuffer = &audioBuffer,
+		.audioFormat = &audioFmt
+	});
+
+	std::cout << "C1 Video-Size: " << result->vidFrames.size() << " AudioSize: " << result->audFrames.size() << std::endl;
+
+	writeAudio(std::string("test_files/mp3test.pcm"), result->audFrames);
+
+}
+
 int main() {
 	//netImageTest();
 	//avTest();
-	anotherIMGCTest();
+	//anotherIMGCTest();
+	audioTest();
 
 	return 0;
 }

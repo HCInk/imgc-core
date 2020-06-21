@@ -46,11 +46,11 @@ struct DecodingState {
 	double requestStart;
 	double requestEnd;
 
-	bool videoPresent = false;
-	bool audioPresent = false;
+	bool videoDone = false;
+	bool audioDone = false;
 
-	std::vector<AudioFrame> audioParts;
 	std::vector<VideoFrame> vidFrames;
+	std::vector<AudioFrame> audFrames;
 
 	int frameWidth;
 	int frameHeight;
@@ -106,7 +106,7 @@ private:
 
 
 	AVPacket* av_packet;
-	StreamEntry* getEntryById(int index);
+	StreamEntry* getStreamEntryByIndex(int index);
 	void removeCacheFrame(int64_t pos, std::vector<BufferedFrame>* list);
 	void extractVideoFrame(StreamEntry* stream, uint8_t* outPt);
 //    int32_t* getRealBounds(StreamEntry* stream);

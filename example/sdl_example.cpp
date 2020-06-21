@@ -48,7 +48,8 @@ void avTest() {
     state->audio_pos = nullptr;
     ofstream stream("test.pcm");
     // VideoFileDeserializer des("/Users/liz3/Desktop/110038564_What_You_Want_Ilkay_Sencan.mp4");
-    VideoFileDeserializer des("/home/liz3/test-videos/143386147_Superstar W.mp4");
+    // VideoFileDeserializer des("/home/liz3/test-videos/143386147_Superstar W.mp4");
+    VideoFileDeserializer des("/home/cedric/Downloads/143386147_Superstar W.mp4");
     auto firstFrameSeek = des.getSegment(0, 0.04);
     int w = firstFrameSeek->frameWidth;
     int h = firstFrameSeek->frameHeight;
@@ -64,8 +65,8 @@ void avTest() {
             auto currentFrame = des.getSegment(i, i + 0.04);
 
             frames.push_back(
-                    std::pair<uint8_t *, AudioFrame>(currentFrame->vidFrames[0].data, currentFrame->audioParts[0]));
-            auto audPart = currentFrame->audioParts[0];
+                    std::pair<uint8_t *, AudioFrame>(currentFrame->vidFrames[0].data, currentFrame->audFrames[0]));
+            auto audPart = currentFrame->audFrames[0];
             auto* p = &(audio);
             p->insert(p->end(), &audPart.data[0][0],  &audPart.data[0][audPart.numSamples * 4]);
             //  delete result;
