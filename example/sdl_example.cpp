@@ -14,6 +14,7 @@
 #include <SDL2/SDL_ttf.h>
 #include <thread>
 #include "torasu/mod/imgc/VideoFileDeserializer.hpp"
+#include <fstream>
 
 using namespace std;
 using namespace torasu;
@@ -22,8 +23,8 @@ using namespace imgc;
 
 // variable declarations
 struct audio_state {
-     Uint8 *audio_pos; // global pointer to the audio buffer to be played
-      Uint32 audio_len; // remaining length of the sample we have to play
+    Uint8 *audio_pos; // global pointer to the audio buffer to be played
+    Uint32 audio_len; // remaining length of the sample we have to play
 
 };
 void my_audio_callback(void *userdata, Uint8 *stream, int len);
@@ -36,26 +37,27 @@ void my_audio_callback(void *userdata, Uint8 *stream, int len) {
     }
     len = (len > state->audio_len ? state->audio_len : len);
     SDL_memcpy(stream, state->audio_pos, len);                    // simply copy from one buffer into the other
-    //  SDL_MixAudio(stream, state->audio_pos, len, SDL_MIX_MAXVOLUME);// mix from one buffer into another
-
+    // SDL_MixAudio(stream, state->audio_pos, len, SDL_MIX_MAXVOLUME);// mix from one buffer into another
+    state->audio_pos += len;
     state->audio_len -= len;
-
 }
 
 void avTest() {
     audio_state* state = new audio_state();
     state->audio_len = 0;
     state->audio_pos = nullptr;
+    ofstream stream("test.pcm");
     // VideoFileDeserializer des("/Users/liz3/Desktop/110038564_What_You_Want_Ilkay_Sencan.mp4");
-	VideoFileDeserializer des("/home/liz3/test-videos/125919314_Changing.mp4");
+    VideoFileDeserializer des("/home/liz3/test-videos/143386147_Superstar W.mp4");
     auto firstFrameSeek = des.getSegment(0, 0.04);
     int w = firstFrameSeek->frameWidth;
     int h = firstFrameSeek->frameHeight;
     int frameRate = 25;
     std::vector<std::pair<uint8_t *, AudioFrame>> frames;
+    std::vector<uint8_t> audio;
     bool decodingDone = false;
     int totalFrames = (des.streams[0]->duration * av_q2d(des.streams[0]->base_time)) * 25;
-    auto *rendererThread = new std::thread([&frames, &des, &decodingDone, &totalFrames]() {
+    auto *rendererThread = new std::thread([&frames, &des, &decodingDone, &totalFrames, &audio]() {
         auto totalLength = des.streams[0]->duration * av_q2d(des.streams[0]->base_time);
         double i = 0;
         for (int j = 0; j < totalFrames; ++j) {
@@ -63,6 +65,9 @@ void avTest() {
 
             frames.push_back(
                     std::pair<uint8_t *, AudioFrame>(currentFrame->vidFrames[0].data, currentFrame->audioParts[0]));
+            auto audPart = currentFrame->audioParts[0];
+            auto* p = &(audio);
+            p->insert(p->end(), &audPart.data[0][0],  &audPart.data[0][audPart.numSamples * 4]);
             //  delete result;
             i += 0.04;
         }
@@ -71,21 +76,21 @@ void avTest() {
     });
     rendererThread->detach();
 
-    while (frames.size() < 40)
+    while (!decodingDone)
         std::this_thread::sleep_for(std::chrono::milliseconds(40));
     SDL_Event event;
     SDL_Renderer *renderer = NULL;
     SDL_Window *window = NULL;
 
-	int ec;
-	if ((ec = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO)) < 0) {
+    int ec;
+    if ((ec = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO)) < 0) {
         printf("Error: couldn't initialize SDL2. EC %d\n", ec);
         throw runtime_error(string("SDL Error: ") + SDL_GetError());
     }
 
     if (TTF_Init() < 0) {
-		throw runtime_error("Error initializing sdl-TTF");
-	}
+        throw runtime_error("Error initializing sdl-TTF");
+    }
 
     SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR, "0");
     SDL_CreateWindowAndRenderer(w, h, SDL_RENDERER_ACCELERATED, &window, &renderer);
@@ -106,53 +111,65 @@ void avTest() {
     int audioPos = 0;
     int j = 0;
     int t = 0;
+    if(j == 0) {
+        SDL_AudioSpec spec;
+        spec.channels = 1;
+        spec.format = AUDIO_F32;
+        spec.samples = audio.size() / 4;
+        spec.size = audio.size();
+        spec.freq = 44100;
+        spec.callback = my_audio_callback;
+        state->audio_len = audio.size();
+        state->audio_pos = &audio[0];
+        spec.userdata = state;
+        if (SDL_OpenAudio(&spec, NULL) < 0) return;
+        SDL_PauseAudio(0);
+
+    } else {
+        std::cout << "lol\n";
+    }
+
+    if (SDL_PollEvent(&event) && event.type == SDL_QUIT)
+        return;
     while (true) {
         if (j >= totalFrames && decodingDone) break;
         // SDL_PauseAudio(1);
 
         begin = std::chrono::steady_clock::now();
-        if (j % 6 == 0) {
-            int size = 0;
-            int samples = 0;
-            for (int i = 0; i < 6; ++i) {
-                auto packet = frames[audioPos + i];
-                if(audioPos + i >= frames.size()) continue;
-                size += packet.second.numSamples * 4;
-                samples += packet.second.numSamples;
-            }
-            state->audio_pos = new uint8_t[size];
-            state->audio_len = size;
-            int offset = 0;
-            for (int i = 0; i < 6; ++i) {
-                auto packet = frames[audioPos + i];
-                if(audioPos + i >= frames.size()) continue;
-
-                std::copy(&packet.second.data[0][0], &packet.second.data[0][packet.second.size], &(state->audio_pos)[offset]);
-                offset += packet.second.size;
-            }
-            if(j == 0) {
-                SDL_AudioSpec spec;
-                spec.channels = 1;
-                spec.format = AUDIO_F32;
-                spec.samples = samples;
-                spec.size = size;
-                spec.freq = 44100;
-                spec.callback = my_audio_callback;
-                spec.userdata = state;
-                if (SDL_OpenAudio(&spec, NULL) < 0) return;
-                SDL_PauseAudio(0);
-
-            }
-
-            audioPos += 6;
-//            std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-//            std::cout << "PLAYBACK AFTER 25 FRAMES = "
-//                      << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin2).count() << "[ms]"
-//                      << std::endl;
-//            begin2 = std::chrono::steady_clock::now();
-            if (SDL_PollEvent(&event) && event.type == SDL_QUIT)
-                break;
-        }
+//        if (j % 6 == 0 || state->audio_len <= 0) {
+//
+//            int size = 0;
+//            int samples = 0;
+//            for (int i = 0; i < 6; ++i) {
+//                auto packet = frames[audioPos + i];
+//                if(audioPos + i >= frames.size()) {
+//                    continue;
+//                }
+//                size += packet.second.numSamples * 4;
+//                samples += packet.second.numSamples;
+//            }
+//
+//            delete[] state->audio_pos;
+//            state->audio_pos = new uint8_t[size];
+//            state->audio_len = samples * 4;
+//
+//            int offset = 0;
+//            for (int i = 0; i < 6; ++i) {
+//                auto packet = frames[audioPos + i];
+//                if(audioPos + i >= frames.size()) continue;
+//
+//                std::copy(&packet.second.data[0][0], &packet.second.data[0][packet.second.size], &(state->audio_pos)[offset]);
+//                offset += packet.second.size;
+//            }
+//            stream.write(reinterpret_cast<const char*>(state->audio_pos), size);
+//
+//            audioPos += 6;
+////            std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+////            std::cout << "PLAYBACK AFTER 25 FRAMES = "
+////                      << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin2).count() << "[ms]"
+////                      << std::endl;
+////            begin2 = std::chrono::steady_clock::now();
+//        }
 
         auto part = frames[j];
 
@@ -192,10 +209,10 @@ void avTest() {
         SDL_RenderPresent(renderer);
         j++;
         std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-         t = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
-        if (t < 40)
-            SDL_Delay(39 - t);
-        // std::this_thread::sleep_for(std::chrono::milliseconds(39 - t));
+        t = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+        //   if (t < 40)
+        //   SDL_Delay(39 - t);
+        std::this_thread::sleep_for(std::chrono::milliseconds(39 - t));
         // SDL_PauseAudio(1);
 
     }
@@ -212,6 +229,7 @@ void avTest() {
     SDL_RenderCopy(renderer, Message, NULL,
                    &Message_rect);
     SDL_RenderPresent(renderer);
+    stream.close();
     while (true)
         if (SDL_PollEvent(&event) && event.type == SDL_QUIT)
             break;
