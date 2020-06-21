@@ -47,7 +47,7 @@ void avTest() {
     state->audio_len = 0;
     state->audio_pos = nullptr;
     // VideoFileDeserializer des("/Users/liz3/Desktop/110038564_What_You_Want_Ilkay_Sencan.mp4");
-	VideoFileDeserializer des("/home/liz3/test-videos/143386147_Superstar W.mp4");
+	VideoFileDeserializer des("/home/liz3/test-videos/125919314_Changing.mp4");
     auto firstFrameSeek = des.getSegment(0, 0.04);
     int w = firstFrameSeek->frameWidth;
     int h = firstFrameSeek->frameHeight;
@@ -86,7 +86,8 @@ void avTest() {
     if (TTF_Init() < 0) {
 		throw runtime_error("Error initializing sdl-TTF");
 	}
-	
+
+    SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR, "0");
     SDL_CreateWindowAndRenderer(w, h, SDL_RENDERER_ACCELERATED, &window, &renderer);
     SDL_SetWindowTitle(window, "Playback test");
     TTF_Font *Sans = TTF_OpenFont("Roboto-Regular.ttf",
@@ -110,10 +111,10 @@ void avTest() {
         // SDL_PauseAudio(1);
 
         begin = std::chrono::steady_clock::now();
-        if (j % 4 == 0) {
+        if (j % 6 == 0) {
             int size = 0;
             int samples = 0;
-            for (int i = 0; i < 4; ++i) {
+            for (int i = 0; i < 6; ++i) {
                 auto packet = frames[audioPos + i];
                 if(audioPos + i >= frames.size()) continue;
                 size += packet.second.numSamples * 4;
@@ -122,7 +123,7 @@ void avTest() {
             state->audio_pos = new uint8_t[size];
             state->audio_len = size;
             int offset = 0;
-            for (int i = 0; i < 4; ++i) {
+            for (int i = 0; i < 6; ++i) {
                 auto packet = frames[audioPos + i];
                 if(audioPos + i >= frames.size()) continue;
 
@@ -143,7 +144,7 @@ void avTest() {
 
             }
 
-            audioPos += 4;
+            audioPos += 6;
 //            std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 //            std::cout << "PLAYBACK AFTER 25 FRAMES = "
 //                      << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin2).count() << "[ms]"
