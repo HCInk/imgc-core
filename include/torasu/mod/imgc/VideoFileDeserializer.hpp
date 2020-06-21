@@ -63,7 +63,7 @@ struct BufferedFrame {
 };
 
 struct StreamEntry {
-	int id;
+	int index;
 	AVMediaType codecType;
 	AVCodec* codec = nullptr;
 	AVCodecContext* ctx = nullptr;
@@ -98,15 +98,15 @@ private:
 	void prepare();
 	AVFormatContext* av_format_ctx;
 
-	int vid_stream_id = -1;
-	int audio_stream_id = -1;
+	int vid_stream_index = -1;
+	int audio_stream_index = -1;
 
 	double decoderPosition = -1;
 	SwsContext* sws_scaler_ctx = nullptr;
 
 
 	AVPacket* av_packet;
-	StreamEntry* getEntryById(int index);
+	StreamEntry* getStreamEntryByIndex(int index);
 	void removeCacheFrame(int64_t pos, std::vector<BufferedFrame>* list);
 	void extractVideoFrame(StreamEntry* stream, uint8_t* outPt);
 //    int32_t* getRealBounds(StreamEntry* stream);
