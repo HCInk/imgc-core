@@ -46,11 +46,11 @@ struct DecodingState {
 	double requestStart;
 	double requestEnd;
 
-	bool videoPresent = false;
-	bool audioPresent = false;
+	bool videoDone = false;
+	bool audioDone = false;
 
-	std::vector<AudioFrame> audioParts;
 	std::vector<VideoFrame> vidFrames;
+	std::vector<AudioFrame> audFrames;
 
 	int frameWidth;
 	int frameHeight;

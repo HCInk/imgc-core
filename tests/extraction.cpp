@@ -7,7 +7,7 @@
 #include <fstream>
 #include <thread>
 #include <iostream>
-#include "torasu/mod/imgc/VideoFileDeserializer.hpp"
+#include <torasu/mod/imgc/VideoFileDeserializer.hpp>
 
 void writeFrames(std::vector<VideoFrame> frames, std::string base_path, int w, int h) {
     for (int i = 0; i < frames.size(); ++i) {
@@ -53,7 +53,9 @@ int main() {
 		.start = 1,
 		.end = 1.5,
 		.videoBuffer = &videoBuffer,
-		.videoFormat = &videoFmt
+		.videoFormat = &videoFmt,
+		.audioBuffer = NULL,
+		.audioFormat = NULL
 	});
 
 
@@ -62,48 +64,50 @@ int main() {
 	auto resultB2 = des.getSegment((SegmentRequest) {
 		.start = 1,
 		.end = 1.5,
+		.videoBuffer = NULL,
+		.videoFormat = NULL,
 		.audioBuffer = &audioBuffer,
 		.audioFormat = &audioFmt
 	});
 
-	std::cout << "B1 Video-Size: " << resultB1->vidFrames.size() << " AudioSize: " << resultB1->audioParts.size() << std::endl;
+	std::cout << "B1 Video-Size: " << resultB1->vidFrames.size() << " AudioSize: " << resultB1->audFrames.size() << std::endl;
 
-	std::cout << "B2 Video-Size: " << resultB2->vidFrames.size() << " AudioSize: " << resultB2->audioParts.size() << std::endl;
+	std::cout << "B2 Video-Size: " << resultB2->vidFrames.size() << " AudioSize: " << resultB2->audFrames.size() << std::endl;
 
 	std::thread write1([&result](){ 
 		
 		writeFrames(result->vidFrames, std::string("test_files/one/"), result->frameWidth, result->frameHeight);
-		writeAudio(std::string("test_files/one/audio.pcm"), result->audioParts);
+		writeAudio(std::string("test_files/one/audio.pcm"), result->audFrames);
 
 	});
 	std::thread write2([&result2](){ 
 		
 		writeFrames(result2->vidFrames, std::string("test_files/two/"), result2->frameWidth, result2->frameHeight);
-		writeAudio(std::string("test_files/two/audio.pcm"), result2->audioParts);
+		writeAudio(std::string("test_files/two/audio.pcm"), result2->audFrames);
 
 	});
 	std::thread write3([&result3](){ 
 		
 		writeFrames(result3->vidFrames, std::string("test_files/three/"), result3->frameWidth, result3->frameHeight);
-		writeAudio(std::string("test_files/three/audio.pcm"), result3->audioParts);
+		writeAudio(std::string("test_files/three/audio.pcm"), result3->audFrames);
 
 	});
 	std::thread write4([&result4](){ 
 		
 		writeFrames(result4->vidFrames, std::string("test_files/four/"), result4->frameWidth, result4->frameHeight);
-		writeAudio(std::string("test_files/four/audio.pcm"), result4->audioParts);
+		writeAudio(std::string("test_files/four/audio.pcm"), result4->audFrames);
 
 	});
 	std::thread write5([&result5](){ 
 		
 		writeFrames(result5->vidFrames, std::string("test_files/five/"), result5->frameWidth, result5->frameHeight);
-		writeAudio(std::string("test_files/five/audio.pcm"), result5->audioParts);
+		writeAudio(std::string("test_files/five/audio.pcm"), result5->audFrames);
 
 	});
 	std::thread write6([&result6](){ 
 		
 		writeFrames(result6->vidFrames, std::string("test_files/six/"), result6->frameWidth, result6->frameHeight);
-		writeAudio(std::string("test_files/six/audio.pcm"), result6->audioParts);
+		writeAudio(std::string("test_files/six/audio.pcm"), result6->audFrames);
 
 	});
 

@@ -244,11 +244,11 @@ DecodingState* VideoFileDeserializer::getSegment(SegmentRequest request) {
 	decodingState->requestEnd = request.end;
 
 	if (request.videoBuffer == NULL) {
-		decodingState->videoPresent = true; // Set this to true since not required
+		decodingState->videoDone = true; // Set this to true since not required
 	}
 
 	if (request.audioBuffer == NULL) {
-		decodingState->audioPresent = true; // Set this to true since not required
+		decodingState->audioDone = true; // Set this to true since not required
 	}
 
 	auto vidStream = getEntryById(vid_stream_id - 1);
@@ -260,7 +260,7 @@ DecodingState* VideoFileDeserializer::getSegment(SegmentRequest request) {
 	initializePosition(decodingState);
 
 	while (true) {
-		if (decodingState->videoPresent && decodingState->audioPresent) break;
+		if (decodingState->videoDone && decodingState->audioDone) break;
 
 		av_packet_unref(av_packet);
 		int nextFrameStat = av_read_frame(av_format_ctx, av_packet);
@@ -298,7 +298,7 @@ DecodingState* VideoFileDeserializer::getSegment(SegmentRequest request) {
 		handleFrame(stream, decodingState);
 	}
 
-	if (!decodingState->audioParts.empty()) {
+	if (!decodingState->audFrames.empty()) {
 		concatAudio(decodingState);
 	}
 
@@ -332,9 +332,8 @@ void VideoFileDeserializer::handleFrame(StreamEntry* stream, DecodingState* deco
 		targetPositionEnd = stream->duration - stream->frame->pkt_duration;
 	}
 
-	if (stream->id == vid_stream_id) {
-		if (!decodingState->videoPresent &&
-				checkFrameTargetBound(stream->frame, targetPosition, targetPositionEnd)) {
+	if (!decodingState->videoDone && stream->id == vid_stream_id) {
+		if (checkFrameTargetBound(stream->frame, targetPosition, targetPositionEnd)) {
 			if (!decodingState->vidFrames.empty() && decodingState->vidFrames.rbegin()->end > stream->frame->pts) {
 				cout << "[VIDEO-FRAME] OLD FRAME " << stream->frame->pts << endl;
 				return;
@@ -350,21 +349,19 @@ void VideoFileDeserializer::handleFrame(StreamEntry* stream, DecodingState* deco
 			auto frame = VideoFrame{stream->frame->pts, stream->frame->pts + stream->frame->pkt_duration, frameSize,
 									target};
 			decodingState->vidFrames.push_back(frame);
-		}/* else if (targetPositionEnd < (stream->frame->pts + stream->frame->pkt_duration)) {
-            decodingState->videoPresent = true;
-        }*/
+		}
 
 		if (targetPositionEnd <= stream->nextFramePts) {
-			decodingState->videoPresent = true;
+			decodingState->videoDone = true;
 		}
 
 	}
 
-	if (!decodingState->audioPresent && audio_stream_id == stream->id) {
+	if (!decodingState->audioDone && audio_stream_id == stream->id) {
 		if (checkFrameTargetBound(stream->frame, targetPosition, targetPositionEnd)) {
 			//   auto frameOffset = stream->frame->pts - targetPosition;
 			//   auto frameDuration = stream->frame->pkt_duration;
-			if (!decodingState->audioParts.empty() && decodingState->audioParts.rbegin()->end > stream->frame->pts) {
+			if (!decodingState->audFrames.empty() && decodingState->audFrames.rbegin()->end > stream->frame->pts) {
 				cout << "[AUDIO-FRAME] OLD FRAME " << stream->frame->pts << endl;
 				return;
 			}
@@ -379,13 +376,11 @@ void VideoFileDeserializer::handleFrame(StreamEntry* stream, DecodingState* deco
 			}
 			auto part = AudioFrame{stream->frame->pts, stream->frame->pts + stream->frame->pkt_duration,
 								   stream->frame->nb_samples, stream->frame->nb_samples * 4, data};
-			decodingState->audioParts.push_back(part);
-		}/* else if (targetPositionEnd < (stream->frame->pts + stream->frame->pkt_duration)) {
-            decodingState->audioPresent = true;
-        }*/
+			decodingState->audFrames.push_back(part);
+		}
 
 		if (targetPositionEnd <= stream->nextFramePts) {
-			decodingState->audioPresent = true;
+			decodingState->audioDone = true;
 		}
 
 	}
@@ -393,7 +388,7 @@ void VideoFileDeserializer::handleFrame(StreamEntry* stream, DecodingState* deco
 
 void VideoFileDeserializer::fetchBuffered(DecodingState* decodingState) {
 
-	{
+	if (!decodingState->videoDone) {
 		auto vidStream = getEntryById(vid_stream_id - 1);
 		int64_t vidTargetPosition = toBaseTime(decodingState->requestStart, vidStream->base_time);
 		//	int64_t vidTargetPositionEnd = toBaseTime(decodingState->requestEnd, vidStream->base_time);
@@ -408,7 +403,7 @@ void VideoFileDeserializer::fetchBuffered(DecodingState* decodingState) {
 		}
 	}
 
-	{
+	if (!decodingState->audioDone) {
 
 		auto audStream = getEntryById(audio_stream_id - 1);
 		int64_t audTargetPosition = toBaseTime(decodingState->requestStart, audStream->base_time);
@@ -432,7 +427,7 @@ void VideoFileDeserializer::initializePosition(DecodingState* decodingState) {
 
 	bool vidSeekBack;
 	bool vidSeekForward;
-	if (!decodingState->videoPresent) {
+	if (!decodingState->videoDone) {
 		auto vidStream = getEntryById(vid_stream_id - 1);
 		int64_t vidTargetPosition = decodingState->vidFrames.empty() ?
 									toBaseTime(decodingState->requestStart, vidStream->base_time) : decodingState->vidFrames.rbegin()->end;
@@ -468,12 +463,12 @@ void VideoFileDeserializer::initializePosition(DecodingState* decodingState) {
 	}
 
 	bool audSeekBack;
-	if (!decodingState->audioPresent) {
+	if (!decodingState->audioDone) {
 	
 		auto audStream = getEntryById(audio_stream_id - 1);
 
-		int64_t audTargetPosition = decodingState->audioParts.empty() ?
-									toBaseTime(decodingState->requestStart, audStream->base_time) : decodingState->audioParts.rbegin()->end;
+		int64_t audTargetPosition = decodingState->audFrames.empty() ?
+									toBaseTime(decodingState->requestStart, audStream->base_time) : decodingState->audFrames.rbegin()->end;
 
 		int64_t audPlayhead = audStream->nextFramePts >= 0 ?
 							audStream->nextFramePts : INT64_MAX;
@@ -545,7 +540,7 @@ void VideoFileDeserializer::concatAudio(DecodingState* decodingState) {
 	int64_t requestStartBased = toBaseTime(decodingState->requestStart, audioBaseTime);
 	int64_t requestEndBased = toBaseTime(decodingState->requestEnd, audioBaseTime);
 
-	for (AudioFrame& frame : decodingState->audioParts) {
+	for (AudioFrame& frame : decodingState->audFrames) {
 
 		int64_t copySrcStart, copySrcEnd, copyDestPos;
 
@@ -574,8 +569,8 @@ void VideoFileDeserializer::concatAudio(DecodingState* decodingState) {
 		}
 
 	}
-	decodingState->audioParts.clear();
-	decodingState->audioParts.push_back((AudioFrame) {
+	decodingState->audFrames.clear();
+	decodingState->audFrames.push_back((AudioFrame) {
 		requestStartBased, requestEndBased, channelSize, (int) (channelSize*sampleSize), resultData
 	});
 
