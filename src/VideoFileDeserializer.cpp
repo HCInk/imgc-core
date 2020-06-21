@@ -591,7 +591,7 @@ void VideoFileDeserializer::concatAudio(DecodingState* decodingState) {
 	}
 	decodingState->audFrames.clear();
 	decodingState->audFrames.push_back((AudioFrame) {
-		requestStartBased, requestEndBased, channelSize, (int) (channelSize*sampleSize), resultData
+		requestStartBased, requestEndBased, channelSize, channelSize*sampleSize, resultData
 	});
 
 }
