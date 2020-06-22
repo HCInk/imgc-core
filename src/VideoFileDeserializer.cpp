@@ -91,7 +91,7 @@ void VideoFileDeserializer::prepare() {
 		throw runtime_error("Failed allocating avio_context!");
 	}
 	av_format_ctx->flags = AVFMT_FLAG_CUSTOM_IO;
-	av_format_ctx->probesize = 1200000;
+	//av_format_ctx->probesize = 1200000;
 	if (avformat_open_input(&av_format_ctx, "", NULL, NULL) != 0) {
 		throw runtime_error("Failed to open input audio_out_stream");
 	}
@@ -148,15 +148,16 @@ VideoFileDeserializer::~VideoFileDeserializer() {
 	if (sws_scaler_ctx != nullptr) {
 		sws_freeContext(sws_scaler_ctx);
 	}
-	for (int i = 0; i < streams.size(); ++i) {
+	for (unsigned long i = 0; i < streams.size(); ++i) {
 		auto stream = streams[i];
 		if (stream->frame != nullptr)
 			av_frame_free(&stream->frame);
 		if (stream->ctx != nullptr)
 			avcodec_free_context(&stream->ctx);
 
-
+        delete stream;
 	}
+	delete[] in_stream.data;
 	av_packet_free(&av_packet);
 	avformat_close_input(&av_format_ctx);
 }
@@ -168,7 +169,7 @@ void VideoFileDeserializer::flushBuffers(StreamEntry* entry) {
 }
 
 StreamEntry* VideoFileDeserializer::getStreamEntryByIndex(int index) {
-	for (int i = 0; i < streams.size(); ++i) {
+	for (unsigned long i = 0; i < streams.size(); ++i) {
 		auto entry = streams[i];
 		if (entry->index == index) return entry;
 	}
@@ -266,11 +267,12 @@ DecodingState* VideoFileDeserializer::getSegment(SegmentRequest request) {
 		int nextFrameStat = av_read_frame(av_format_ctx, av_packet);
 		auto stream = getStreamEntryByIndex(av_packet->stream_index);
 		if (nextFrameStat == AVERROR_EOF) {
-			for(int i = 0; i < streams.size(); i++) {
+			for(unsigned long i = 0; i < streams.size(); i++) {
 				drainStream(streams[i], decodingState);
 			}
 			break;
 		}
+		std::cout << stream->ctx->time_base.num << ":" << stream->ctx->sample_rate << "\n";
 		int response = avcodec_send_packet(stream->ctx, av_packet);
 		if (response == AVERROR(EAGAIN)) {
 			continue;
@@ -388,7 +390,7 @@ void VideoFileDeserializer::handleFrame(StreamEntry* stream, DecodingState* deco
 			cout << "[AUDIO-FRAME] NEW FRAME " << stream->frame->pts << endl;
 			// std::cout << "[AUDIO-FRAME] OFFSET " << frameOffset << " DURATION " << frameDuration << std::endl;
 			std::vector<uint8_t*> data;
-			size_t memSize = stream->frame->nb_samples * 4;
+			size_t memSize = av_samples_get_buffer_size(stream->frame->linesize, stream->frame->channels, stream->frame->nb_samples, stream->ctx->sample_fmt, 0);
 			for (int i = 0; i < stream->frame->channels; ++i) {
 				auto* cp = new uint8_t[memSize];
 				std::copy(stream->frame->extended_data[i], stream->frame->extended_data[i]+memSize, cp);
@@ -561,7 +563,7 @@ void VideoFileDeserializer::concatAudio(DecodingState* decodingState) {
 	int64_t requestEndBased = toBaseTime(decodingState->requestEnd, audioBaseTime);
 
 	for (AudioFrame& frame : decodingState->audFrames) {
-
+        if(frame.numSamples < 50) continue;
 		int64_t copySrcStart, copySrcEnd, copyDestPos;
 
 		copyDestPos = (frame.start-requestStartBased) * audioBaseTime.num * sampleRate / audioBaseTime.den;
@@ -585,6 +587,7 @@ void VideoFileDeserializer::concatAudio(DecodingState* decodingState) {
 
 		for (int i = 0; i < channelCount; ++i) {
 			std::copy(frame.data[i]+(copySrcStart * sampleSize), frame.data[i] + (copySrcEnd * sampleSize), resultData[i] + (copyDestPos * sampleSize) );
+			delete [] frame.data[i];
 			// TODO free audio data of frames
 		}
 
@@ -594,4 +597,19 @@ void VideoFileDeserializer::concatAudio(DecodingState* decodingState) {
 		requestStartBased, requestEndBased, channelSize, channelSize*sampleSize, resultData
 	});
 
+}
+
+DecodingState *VideoFileDeserializer::getSegment(double start, double end) {
+    std::vector<torasu::tstd::Dbimg*>* vidBuffer;
+    torasu::tstd::Dbimg_FORMAT vidFormat(-1, -1);
+    torasu::tstd::Daudio_buffer* audBuffer;
+    torasu::tstd::Daudio_buffer_FORMAT audFormat(44100, torasu::tstd::Daudio_buffer_CHFMT::FLOAT32);
+    return getSegment((SegmentRequest) {
+            .start = start,
+            .end = end,
+            .videoBuffer = &vidBuffer,
+            .videoFormat = &vidFormat,
+            .audioBuffer = &audBuffer,
+            .audioFormat = &audFormat
+    });
 }

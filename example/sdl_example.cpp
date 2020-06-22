@@ -32,6 +32,7 @@ void my_audio_callback(void *userdata, Uint8 *stream, int len);
 
 void my_audio_callback(void *userdata, Uint8 *stream, int len) {
     audio_state* state = static_cast<audio_state *>(userdata);
+
     if (state->audio_len == 0) {
         return;// simply copy from one buffer into the other
     }
@@ -48,8 +49,8 @@ void avTest() {
     state->audio_pos = nullptr;
     ofstream stream("test.pcm");
     // VideoFileDeserializer des("/Users/liz3/Desktop/110038564_What_You_Want_Ilkay_Sencan.mp4");
-    // VideoFileDeserializer des("/home/liz3/test-videos/143386147_Superstar W.mp4");
-    VideoFileDeserializer des("/home/cedric/Downloads/143386147_Superstar W.mp4");
+     VideoFileDeserializer des("/home/liz3/test-videos/143386147_Superstar W.mp4");
+    //VideoFileDeserializer des("/home/cedric/Downloads/143386147_Superstar W.mp4");
     auto firstFrameSeek = des.getSegment(0, 0.04);
     int w = firstFrameSeek->frameWidth;
     int h = firstFrameSeek->frameHeight;
@@ -57,20 +58,28 @@ void avTest() {
     std::vector<std::pair<uint8_t *, AudioFrame>> frames;
     std::vector<uint8_t> audio;
     bool decodingDone = false;
+    delete [] firstFrameSeek->vidFrames[0].data;
+    delete [] firstFrameSeek->audFrames[0].data[0];
+    delete [] firstFrameSeek->audFrames[0].data[1];
+    delete firstFrameSeek;
     int totalFrames = (des.streams[0]->duration * av_q2d(des.streams[0]->base_time)) * 25;
     auto *rendererThread = new std::thread([&frames, &des, &decodingDone, &totalFrames, &audio]() {
         auto totalLength = des.streams[0]->duration * av_q2d(des.streams[0]->base_time);
         double i = 0;
         for (int j = 0; j < totalFrames; ++j) {
-            auto currentFrame = des.getSegment(i, i + 0.04);
+            DecodingState* currentFrame = des.getSegment(i, i + 0.04);
 
             frames.push_back(
                     std::pair<uint8_t *, AudioFrame>(currentFrame->vidFrames[0].data, currentFrame->audFrames[0]));
             auto audPart = currentFrame->audFrames[0];
             auto* p = &(audio);
             p->insert(p->end(), &audPart.data[0][0],  &audPart.data[0][audPart.numSamples * 4]);
+            for (int k = 0; k < audPart.data.size(); ++k) {
+                delete[] audPart.data[k];
+            }
             //  delete result;
             i += 0.04;
+            delete currentFrame;
         }
 
         decodingDone = true;
@@ -116,8 +125,7 @@ void avTest() {
         SDL_AudioSpec spec;
         spec.channels = 1;
         spec.format = AUDIO_F32;
-        spec.samples = audio.size() / 4;
-        spec.size = audio.size();
+        spec.samples = (audio.size() / 4) - (44100);
         spec.freq = 44100;
         spec.callback = my_audio_callback;
         state->audio_len = audio.size();
@@ -133,66 +141,14 @@ void avTest() {
     if (SDL_PollEvent(&event) && event.type == SDL_QUIT)
         return;
     while (true) {
-        if (j >= totalFrames && decodingDone) break;
-        // SDL_PauseAudio(1);
+        if (j >= totalFrames && decodingDone) {
+            SDL_PauseAudio(1);
+            break;
+        }
 
         begin = std::chrono::steady_clock::now();
-//        if (j % 6 == 0 || state->audio_len <= 0) {
-//
-//            int size = 0;
-//            int samples = 0;
-//            for (int i = 0; i < 6; ++i) {
-//                auto packet = frames[audioPos + i];
-//                if(audioPos + i >= frames.size()) {
-//                    continue;
-//                }
-//                size += packet.second.numSamples * 4;
-//                samples += packet.second.numSamples;
-//            }
-//
-//            delete[] state->audio_pos;
-//            state->audio_pos = new uint8_t[size];
-//            state->audio_len = samples * 4;
-//
-//            int offset = 0;
-//            for (int i = 0; i < 6; ++i) {
-//                auto packet = frames[audioPos + i];
-//                if(audioPos + i >= frames.size()) continue;
-//
-//                std::copy(&packet.second.data[0][0], &packet.second.data[0][packet.second.size], &(state->audio_pos)[offset]);
-//                offset += packet.second.size;
-//            }
-//            stream.write(reinterpret_cast<const char*>(state->audio_pos), size);
-//
-//            audioPos += 6;
-////            std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-////            std::cout << "PLAYBACK AFTER 25 FRAMES = "
-////                      << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin2).count() << "[ms]"
-////                      << std::endl;
-////            begin2 = std::chrono::steady_clock::now();
-//        }
 
         auto part = frames[j];
-
-//        auto audioData = part.second.data[0];
-//        audio_pos = &audioData[0];
-//        audio_len = part.second.size;
-//        if(j == 0) {
-//            SDL_PauseAudio(0);
-//        }
-
-//        if(part.second.numSamples < spec.samples) {
-//            uint16_t diff = spec.samples - part.second.numSamples;
-//            auto* dataNew = new uint8_t [spec.samples * 4];
-//            std::copy(&audioData[0], &audioData[part.second.size], dataNew);
-//            for (int i = 0; i < diff; ++i) {
-//                dataNew[part.second.size + (i * 4)] = 0;
-//                dataNew[part.second.size + (i * 4) + 1] = 0;
-//                dataNew[part.second.size + (i * 4) + 2] = 0;
-//                dataNew[part.second.size + (i * 4) + 3] = 0;
-//            }
-//            audio_pos = dataNew;
-//        }
 
         auto p = part.first;
         SDL_UpdateTexture(texture, NULL, &p[0], w * 4);
@@ -209,6 +165,7 @@ void avTest() {
         }
         SDL_RenderPresent(renderer);
         j++;
+        delete [] part.first;
         std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
         t = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
         //   if (t < 40)
@@ -217,7 +174,7 @@ void avTest() {
         // SDL_PauseAudio(1);
 
     }
-    SDL_PauseAudio(1);
+    audio.clear();
     surfaceMessage = TTF_RenderText_Solid(Sans, "Done",
                                           White);
     SDL_DestroyTexture(Message);
@@ -235,11 +192,11 @@ void avTest() {
         if (SDL_PollEvent(&event) && event.type == SDL_QUIT)
             break;
 
+    delete  state;
     SDL_DestroyTexture(Message);
     SDL_DestroyTexture(texture);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
-    SDL_CloseAudio();
 }
 
 int main() {

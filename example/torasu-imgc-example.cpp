@@ -322,14 +322,14 @@ void writeAudio(std::string path, std::vector<AudioFrame> frames) {
 
 void audioTest() {
 
-    VideoFileDeserializer des2("Hold the line Resampled.wav");
+    VideoFileDeserializer des2("/home/liz3/Downloads/smptstps.mp3");
 
 	torasu::tstd::Daudio_buffer_FORMAT audioFmt(44100, torasu::tstd::Daudio_buffer_CHFMT::FLOAT32);
 	torasu::tstd::Daudio_buffer* audioBuffer;
 
 	auto result = des2.getSegment((SegmentRequest) {
 		.start = 0,
-		.end = 30,
+		.end = 0.5,
 		.videoBuffer = NULL,
 		.videoFormat = NULL,
 		.audioBuffer = &audioBuffer,

@@ -165,20 +165,7 @@ public:
 	VideoFileDeserializer();
 	DecodingState* getSegment(SegmentRequest request);
 
-	inline DecodingState* getSegment(double start, double end) {
-		std::vector<torasu::tstd::Dbimg*>* vidBuffer;
-		torasu::tstd::Dbimg_FORMAT vidFormat(-1, -1);
-		torasu::tstd::Daudio_buffer* audBuffer;
-		torasu::tstd::Daudio_buffer_FORMAT audFormat(44100, torasu::tstd::Daudio_buffer_CHFMT::FLOAT32);
-		return getSegment((SegmentRequest) {
-			.start = start,
-			.end = end,
-			.videoBuffer = &vidBuffer,
-			.videoFormat = &vidFormat,
-			.audioBuffer = &audBuffer,
-			.audioFormat = &audFormat
-		});
-	}
+	 DecodingState* getSegment(double start, double end);
 
 };
 
