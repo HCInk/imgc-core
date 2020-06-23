@@ -390,10 +390,16 @@ void VideoFileDeserializer::handleFrame(StreamEntry* stream, DecodingState* deco
 			cout << "[AUDIO-FRAME] NEW FRAME " << stream->frame->pts << endl;
 			// std::cout << "[AUDIO-FRAME] OFFSET " << frameOffset << " DURATION " << frameDuration << std::endl;
 			std::vector<uint8_t*> data;
-			size_t memSize = av_samples_get_buffer_size(stream->frame->linesize, stream->frame->channels, stream->frame->nb_samples, stream->ctx->sample_fmt, 0);
+			static const size_t sampleSize = 4;
+			size_t memSize = stream->frame->pkt_duration * stream->ctx->sample_rate
+								* stream->base_time.num / stream->base_time.den * sampleSize;
+			size_t dataSize = stream->frame->nb_samples * sampleSize;
+
 			for (int i = 0; i < stream->frame->channels; ++i) {
 				auto* cp = new uint8_t[memSize];
-				std::copy(stream->frame->extended_data[i], stream->frame->extended_data[i]+memSize, cp);
+				int dataGap = memSize-dataSize;
+				std::copy(stream->frame->extended_data[i], stream->frame->extended_data[i]+dataSize, cp+dataGap);
+				std::fill(cp, cp+dataGap, 0x00);
 				data.push_back(cp);
 			}
 			auto part = AudioFrame{stream->frame->pts, stream->frame->pts + stream->frame->pkt_duration,
@@ -563,7 +569,6 @@ void VideoFileDeserializer::concatAudio(DecodingState* decodingState) {
 	int64_t requestEndBased = toBaseTime(decodingState->requestEnd, audioBaseTime);
 
 	for (AudioFrame& frame : decodingState->audFrames) {
-        if(frame.numSamples < 50) continue;
 		int64_t copySrcStart, copySrcEnd, copyDestPos;
 
 		copyDestPos = (frame.start-requestStartBased) * audioBaseTime.num * sampleRate / audioBaseTime.den;
