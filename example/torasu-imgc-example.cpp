@@ -217,7 +217,7 @@ void avTest() {
 
 
 void anotherIMGCTest() {
-	
+
 	// Tree building
 
 	Rnet_file file("https://cdn.discordapp.com/attachments/598323767202152458/666010465809465410/8807502_Bender_and_penguins.mp4");
@@ -236,9 +236,9 @@ void anotherIMGCTest() {
 	Dbimg_FORMAT format(1340, 1200);
 	auto rf = format.asFormat();
 	auto handle = rib.addSegmentWithHandle<Dbimg>(TORASU_STD_PL_VIS, &rf);
-	
-	// Rendering Results 
-	
+
+	// Rendering Results
+
 	double frameTimes[] = {0.1, 2, 4, 2.5, 5.1};
 	int frameCount = sizeof(frameTimes) / sizeof(double);
 
@@ -293,34 +293,34 @@ void anotherIMGCTest() {
 }
 
 void writeFrames(std::vector<VideoFrame> frames, std::string base_path, int w, int h) {
-    for (int i = 0; i < frames.size(); ++i) {
-        auto curr = frames[i];
-        unsigned error = lodepng::encode(base_path + "file-" + std::to_string(i + 1) + ".png",
-                                         curr.data, w, h);
+	for (int i = 0; i < frames.size(); ++i) {
+		auto curr = frames[i];
+		unsigned error = lodepng::encode(base_path + "file-" + std::to_string(i + 1) + ".png",
+										 curr.data, w, h);
 
-    }
+	}
 }
 
 void writeAudio(std::string path, torasu::tstd::Daudio_buffer* audioBuff) {
-    std::ofstream out(path);
+	std::ofstream out(path);
 	size_t size = 4;
-	uint8_t *l = audioBuff->getChannels()[0].data;
-	uint8_t *r = audioBuff->getChannels()[1].data;
+	uint8_t* l = audioBuff->getChannels()[0].data;
+	uint8_t* r = audioBuff->getChannels()[1].data;
 
 	for (int i = 0; i < audioBuff->getChannels()[0].dataSize/size; i++) {
-		out.write(reinterpret_cast<const char *>(l), size);
-		out.write(reinterpret_cast<const char *>(r), size);
+		out.write(reinterpret_cast<const char*>(l), size);
+		out.write(reinterpret_cast<const char*>(r), size);
 		l += size;
 		r += size;
 	}
-    out.close();
+	out.close();
 }
 
 void audioTest() {
 
-    // VideoFileDeserializer des2("/home/liz3/Downloads/smptstps.mp3");
-    // VideoFileDeserializer des2("/home/cedric/smptstps.mp3");
-    VideoFileDeserializer des2("/home/cedric/Hold the line-WlHHS6nq1w4.mp3");
+	// VideoFileDeserializer des2("/home/liz3/Downloads/smptstps.mp3");
+	// VideoFileDeserializer des2("/home/cedric/smptstps.mp3");
+	VideoFileDeserializer des2("/home/cedric/Hold the line-WlHHS6nq1w4.mp3");
 
 	torasu::tstd::Daudio_buffer_FORMAT audioFmt(44100, torasu::tstd::Daudio_buffer_CHFMT::FLOAT32);
 	torasu::tstd::Daudio_buffer* audioBuffer;
