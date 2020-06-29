@@ -51,13 +51,14 @@ void my_audio_callback(void* userdata, Uint8* stream, int len) {
 	state->audio_len -= len;
 }
 
-void avTest() {
+void avTest(char* file) {
 	audio_state* state = new audio_state();
 	state->audio_len = 0;
 	state->audio_pos = nullptr;
 	ofstream stream("test.pcm");
 	// VideoFileDeserializer des("/Users/liz3/Desktop/110038564_What_You_Want_Ilkay_Sencan.mp4");
-	 VideoFileDeserializer des("/home/liz3/test-videos/143386147_Superstar W.mp4");
+	 VideoFileDeserializer des(file);
+	// VideoFileDeserializer des("/home/liz3/test-videos/143386147_Superstar W.mp4");
 	//VideoFileDeserializer des("/home/cedric/Downloads/143386147_Superstar W.mp4");
 	std::vector<torasu::tstd::Dbimg*>* firstFrameSeekVidBuffer; // Dummy buffer for now
 	torasu::tstd::Dbimg_FORMAT vidFormat(-1, -1);
@@ -230,20 +231,7 @@ void avTest() {
 	SDL_DestroyWindow(window);
 }
 
-int main() {
-	avTest();
-
-
-	//AUDIO SORTING DEBUG TEST;
-	/*    EIcore_runner *runner = new EIcore_runner();
-	    ExecutionInterface *ei = runner->createInterface();
-	//    Rnet_file file(
-	//            "https://cdn.discordapp.com/attachments/609022154213949461/717606443586682889/143386147_Superstar_W.mp4");
-	    auto file = Rlocal_file("/Users/liz3/Desktop/Just Pedro - Belong-ZhPxnB9hJE8.mkv");
-	    imgc::VideoLoader tree(&file);
-
-	    tree.load(ei);
-	    tree.debugPackets();*/
-
+int main(int argc, char** argv) {
+	avTest(argv[1]);
 	return 0;
 }
