@@ -39,66 +39,66 @@ int main() {
 	torasu::tstd::Dbimg_FORMAT vidFormat(-1, -1);
 	torasu::tstd::Daudio_buffer_FORMAT audFormat(44100, torasu::tstd::Daudio_buffer_CHFMT::FLOAT32);
 
-	std::vector<torasu::tstd::Dbimg*>* resVid1;
-	torasu::tstd::Daudio_buffer* resAud1;
+	std::vector<torasu::tstd::Dbimg*>* videoResult1;
+	torasu::tstd::Daudio_buffer* audioResult1;
 	auto result = des.getSegment((SegmentRequest) {
 		.start = 0.05,
 		.end = 3,
-		.videoBuffer = &resVid1, .videoFormat = &vidFormat,
-		.audioBuffer = &resAud1, .audioFormat = &audFormat
+		.videoBuffer = &videoResult1, .videoFormat = &vidFormat,
+		.audioBuffer = &audioResult1, .audioFormat = &audFormat
 	});
 
-	std::vector<torasu::tstd::Dbimg*>* resVid2;
-	torasu::tstd::Daudio_buffer* resAud2;
+	std::vector<torasu::tstd::Dbimg*>* videoResult2;
+	torasu::tstd::Daudio_buffer* audioResult2;
 	auto result2 = des.getSegment((SegmentRequest) {
 		.start = 0.04,
 		.end = 0.12,
-		.videoBuffer = &resVid2, .videoFormat = &vidFormat,
-		.audioBuffer = &resAud2, .audioFormat = &audFormat
+		.videoBuffer = &videoResult2, .videoFormat = &vidFormat,
+		.audioBuffer = &audioResult2, .audioFormat = &audFormat
 	});
 
-	std::vector<torasu::tstd::Dbimg*>* resVid3;
-	torasu::tstd::Daudio_buffer* resAud3;
+	std::vector<torasu::tstd::Dbimg*>* videoResult3;
+	torasu::tstd::Daudio_buffer* audioResult3;
 	auto result3 = des.getSegment((SegmentRequest) {
 		.start = 3.04,
 		.end = 4.08,
-		.videoBuffer = &resVid3, .videoFormat = &vidFormat,
-		.audioBuffer = &resAud3, .audioFormat = &audFormat
+		.videoBuffer = &videoResult3, .videoFormat = &vidFormat,
+		.audioBuffer = &audioResult3, .audioFormat = &audFormat
 	});
 
-	std::vector<torasu::tstd::Dbimg*>* resVid4;
-	torasu::tstd::Daudio_buffer* resAud4;
+	std::vector<torasu::tstd::Dbimg*>* videoResult4;
+	torasu::tstd::Daudio_buffer* audioResult4;
 	auto result4 = des.getSegment((SegmentRequest) {
 		.start = 4.08,
 		.end = 5,
-		.videoBuffer = &resVid4, .videoFormat = &vidFormat,
-		.audioBuffer = &resAud4, .audioFormat = &audFormat
+		.videoBuffer = &videoResult4, .videoFormat = &vidFormat,
+		.audioBuffer = &audioResult4, .audioFormat = &audFormat
 	});
 
-	std::vector<torasu::tstd::Dbimg*>* resVid5;
-	torasu::tstd::Daudio_buffer* resAud5;
+	std::vector<torasu::tstd::Dbimg*>* videoResult5;
+	torasu::tstd::Daudio_buffer* audioResult5;
 	auto result5 = des.getSegment((SegmentRequest) {
 		.start = 5.04,
 		.end = 5.33,
-		.videoBuffer = &resVid5, .videoFormat = &vidFormat,
-		.audioBuffer = &resAud5, .audioFormat = &audFormat
+		.videoBuffer = &videoResult5, .videoFormat = &vidFormat,
+		.audioBuffer = &audioResult5, .audioFormat = &audFormat
 	});
 
-	std::vector<torasu::tstd::Dbimg*>* resVid6;
-	torasu::tstd::Daudio_buffer* resAud6;
+	std::vector<torasu::tstd::Dbimg*>* videoResult6;
+	torasu::tstd::Daudio_buffer* audioResult6;
 	auto result6 = des.getSegment((SegmentRequest) {
 		.start = 5.33,
 		.end = 6,
-		.videoBuffer = &resVid6, .videoFormat = &vidFormat,
-		.audioBuffer = &resAud6, .audioFormat = &audFormat
+		.videoBuffer = &videoResult6, .videoFormat = &vidFormat,
+		.audioBuffer = &audioResult6, .audioFormat = &audFormat
 	});
 
-	std::vector<torasu::tstd::Dbimg*>* resVidB;
+	std::vector<torasu::tstd::Dbimg*>* videoResultB;
 	torasu::tstd::Dbimg_FORMAT vidFmtB(200, 300);
 	auto resultB1 = des.getSegment((SegmentRequest) {
 		.start = 1,
 		.end = 1.5,
-		.videoBuffer = &resVidB,
+		.videoBuffer = &videoResultB,
 		.videoFormat = &vidFmtB,
 		.audioBuffer = NULL,
 		.audioFormat = NULL
@@ -116,43 +116,43 @@ int main() {
 		.audioFormat = &audioFmt
 	});
 
-	std::cout << "B1 Video-Size: " << resultB1->vidFrames.size() << " AudioSize: " << resultB1->audFrames.size() << std::endl;
+//	std::cout << "B1 Video-Size: " << resultB1->vidFrames.size() << " AudioSize: " << resultB1->audFrames.size() << std::endl;
+//
+//	std::cout << "B2 Video-Size: " << resultB2->vidFrames.size() << " AudioSize: " << resultB2->audFrames.size() << std::endl;
 
-	std::cout << "B2 Video-Size: " << resultB2->vidFrames.size() << " AudioSize: " << resultB2->audFrames.size() << std::endl;
+	std::thread write1([&result, audioResult1]() {
 
-	std::thread write1([&result, resAud1]() {
-
-		writeAudio(std::string("test_files/one/audio.pcm"), resAud1);
+		writeAudio(std::string("test_files/one/audio.pcm"), audioResult1);
 		writeFrames(result->vidFrames, std::string("test_files/one/"), result->frameWidth, result->frameHeight);
 
 	});
-	std::thread write2([&result2, resAud2]() {
+	std::thread write2([&result2, audioResult2]() {
 
-		writeAudio(std::string("test_files/two/audio.pcm"), resAud2);
+		writeAudio(std::string("test_files/two/audio.pcm"), audioResult2);
 		writeFrames(result2->vidFrames, std::string("test_files/two/"), result2->frameWidth, result2->frameHeight);
 
 	});
-	std::thread write3([&result3, resAud3]() {
+	std::thread write3([&result3, audioResult3]() {
 
-		writeAudio(std::string("test_files/three/audio.pcm"), resAud3);
+		writeAudio(std::string("test_files/three/audio.pcm"), audioResult3);
 		writeFrames(result3->vidFrames, std::string("test_files/three/"), result3->frameWidth, result3->frameHeight);
 
 	});
-	std::thread write4([&result4, resAud4]() {
+	std::thread write4([&result4, audioResult4]() {
 
-		writeAudio(std::string("test_files/four/audio.pcm"), resAud4);
+		writeAudio(std::string("test_files/four/audio.pcm"), audioResult4);
 		writeFrames(result4->vidFrames, std::string("test_files/four/"), result4->frameWidth, result4->frameHeight);
 
 	});
-	std::thread write5([&result5, resAud5]() {
+	std::thread write5([&result5, audioResult5]() {
 
-		writeAudio(std::string("test_files/five/audio.pcm"), resAud5);
+		writeAudio(std::string("test_files/five/audio.pcm"), audioResult5);
 		writeFrames(result5->vidFrames, std::string("test_files/five/"), result5->frameWidth, result5->frameHeight);
 
 	});
-	std::thread write6([&result6, resAud6]() {
+	std::thread write6([&result6, audioResult6]() {
 
-		writeAudio(std::string("test_files/six/audio.pcm"), resAud6);
+		writeAudio(std::string("test_files/six/audio.pcm"), audioResult6);
 		writeFrames(result6->vidFrames, std::string("test_files/six/"), result6->frameWidth, result6->frameHeight);
 
 	});
