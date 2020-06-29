@@ -301,22 +301,18 @@ void writeFrames(std::vector<VideoFrame> frames, std::string base_path, int w, i
     }
 }
 
-void writeAudio(std::string path, std::vector<AudioFrame> frames) {
+void writeAudio(std::string path, torasu::tstd::Daudio_buffer* audioBuff) {
     std::ofstream out(path);
-    for (int j = 0; j < frames.size(); ++j) {
-        auto part = frames[j];
-        size_t size = 4;
-        uint8_t *l = part.data[0];
-        uint8_t *r = part.data[1];
+	size_t size = 4;
+	uint8_t *l = audioBuff->getChannels()[0].data;
+	uint8_t *r = audioBuff->getChannels()[1].data;
 
-        for (int i = 0; i < part.numSamples; i++) {
-            out.write(reinterpret_cast<const char *>(l), size);
-            out.write(reinterpret_cast<const char *>(r), size);
-            l += size;
-            r += size;
-        }
-
-    }
+	for (int i = 0; i < audioBuff->getChannels()[0].dataSize/size; i++) {
+		out.write(reinterpret_cast<const char *>(l), size);
+		out.write(reinterpret_cast<const char *>(r), size);
+		l += size;
+		r += size;
+	}
     out.close();
 }
 
@@ -340,7 +336,7 @@ void audioTest() {
 
 	std::cout << "C1 Video-Size: " << result->vidFrames.size() << " AudioSize: " << result->audFrames.size() << std::endl;
 
-	writeAudio(std::string("test_files/mp3test.pcm"), result->audFrames);
+	writeAudio(std::string("test_files/mp3test.pcm"), audioBuffer);
 
 }
 

@@ -242,6 +242,7 @@ DecodingState* VideoFileDeserializer::getSegment(SegmentRequest request) {
 
 	DecodingState* decodingState = new DecodingState();
 
+	decodingState->originalRquest = request;
 	decodingState->requestStart = request.start;
 	decodingState->requestEnd = request.end;
 
@@ -309,19 +310,7 @@ DecodingState* VideoFileDeserializer::getSegment(SegmentRequest request) {
 
 		auto audStream = getStreamEntryByIndex(audio_stream_index);
 
-		int channelCount = audStream->ctx->channels;
-
-		for (int i = 0; i < channelCount; i++) {
-			data.push_back(new uint8_t[0]);
-		}
-
-		decodingState->audFrames.push_back( (AudioFrame) {
-			.start = toBaseTime(decodingState->requestStart, audStream->base_time),
-			.end = toBaseTime(decodingState->requestEnd, audStream->base_time),
-			.numSamples = 0,
-			.size = 0,
-			.data = data 
-		} );
+		*request.audioBuffer = new torasu::tstd::Daudio_buffer(audStream->ctx->channels, audStream->ctx->sample_rate, torasu::tstd::Daudio_buffer_CHFMT::FLOAT32, 0);
 	}
 
 	cout << "Decoding of all components done!\n";
@@ -553,16 +542,14 @@ void VideoFileDeserializer::concatAudio(DecodingState* decodingState) {
 	int channelCount = audioCtx->channels;
 	int sampleRate = audioCtx->sample_rate;
 
-	std::vector<uint8_t*> resultData(channelCount);
-
 	size_t sampleSize = 4;
 
 	// Channel-size in samples
 	int channelSize = sampleRate * (decodingState->requestEnd - decodingState->requestStart);
 	cout << "CP-ALLOC " << channelSize << endl;
-	for (int i = 0; i < channelCount; ++i) {
-		resultData[i] = new uint8_t[channelSize*sampleSize];
-	}
+	*decodingState->originalRquest.audioBuffer = new torasu::tstd::Daudio_buffer(channelCount, sampleRate, torasu::tstd::Daudio_buffer_CHFMT::FLOAT32, channelSize*sampleSize);
+
+	auto channels = (*decodingState->originalRquest.audioBuffer)->getChannels();
 
 	// Requested start/end in base-time
 	int64_t requestStartBased = toBaseTime(decodingState->requestStart, audioBaseTime);
@@ -591,20 +578,16 @@ void VideoFileDeserializer::concatAudio(DecodingState* decodingState) {
 		cout << "CP " << copyDestPos << "-" << (copyDestPos+(copySrcEnd-copySrcStart)) << endl;
 
 		for (int i = 0; i < channelCount; ++i) {
-			std::copy(frame.data[i]+(copySrcStart * sampleSize), frame.data[i] + (copySrcEnd * sampleSize), resultData[i] + (copyDestPos * sampleSize) );
+			std::copy(frame.data[i]+(copySrcStart * sampleSize), frame.data[i] + (copySrcEnd * sampleSize), channels[i].data + (copyDestPos * sampleSize) );
 			delete [] frame.data[i];
-			// TODO free audio data of frames
 		}
 
 	}
 	decodingState->audFrames.clear();
-	decodingState->audFrames.push_back((AudioFrame) {
-		requestStartBased, requestEndBased, channelSize, channelSize*sampleSize, resultData
-	});
 
 }
 
-DecodingState *VideoFileDeserializer::getSegment(double start, double end) {
+DecodingState* VideoFileDeserializer::getSegment(double start, double end) {
     std::vector<torasu::tstd::Dbimg*>* vidBuffer;
     torasu::tstd::Dbimg_FORMAT vidFormat(-1, -1);
     torasu::tstd::Daudio_buffer* audBuffer;

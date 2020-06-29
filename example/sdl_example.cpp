@@ -49,34 +49,52 @@ void avTest() {
     state->audio_pos = nullptr;
     ofstream stream("test.pcm");
     // VideoFileDeserializer des("/Users/liz3/Desktop/110038564_What_You_Want_Ilkay_Sencan.mp4");
-     VideoFileDeserializer des("/home/liz3/test-videos/143386147_Superstar W.mp4");
-    //VideoFileDeserializer des("/home/cedric/Downloads/143386147_Superstar W.mp4");
-    auto firstFrameSeek = des.getSegment(0, 0.04);
+    // VideoFileDeserializer des("/home/liz3/test-videos/143386147_Superstar W.mp4");
+    VideoFileDeserializer des("/home/cedric/Downloads/143386147_Superstar W.mp4");
+    std::vector<torasu::tstd::Dbimg*>* firstFrameSeekVidBuffer; // Dummy buffer for now
+    torasu::tstd::Dbimg_FORMAT vidFormat(-1, -1);
+    auto firstFrameSeek = des.getSegment((SegmentRequest) {
+            .start = 0,
+            .end = 0.04,
+            .videoBuffer = &firstFrameSeekVidBuffer,
+            .videoFormat = &vidFormat
+	});
     int w = firstFrameSeek->frameWidth;
     int h = firstFrameSeek->frameHeight;
     int frameRate = 25;
-    std::vector<std::pair<uint8_t *, AudioFrame>> frames;
+    std::vector<std::pair<uint8_t *, Daudio_buffer*>> frames;
     std::vector<uint8_t> audio;
     bool decodingDone = false;
     delete [] firstFrameSeek->vidFrames[0].data;
-    delete [] firstFrameSeek->audFrames[0].data[0];
-    delete [] firstFrameSeek->audFrames[0].data[1];
     delete firstFrameSeek;
     int totalFrames = (des.streams[0]->duration * av_q2d(des.streams[0]->base_time)) * 25;
     auto *rendererThread = new std::thread([&frames, &des, &decodingDone, &totalFrames, &audio]() {
         auto totalLength = des.streams[0]->duration * av_q2d(des.streams[0]->base_time);
         double i = 0;
         for (int j = 0; j < totalFrames; ++j) {
-            DecodingState* currentFrame = des.getSegment(i, i + 0.04);
+   			std::vector<torasu::tstd::Dbimg*>* vidBuffer; // Dummy buffer for now
+    		torasu::tstd::Dbimg_FORMAT vidFormat(-1, -1);
+			torasu::tstd::Daudio_buffer* audBuffer = NULL;
+			torasu::tstd::Daudio_buffer_FORMAT audFormat(44100, torasu::tstd::Daudio_buffer_CHFMT::FLOAT32);
+            DecodingState* currentFrame = des.getSegment((SegmentRequest) {
+				.start = i+0,
+				.end = i+0.04,
+				.videoBuffer = &vidBuffer,
+				.videoFormat = &vidFormat,
+				.audioBuffer = &audBuffer,
+				.audioFormat = &audFormat
+			});
 
             frames.push_back(
-                    std::pair<uint8_t *, AudioFrame>(currentFrame->vidFrames[0].data, currentFrame->audFrames[0]));
-            auto audPart = currentFrame->audFrames[0];
+                    std::pair<uint8_t *, Daudio_buffer*>(currentFrame->vidFrames[0].data, NULL));
+			// audio-buffer is NULL because we currently have a different audio handling
+
+            auto audPart = audBuffer->getChannels()[0];
             auto* p = &(audio);
-            p->insert(p->end(), &audPart.data[0][0],  &audPart.data[0][audPart.numSamples * 4]);
-            for (int k = 0; k < audPart.data.size(); ++k) {
-                delete[] audPart.data[k];
-            }
+            p->insert(p->end(), &audPart.data[0],  &audPart.data[audPart.dataSize]);
+            
+			delete audBuffer;
+
             //  delete result;
             i += 0.04;
             delete currentFrame;

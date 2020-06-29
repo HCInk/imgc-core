@@ -55,6 +55,8 @@ struct DecodingState {
 
 	int frameWidth;
 	int frameHeight;
+
+	SegmentRequest originalRquest;
 };
 
 struct BufferedFrame {
@@ -165,7 +167,8 @@ public:
 	VideoFileDeserializer();
 	DecodingState* getSegment(SegmentRequest request);
 
-	 DecodingState* getSegment(double start, double end);
+	[[deprecated]]
+	DecodingState* getSegment(double start, double end);
 
 };
 
