@@ -31,7 +31,7 @@ void my_audio_callback(void* userdata, Uint8* stream, int len);
 
 uint8_t *mixChannels(uint8_t* l, uint8_t* r, size_t nbSamples, size_t sampleSize) {
     uint8_t * out =new uint8_t[nbSamples * sampleSize * 2];
-    for (int i = 0; i < nbSamples; ++i) {
+    for (size_t i = 0; i < nbSamples; ++i) {
         std::copy(&l[i *sampleSize], &l[(i * sampleSize) + sampleSize], &out[i * (2*sampleSize)]);
         std::copy(&r[i *sampleSize], &r[(i * sampleSize) + sampleSize], &out[(i * (2*sampleSize)) + sampleSize]);
     }
@@ -55,11 +55,7 @@ void avTest(char* file) {
 	audio_state* state = new audio_state();
 	state->audio_len = 0;
 	state->audio_pos = nullptr;
-	ofstream stream("test.pcm");
-	// VideoFileDeserializer des("/Users/liz3/Desktop/110038564_What_You_Want_Ilkay_Sencan.mp4");
-	 VideoFileDeserializer des(file);
-	// VideoFileDeserializer des("/home/liz3/test-videos/143386147_Superstar W.mp4");
-	//VideoFileDeserializer des("/home/cedric/Downloads/143386147_Superstar W.mp4");
+	VideoFileDeserializer des(file);
 	std::vector<torasu::tstd::Dbimg*>* firstFrameSeekVidBuffer; // Dummy buffer for now
 	torasu::tstd::Dbimg_FORMAT vidFormat(-1, -1);
 	auto firstFrameSeek = des.getSegment((SegmentRequest) {
@@ -70,15 +66,13 @@ void avTest(char* file) {
 	});
 	int w = firstFrameSeek->frameWidth;
 	int h = firstFrameSeek->frameHeight;
-	int frameRate = 25;
 	std::vector<std::pair<uint8_t*, Daudio_buffer*>> frames;
 	std::vector<uint8_t> audio;
 	bool decodingDone = false;
 	delete [] firstFrameSeek->vidFrames[0].data;
 	delete firstFrameSeek;
 	int totalFrames = (des.streams[0]->duration * av_q2d(des.streams[0]->base_time)) * 25;
-	auto* rendererThread = new std::thread([&frames, &des, &decodingDone, &totalFrames, &audio, &stream]() {
-		auto totalLength = des.streams[0]->duration * av_q2d(des.streams[0]->base_time);
+	auto* rendererThread = new std::thread([&frames, &des, &decodingDone, &totalFrames, &audio]() {
 		double i = 0;
 		for (int j = 0; j < totalFrames; ++j) {
 			std::vector<torasu::tstd::Dbimg*>* vidBuffer; // Dummy buffer for now
@@ -102,10 +96,9 @@ void avTest(char* file) {
             auto r = audBuffer->getChannels()[1];
 
 			uint8_t *mixed = mixChannels(l.data,r.data, l.dataSize / 4, 4);
-
 			auto* p = &(audio);
             p->insert(p->end(), mixed,  mixed+(l.dataSize * 2));
-
+            delete[] mixed;
 			delete audBuffer;
 
 			//  delete result;
@@ -149,8 +142,6 @@ void avTest(char* file) {
 						   surfaceMessage);
 
 	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-	std::chrono::steady_clock::time_point begin2 = std::chrono::steady_clock::now();
-	int audioPos = 0;
 	int j = 0;
 	int t = 0;
 	if(j == 0) {
@@ -219,7 +210,6 @@ void avTest(char* file) {
 	SDL_RenderCopy(renderer, Message, NULL,
 				   &Message_rect);
 	SDL_RenderPresent(renderer);
-	stream.close();
 	while (true)
 		if (SDL_PollEvent(&event) && event.type == SDL_QUIT)
 			break;
