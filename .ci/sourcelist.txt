@@ -1,2 +1,4 @@
 include/torasu/mod/imgc/*.hpp
 src/*.cpp
+example/*.cpp
+tests/*.cpp
