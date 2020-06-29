@@ -29,6 +29,14 @@ struct audio_state {
 };
 void my_audio_callback(void* userdata, Uint8* stream, int len);
 
+uint8_t *mixChannels(uint8_t* l, uint8_t* r, size_t nbSamples, size_t sampleSize) {
+    uint8_t * out =new uint8_t[nbSamples * sampleSize * 2];
+    for (int i = 0; i < nbSamples; ++i) {
+        std::copy(&l[i *sampleSize], &l[(i * sampleSize) + sampleSize], &out[i * (2*sampleSize)]);
+        std::copy(&r[i *sampleSize], &r[(i * sampleSize) + sampleSize], &out[(i * (2*sampleSize)) + sampleSize]);
+    }
+    return out;
+}
 
 void my_audio_callback(void* userdata, Uint8* stream, int len) {
 	audio_state* state = static_cast<audio_state*>(userdata);
@@ -49,8 +57,8 @@ void avTest() {
 	state->audio_pos = nullptr;
 	ofstream stream("test.pcm");
 	// VideoFileDeserializer des("/Users/liz3/Desktop/110038564_What_You_Want_Ilkay_Sencan.mp4");
-	// VideoFileDeserializer des("/home/liz3/test-videos/143386147_Superstar W.mp4");
-	VideoFileDeserializer des("/home/cedric/Downloads/143386147_Superstar W.mp4");
+	 VideoFileDeserializer des("/home/liz3/test-videos/143386147_Superstar W.mp4");
+	//VideoFileDeserializer des("/home/cedric/Downloads/143386147_Superstar W.mp4");
 	std::vector<torasu::tstd::Dbimg*>* firstFrameSeekVidBuffer; // Dummy buffer for now
 	torasu::tstd::Dbimg_FORMAT vidFormat(-1, -1);
 	auto firstFrameSeek = des.getSegment((SegmentRequest) {
@@ -68,7 +76,7 @@ void avTest() {
 	delete [] firstFrameSeek->vidFrames[0].data;
 	delete firstFrameSeek;
 	int totalFrames = (des.streams[0]->duration * av_q2d(des.streams[0]->base_time)) * 25;
-	auto* rendererThread = new std::thread([&frames, &des, &decodingDone, &totalFrames, &audio]() {
+	auto* rendererThread = new std::thread([&frames, &des, &decodingDone, &totalFrames, &audio, &stream]() {
 		auto totalLength = des.streams[0]->duration * av_q2d(des.streams[0]->base_time);
 		double i = 0;
 		for (int j = 0; j < totalFrames; ++j) {
@@ -89,9 +97,13 @@ void avTest() {
 				std::pair<uint8_t*, Daudio_buffer*>(currentFrame->vidFrames[0].data, NULL));
 			// audio-buffer is NULL because we currently have a different audio handling
 
-			auto audPart = audBuffer->getChannels()[0];
+			auto l = audBuffer->getChannels()[0];
+            auto r = audBuffer->getChannels()[1];
+
+			uint8_t *mixed = mixChannels(l.data,r.data, l.dataSize / 4, 4);
+
 			auto* p = &(audio);
-			p->insert(p->end(), &audPart.data[0],  &audPart.data[audPart.dataSize]);
+            p->insert(p->end(), mixed,  mixed+(l.dataSize * 2));
 
 			delete audBuffer;
 
@@ -142,9 +154,9 @@ void avTest() {
 	int t = 0;
 	if(j == 0) {
 		SDL_AudioSpec spec;
-		spec.channels = 1;
+		spec.channels = 2;
 		spec.format = AUDIO_F32;
-		spec.samples = (audio.size() / 4) - (44100);
+		spec.samples = (audio.size() / 4) - (44100 * 2);
 		spec.freq = 44100;
 		spec.callback = my_audio_callback;
 		state->audio_len = audio.size();
