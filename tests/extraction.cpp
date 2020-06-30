@@ -121,6 +121,19 @@ int main() {
 		.audioFormat = &audioFmt
 	});
 
+
+	VideoFileDeserializer desC("104188354_In Memory of Firestarter.mp4");
+	torasu::tstd::Dbimg_sequence* videoResultC1;
+	torasu::tstd::Daudio_buffer* audioResultC1;
+	desC.getSegment((SegmentRequest) {
+		.start = 0,
+		.end = 10,
+		.videoBuffer = &videoResultC1, .videoFormat = &vidFormat,
+		.audioBuffer = &audioResultC1, .audioFormat = &audFormat
+	});
+
+	
+
 //	std::cout << "B1 Video-Size: " << resultB1->vidFrames.size() << " AudioSize: " << resultB1->audFrames.size() << std::endl;
 //
 //	std::cout << "B2 Video-Size: " << resultB2->vidFrames.size() << " AudioSize: " << resultB2->audFrames.size() << std::endl;
@@ -161,6 +174,12 @@ int main() {
 		writeFrames(videoResult6, std::string("test_files/six/"));
 
 	});
+	std::thread write7([videoResultC1, audioResultC1]() {
+
+		writeAudio(std::string("test_files/seven/audio.pcm"), audioResultC1);
+		writeFrames(videoResultC1, std::string("test_files/seven/"));
+
+	});
 
 	write1.join();
 	write2.join();
@@ -168,5 +187,6 @@ int main() {
 	write4.join();
 	write5.join();
 	write6.join();
+	write7.join();
 
 }
