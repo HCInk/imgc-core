@@ -247,7 +247,7 @@ void VideoFileDeserializer::getSegment(SegmentRequest request) {
 	decodingState->requestStart = request.start;
 	decodingState->requestEnd = request.end;
 
-	if (request.videoBuffer == NULL) {
+	if (request.videoBuffer == NULL || video_stream_index < 0) {
 		decodingState->videoDone = true; // Set this to true since not required
 	} else {
 		auto vidStream = getStreamEntryByIndex(video_stream_index);
@@ -256,7 +256,7 @@ void VideoFileDeserializer::getSegment(SegmentRequest request) {
 		*request.videoBuffer = new torasu::tstd::Dbimg_sequence();
 	}
 
-	if (request.audioBuffer == NULL) {
+	if (request.audioBuffer == NULL || audio_stream_index < 0) {
 		decodingState->audioDone = true; // Set this to true since not required
 	}
 
@@ -306,13 +306,14 @@ void VideoFileDeserializer::getSegment(SegmentRequest request) {
 	if (!decodingState->audFrames.empty()) {
 		concatAudio(decodingState);
 	} else if (request.audioBuffer != NULL) {
-		// TODO Better way to handle if the requested stream is not available
-		// Will crash if audio stream is unexistent, but audio is requested
 		std::vector<uint8_t*> data;
 
-		auto audStream = getStreamEntryByIndex(audio_stream_index);
-
-		*request.audioBuffer = new torasu::tstd::Daudio_buffer(audStream->ctx->channels, audStream->ctx->sample_rate, torasu::tstd::Daudio_buffer_CHFMT::FLOAT32, 0);
+		if (audio_stream_index < 0) {
+			*request.audioBuffer = new torasu::tstd::Daudio_buffer(1, 1, torasu::tstd::Daudio_buffer_CHFMT::FLOAT32, 0);
+		} else {
+			auto audStream = getStreamEntryByIndex(audio_stream_index);
+			*request.audioBuffer = new torasu::tstd::Daudio_buffer(audStream->ctx->channels, audStream->ctx->sample_rate, torasu::tstd::Daudio_buffer_CHFMT::FLOAT32, 0);
+		}
 	}
 
 	cout << "Decoding of all components done!\n";
