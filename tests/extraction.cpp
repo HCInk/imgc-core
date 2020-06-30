@@ -46,7 +46,7 @@ int main() {
 
 	torasu::tstd::Dbimg_sequence* videoResult1;
 	torasu::tstd::Daudio_buffer* audioResult1;
-	auto result = des.getSegment((SegmentRequest) {
+	des.getSegment((SegmentRequest) {
 		.start = 0.05,
 		.end = 3,
 		.videoBuffer = &videoResult1, .videoFormat = &vidFormat,
@@ -55,7 +55,7 @@ int main() {
 
 	torasu::tstd::Dbimg_sequence* videoResult2;
 	torasu::tstd::Daudio_buffer* audioResult2;
-	auto result2 = des.getSegment((SegmentRequest) {
+	des.getSegment((SegmentRequest) {
 		.start = 0.04,
 		.end = 0.12,
 		.videoBuffer = &videoResult2, .videoFormat = &vidFormat,
@@ -64,7 +64,7 @@ int main() {
 
 	torasu::tstd::Dbimg_sequence* videoResult3;
 	torasu::tstd::Daudio_buffer* audioResult3;
-	auto result3 = des.getSegment((SegmentRequest) {
+	des.getSegment((SegmentRequest) {
 		.start = 3.04,
 		.end = 4.08,
 		.videoBuffer = &videoResult3, .videoFormat = &vidFormat,
@@ -73,7 +73,7 @@ int main() {
 
 	torasu::tstd::Dbimg_sequence* videoResult4;
 	torasu::tstd::Daudio_buffer* audioResult4;
-	auto result4 = des.getSegment((SegmentRequest) {
+	des.getSegment((SegmentRequest) {
 		.start = 4.08,
 		.end = 5,
 		.videoBuffer = &videoResult4, .videoFormat = &vidFormat,
@@ -82,7 +82,7 @@ int main() {
 
 	torasu::tstd::Dbimg_sequence* videoResult5;
 	torasu::tstd::Daudio_buffer* audioResult5;
-	auto result5 = des.getSegment((SegmentRequest) {
+	des.getSegment((SegmentRequest) {
 		.start = 5.04,
 		.end = 5.33,
 		.videoBuffer = &videoResult5, .videoFormat = &vidFormat,
@@ -91,7 +91,7 @@ int main() {
 
 	torasu::tstd::Dbimg_sequence* videoResult6;
 	torasu::tstd::Daudio_buffer* audioResult6;
-	auto result6 = des.getSegment((SegmentRequest) {
+	des.getSegment((SegmentRequest) {
 		.start = 5.33,
 		.end = 6,
 		.videoBuffer = &videoResult6, .videoFormat = &vidFormat,
@@ -100,7 +100,7 @@ int main() {
 
 	torasu::tstd::Dbimg_sequence* videoResultB;
 	torasu::tstd::Dbimg_FORMAT vidFmtB(200, 300);
-	auto resultB1 = des.getSegment((SegmentRequest) {
+	des.getSegment((SegmentRequest) {
 		.start = 1,
 		.end = 1.5,
 		.videoBuffer = &videoResultB,
@@ -112,7 +112,7 @@ int main() {
 
 	torasu::tstd::Daudio_buffer* audioBuffer;
 	torasu::tstd::Daudio_buffer_FORMAT audioFmt(44100, torasu::tstd::Daudio_buffer_CHFMT::FLOAT32);
-	auto resultB2 = des.getSegment((SegmentRequest) {
+	des.getSegment((SegmentRequest) {
 		.start = 1,
 		.end = 1.5,
 		.videoBuffer = NULL,

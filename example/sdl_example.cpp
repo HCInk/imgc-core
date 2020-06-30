@@ -59,7 +59,7 @@ void avTest(char* file) {
 	torasu::tstd::Dbimg_sequence* firstFrameSeekVidBuffer;
 	torasu::tstd::Dbimg_FORMAT vidFormat(-1, -1);
 
-	auto firstFrameSeek = des.getSegment((SegmentRequest) {
+	des.getSegment((SegmentRequest) {
 		.start = 0,
 		.end = 0.04,
 		.videoBuffer = &firstFrameSeekVidBuffer,
@@ -81,7 +81,7 @@ void avTest(char* file) {
 			torasu::tstd::Dbimg_FORMAT vidFormat(-1, -1);
 			torasu::tstd::Daudio_buffer* audBuffer = NULL;
 			torasu::tstd::Daudio_buffer_FORMAT audFormat(44100, torasu::tstd::Daudio_buffer_CHFMT::FLOAT32);
-			DecodingState* currentState = des.getSegment((SegmentRequest) {
+			des.getSegment((SegmentRequest) {
 				.start = i+0,
 				.end = i+0.04,
 				.videoBuffer = &vidBuffer,
@@ -89,7 +89,6 @@ void avTest(char* file) {
 				.audioBuffer = &audBuffer,
 				.audioFormat = &audFormat
 			});
-			delete currentState;
 
 			frames.push_back(
 				std::pair<Dbimg_sequence*, Daudio_buffer*>(vidBuffer, NULL));

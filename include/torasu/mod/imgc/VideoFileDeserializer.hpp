@@ -166,7 +166,7 @@ private:
 public:
 
 	VideoFileDeserializer();
-	DecodingState* getSegment(SegmentRequest request);
+	void getSegment(SegmentRequest request);
 
 };
 

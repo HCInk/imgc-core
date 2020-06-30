@@ -325,7 +325,7 @@ void audioTest() {
 	torasu::tstd::Daudio_buffer_FORMAT audioFmt(44100, torasu::tstd::Daudio_buffer_CHFMT::FLOAT32);
 	torasu::tstd::Daudio_buffer* audioBuffer;
 
-	auto result = des2.getSegment((SegmentRequest) {
+	des2.getSegment((SegmentRequest) {
 		.start = 0,
 		.end = 180,
 		.videoBuffer = NULL,
@@ -333,8 +333,6 @@ void audioTest() {
 		.audioBuffer = &audioBuffer,
 		.audioFormat = &audioFmt
 	});
-
-	std::cout << "C1 Video-Size: " << result->vidFrames.size() << " AudioSize: " << result->audFrames.size() << std::endl;
 
 	writeAudio(std::string("test_files/mp3test.pcm"), audioBuffer);
 

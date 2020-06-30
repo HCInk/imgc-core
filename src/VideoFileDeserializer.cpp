@@ -239,7 +239,7 @@ int64_t VideoFileDeserializer::toBaseTime(double value, AVRational base) {
 	return round((value * base.den) / base.num);
 }
 
-DecodingState* VideoFileDeserializer::getSegment(SegmentRequest request) {
+void VideoFileDeserializer::getSegment(SegmentRequest request) {
 
 	DecodingState* decodingState = new DecodingState();
 
@@ -316,7 +316,10 @@ DecodingState* VideoFileDeserializer::getSegment(SegmentRequest request) {
 	}
 
 	cout << "Decoding of all components done!\n";
-	return decodingState;
+
+	// TODO Distruct decoding state correctly
+
+	delete decodingState;
 }
 
 bool VideoFileDeserializer::checkFrameTargetBound(AVFrame* frame, int64_t start, int64_t end) {
