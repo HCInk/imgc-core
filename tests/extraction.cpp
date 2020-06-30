@@ -10,7 +10,7 @@
 #include <torasu/mod/imgc/VideoFileDeserializer.hpp>
 
 void writeFrames(torasu::tstd::Dbimg_sequence* sequence, std::string base_path) {
-	auto& frames = sequence->getFames();
+	auto& frames = sequence->getFrames();
 	int i = 0;
 	for (auto& frame : frames) {
 		std::string path = base_path + "file-" + std::to_string(i + 1) + ".png";

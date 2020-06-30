@@ -65,7 +65,7 @@ void avTest(char* file) {
 		.videoBuffer = &firstFrameSeekVidBuffer,
 		.videoFormat = &vidFormat
 	});
-	auto fristFrame = firstFrameSeekVidBuffer->getFames().begin()->second;
+	auto fristFrame = firstFrameSeekVidBuffer->getFrames().begin()->second;
 	int w = fristFrame->getWidth();
 	int h = fristFrame->getHeight();
 	delete firstFrameSeekVidBuffer;
@@ -175,7 +175,7 @@ void avTest(char* file) {
 
 		auto part = frames[j];
 
-		uint8_t* imageData = part.first->getFames().begin()->second->getImageData();
+		uint8_t* imageData = part.first->getFrames().begin()->second->getImageData();
 		SDL_UpdateTexture(texture, NULL, imageData, w * 4);
 		SDL_RenderCopy(renderer, texture, NULL, NULL);
 		if (!decodingDone) {
