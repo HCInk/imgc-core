@@ -2,13 +2,14 @@
 // Created by Yann Holme Nielsen on 14/06/2020.
 //
 
+#include "../include/torasu/mod/imgc/VideoFileDeserializer.hpp"
+
+#include <math.h>
 #include <cstdio>
 #include <cstdint>
 #include <string>
 #include <fstream>
 #include <iostream>
-#include <math.h>
-#include "torasu/mod/imgc/VideoFileDeserializer.hpp"
 #include <lodepng.h>
 
 using namespace std;
