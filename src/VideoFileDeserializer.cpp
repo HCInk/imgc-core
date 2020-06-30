@@ -589,18 +589,3 @@ void VideoFileDeserializer::concatAudio(DecodingState* decodingState) {
 	decodingState->audFrames.clear();
 
 }
-
-DecodingState* VideoFileDeserializer::getSegment(double start, double end) {
-	torasu::tstd::Dbimg_sequence* vidBuffer;
-	torasu::tstd::Dbimg_FORMAT vidFormat(-1, -1);
-	torasu::tstd::Daudio_buffer* audBuffer;
-	torasu::tstd::Daudio_buffer_FORMAT audFormat(44100, torasu::tstd::Daudio_buffer_CHFMT::FLOAT32);
-	return getSegment((SegmentRequest) {
-		.start = start,
-		.end = end,
-		.videoBuffer = &vidBuffer,
-		.videoFormat = &vidFormat,
-		.audioBuffer = &audBuffer,
-		.audioFormat = &audFormat
-	});
-}

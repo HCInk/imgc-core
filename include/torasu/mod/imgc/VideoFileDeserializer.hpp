@@ -168,9 +168,6 @@ public:
 	VideoFileDeserializer();
 	DecodingState* getSegment(SegmentRequest request);
 
-	[[deprecated]]
-	DecodingState* getSegment(double start, double end);
-
 };
 
 
