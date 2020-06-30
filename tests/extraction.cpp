@@ -9,12 +9,17 @@
 #include <iostream>
 #include <torasu/mod/imgc/VideoFileDeserializer.hpp>
 
-void writeFrames(std::vector<VideoFrame> frames, std::string base_path, int w, int h) {
-	for (int i = 0; i < frames.size(); ++i) {
-		auto curr = frames[i];
-		unsigned error = lodepng::encode(base_path + "file-" + std::to_string(i + 1) + ".png",
-										 curr.data, w, h);
-
+void writeFrames(torasu::tstd::Dbimg_sequence* sequence, std::string base_path) {
+	auto& frames = sequence->getFames();
+	int i = 0;
+	for (auto& frame : frames) {
+		std::string path = base_path + "file-" + std::to_string(i + 1) + ".png";
+		unsigned error = lodepng::encode(path,
+										 frame.second->getImageData(), frame.second->getWidth(), frame.second->getHeight());
+		if (error) {
+			std::cerr << "LODEPNG ERROR " << error << ": " << lodepng_error_text(error) << " - while writing " << path << std::endl;
+		} 
+		++i;
 	}
 }
 
@@ -39,7 +44,7 @@ int main() {
 	torasu::tstd::Dbimg_FORMAT vidFormat(-1, -1);
 	torasu::tstd::Daudio_buffer_FORMAT audFormat(44100, torasu::tstd::Daudio_buffer_CHFMT::FLOAT32);
 
-	std::vector<torasu::tstd::Dbimg*>* videoResult1;
+	torasu::tstd::Dbimg_sequence* videoResult1;
 	torasu::tstd::Daudio_buffer* audioResult1;
 	auto result = des.getSegment((SegmentRequest) {
 		.start = 0.05,
@@ -48,7 +53,7 @@ int main() {
 		.audioBuffer = &audioResult1, .audioFormat = &audFormat
 	});
 
-	std::vector<torasu::tstd::Dbimg*>* videoResult2;
+	torasu::tstd::Dbimg_sequence* videoResult2;
 	torasu::tstd::Daudio_buffer* audioResult2;
 	auto result2 = des.getSegment((SegmentRequest) {
 		.start = 0.04,
@@ -57,7 +62,7 @@ int main() {
 		.audioBuffer = &audioResult2, .audioFormat = &audFormat
 	});
 
-	std::vector<torasu::tstd::Dbimg*>* videoResult3;
+	torasu::tstd::Dbimg_sequence* videoResult3;
 	torasu::tstd::Daudio_buffer* audioResult3;
 	auto result3 = des.getSegment((SegmentRequest) {
 		.start = 3.04,
@@ -66,7 +71,7 @@ int main() {
 		.audioBuffer = &audioResult3, .audioFormat = &audFormat
 	});
 
-	std::vector<torasu::tstd::Dbimg*>* videoResult4;
+	torasu::tstd::Dbimg_sequence* videoResult4;
 	torasu::tstd::Daudio_buffer* audioResult4;
 	auto result4 = des.getSegment((SegmentRequest) {
 		.start = 4.08,
@@ -75,7 +80,7 @@ int main() {
 		.audioBuffer = &audioResult4, .audioFormat = &audFormat
 	});
 
-	std::vector<torasu::tstd::Dbimg*>* videoResult5;
+	torasu::tstd::Dbimg_sequence* videoResult5;
 	torasu::tstd::Daudio_buffer* audioResult5;
 	auto result5 = des.getSegment((SegmentRequest) {
 		.start = 5.04,
@@ -84,7 +89,7 @@ int main() {
 		.audioBuffer = &audioResult5, .audioFormat = &audFormat
 	});
 
-	std::vector<torasu::tstd::Dbimg*>* videoResult6;
+	torasu::tstd::Dbimg_sequence* videoResult6;
 	torasu::tstd::Daudio_buffer* audioResult6;
 	auto result6 = des.getSegment((SegmentRequest) {
 		.start = 5.33,
@@ -93,7 +98,7 @@ int main() {
 		.audioBuffer = &audioResult6, .audioFormat = &audFormat
 	});
 
-	std::vector<torasu::tstd::Dbimg*>* videoResultB;
+	torasu::tstd::Dbimg_sequence* videoResultB;
 	torasu::tstd::Dbimg_FORMAT vidFmtB(200, 300);
 	auto resultB1 = des.getSegment((SegmentRequest) {
 		.start = 1,
@@ -120,40 +125,40 @@ int main() {
 //
 //	std::cout << "B2 Video-Size: " << resultB2->vidFrames.size() << " AudioSize: " << resultB2->audFrames.size() << std::endl;
 
-	std::thread write1([&result, audioResult1]() {
+	std::thread write1([videoResult1, audioResult1]() {
 
 		writeAudio(std::string("test_files/one/audio.pcm"), audioResult1);
-		writeFrames(result->vidFrames, std::string("test_files/one/"), result->frameWidth, result->frameHeight);
+		writeFrames(videoResult1, std::string("test_files/one/"));
 
 	});
-	std::thread write2([&result2, audioResult2]() {
+	std::thread write2([videoResult2, audioResult2]() {
 
 		writeAudio(std::string("test_files/two/audio.pcm"), audioResult2);
-		writeFrames(result2->vidFrames, std::string("test_files/two/"), result2->frameWidth, result2->frameHeight);
+		writeFrames(videoResult2, std::string("test_files/two/"));
 
 	});
-	std::thread write3([&result3, audioResult3]() {
+	std::thread write3([videoResult3, audioResult3]() {
 
 		writeAudio(std::string("test_files/three/audio.pcm"), audioResult3);
-		writeFrames(result3->vidFrames, std::string("test_files/three/"), result3->frameWidth, result3->frameHeight);
+		writeFrames(videoResult3, std::string("test_files/three/"));
 
 	});
-	std::thread write4([&result4, audioResult4]() {
+	std::thread write4([videoResult4, audioResult4]() {
 
 		writeAudio(std::string("test_files/four/audio.pcm"), audioResult4);
-		writeFrames(result4->vidFrames, std::string("test_files/four/"), result4->frameWidth, result4->frameHeight);
+		writeFrames(videoResult4, std::string("test_files/four/"));
 
 	});
-	std::thread write5([&result5, audioResult5]() {
+	std::thread write5([videoResult5, audioResult5]() {
 
 		writeAudio(std::string("test_files/five/audio.pcm"), audioResult5);
-		writeFrames(result5->vidFrames, std::string("test_files/five/"), result5->frameWidth, result5->frameHeight);
+		writeFrames(videoResult5, std::string("test_files/five/"));
 
 	});
-	std::thread write6([&result6, audioResult6]() {
+	std::thread write6([videoResult6, audioResult6]() {
 
 		writeAudio(std::string("test_files/six/audio.pcm"), audioResult6);
-		writeFrames(result6->vidFrames, std::string("test_files/six/"), result6->frameWidth, result6->frameHeight);
+		writeFrames(videoResult6, std::string("test_files/six/"));
 
 	});
 

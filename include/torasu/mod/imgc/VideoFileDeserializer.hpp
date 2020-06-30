@@ -18,12 +18,13 @@ extern "C" {
 }
 
 #include <torasu/std/Dbimg.hpp>
+#include <torasu/std/Dbimg_sequence.hpp>
 #include <torasu/std/Daudio_buffer.hpp>
 
 struct SegmentRequest {
 	double start;
 	double end = -1;
-	std::vector<torasu::tstd::Dbimg*>** videoBuffer = NULL;
+	torasu::tstd::Dbimg_sequence** videoBuffer = NULL;
 	const torasu::tstd::Dbimg_FORMAT* videoFormat;
 	torasu::tstd::Daudio_buffer** audioBuffer = NULL;
 	const torasu::tstd::Daudio_buffer_FORMAT* audioFormat;

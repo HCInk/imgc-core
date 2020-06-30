@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0)
 project(imgc VERSION 0.0.4)
 set(CMAKE_CXX_STANDARD 20)
 
-option(IMGC_SDL_EXAMPLE "Generate SDL example" ON)
+option(IMGC_SDL_EXAMPLE "Generate SDL example" OFF)
 
 option(IMGC_TESTS "Generate test Executable" ON)
 if (NOT MINGW AND NOT APPLE)

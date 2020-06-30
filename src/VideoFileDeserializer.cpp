@@ -252,6 +252,7 @@ DecodingState* VideoFileDeserializer::getSegment(SegmentRequest request) {
 		auto vidStream = getStreamEntryByIndex(video_stream_index);
 		decodingState->frameWidth = vidStream->ctx->width;
 		decodingState->frameHeight = vidStream->ctx->height;
+		*request.videoBuffer = new torasu::tstd::Dbimg_sequence();
 	}
 
 	if (request.audioBuffer == NULL) {
@@ -354,7 +355,9 @@ void VideoFileDeserializer::handleFrame(StreamEntry* stream, DecodingState* deco
 			int32_t rHeight = stream->frame->height;
 			uint32_t frameSize = rWidth * rHeight * 4;
 
-			auto* target = new uint8_t[frameSize];
+			uint8_t* target = (**decodingState->originalRquest.videoBuffer).addFrame(
+								((double)(stream->frame->pts * stream->base_time.num)) / stream->base_time.den, 
+								torasu::tstd::Dbimg_FORMAT(rWidth, rHeight))->getImageData();
 			extractVideoFrame(stream, target);
 
 			auto frame = VideoFrame{stream->frame->pts, stream->frame->pts + stream->frame->pkt_duration, frameSize,
@@ -588,7 +591,7 @@ void VideoFileDeserializer::concatAudio(DecodingState* decodingState) {
 }
 
 DecodingState* VideoFileDeserializer::getSegment(double start, double end) {
-	std::vector<torasu::tstd::Dbimg*>* vidBuffer;
+	torasu::tstd::Dbimg_sequence* vidBuffer;
 	torasu::tstd::Dbimg_FORMAT vidFormat(-1, -1);
 	torasu::tstd::Daudio_buffer* audBuffer;
 	torasu::tstd::Daudio_buffer_FORMAT audFormat(44100, torasu::tstd::Daudio_buffer_CHFMT::FLOAT32);

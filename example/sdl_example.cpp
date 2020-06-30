@@ -56,30 +56,32 @@ void avTest(char* file) {
 	state->audio_len = 0;
 	state->audio_pos = nullptr;
 	VideoFileDeserializer des(file);
-	std::vector<torasu::tstd::Dbimg*>* firstFrameSeekVidBuffer; // Dummy buffer for now
+	torasu::tstd::Dbimg_sequence* firstFrameSeekVidBuffer;
 	torasu::tstd::Dbimg_FORMAT vidFormat(-1, -1);
+
 	auto firstFrameSeek = des.getSegment((SegmentRequest) {
 		.start = 0,
 		.end = 0.04,
 		.videoBuffer = &firstFrameSeekVidBuffer,
 		.videoFormat = &vidFormat
 	});
-	int w = firstFrameSeek->frameWidth;
-	int h = firstFrameSeek->frameHeight;
-	std::vector<std::pair<uint8_t*, Daudio_buffer*>> frames;
+	auto fristFrame = firstFrameSeekVidBuffer->getFames().begin()->second;
+	int w = fristFrame->getWidth();
+	int h = fristFrame->getHeight();
+	delete firstFrameSeekVidBuffer;
+
+	std::vector<std::pair<Dbimg_sequence*, Daudio_buffer*>> frames;
 	std::vector<uint8_t> audio;
 	bool decodingDone = false;
-	delete [] firstFrameSeek->vidFrames[0].data;
-	delete firstFrameSeek;
 	int totalFrames = (des.streams[0]->duration * av_q2d(des.streams[0]->base_time)) * 25;
 	auto* rendererThread = new std::thread([&frames, &des, &decodingDone, &totalFrames, &audio]() {
 		double i = 0;
 		for (int j = 0; j < totalFrames; ++j) {
-			std::vector<torasu::tstd::Dbimg*>* vidBuffer; // Dummy buffer for now
+			torasu::tstd::Dbimg_sequence* vidBuffer;
 			torasu::tstd::Dbimg_FORMAT vidFormat(-1, -1);
 			torasu::tstd::Daudio_buffer* audBuffer = NULL;
 			torasu::tstd::Daudio_buffer_FORMAT audFormat(44100, torasu::tstd::Daudio_buffer_CHFMT::FLOAT32);
-			DecodingState* currentFrame = des.getSegment((SegmentRequest) {
+			DecodingState* currentState = des.getSegment((SegmentRequest) {
 				.start = i+0,
 				.end = i+0.04,
 				.videoBuffer = &vidBuffer,
@@ -87,9 +89,10 @@ void avTest(char* file) {
 				.audioBuffer = &audBuffer,
 				.audioFormat = &audFormat
 			});
+			delete currentState;
 
 			frames.push_back(
-				std::pair<uint8_t*, Daudio_buffer*>(currentFrame->vidFrames[0].data, NULL));
+				std::pair<Dbimg_sequence*, Daudio_buffer*>(vidBuffer, NULL));
 			// audio-buffer is NULL because we currently have a different audio handling
 
 			auto l = audBuffer->getChannels()[0];
@@ -103,7 +106,6 @@ void avTest(char* file) {
 
 			//  delete result;
 			i += 0.04;
-			delete currentFrame;
 		}
 
 		decodingDone = true;
@@ -173,8 +175,8 @@ void avTest(char* file) {
 
 		auto part = frames[j];
 
-		auto p = part.first;
-		SDL_UpdateTexture(texture, NULL, &p[0], w * 4);
+		uint8_t* imageData = part.first->getFames().begin()->second->getImageData();
+		SDL_UpdateTexture(texture, NULL, imageData, w * 4);
 		SDL_RenderCopy(renderer, texture, NULL, NULL);
 		if (!decodingDone) {
 			SDL_Rect Message_rect;
@@ -188,7 +190,7 @@ void avTest(char* file) {
 		}
 		SDL_RenderPresent(renderer);
 		j++;
-		delete [] part.first;
+		delete part.first;
 		std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 		t = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
 		//   if (t < 40)
