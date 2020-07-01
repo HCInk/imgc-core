@@ -16,7 +16,7 @@
 
 #include <torasu/mod/imgc/Rimg_file.hpp>
 #include <torasu/mod/imgc/Rvideo_file.hpp>
-#include <torasu/mod/imgc/VideoFileDeserializer.hpp>
+#include <torasu/mod/imgc/MediaDecoder.hpp>
 
 
 using namespace std;

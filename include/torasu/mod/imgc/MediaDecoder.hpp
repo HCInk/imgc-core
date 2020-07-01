@@ -2,8 +2,8 @@
 // Created by Yann Holme Nielsen on 14/06/2020.
 //
 
-#ifndef IMGC_VIDEOFILEDESERIALIZER_HPP
-#define IMGC_VIDEOFILEDESERIALIZER_HPP
+#ifndef IMGC_MEDIADECODER_HPP
+#define IMGC_MEDIADECODER_HPP
 
 #include <vector>
 
@@ -24,8 +24,10 @@ extern "C" {
 struct SegmentRequest {
 	double start;
 	double end = -1;
+
 	torasu::tstd::Dbimg_sequence** videoBuffer = NULL;
 	const torasu::tstd::Dbimg_FORMAT* videoFormat;
+
 	torasu::tstd::Daudio_buffer** audioBuffer = NULL;
 	const torasu::tstd::Daudio_buffer_FORMAT* audioFormat;
 };
@@ -51,13 +53,16 @@ struct DecodingState {
 	bool videoDone = false;
 	bool audioDone = false;
 
-	std::vector<VideoFrame> vidFrames;
-	std::vector<AudioFrame> audFrames;
+	bool videoAvailable = false;
+	bool audioAvailable = false;
 
-	int frameWidth;
-	int frameHeight;
+    int frameWidth;
+    int frameHeight;
 
-	SegmentRequest originalRquest;
+    std::vector<VideoFrame> videoFrames;
+	std::vector<AudioFrame> audioFrames;
+
+	SegmentRequest segmentRequest;
 };
 
 struct BufferedFrame {
@@ -86,11 +91,11 @@ struct StreamEntry {
 	bool draining = false;
 	int64_t nextFramePts = 0;
 };
-class VideoFileDeserializer {
+class MediaDecoder {
 public:
-	VideoFileDeserializer(std::string path);
+	MediaDecoder(std::string path);
 
-	~VideoFileDeserializer();
+	~MediaDecoder();
 	struct FileReader {
 		uint8_t* data;
 		size_t size;
@@ -163,12 +168,16 @@ private:
 	 */
 	void concatAudio(DecodingState* decodingState);
 
+	DecodingState* createDecoderState(SegmentRequest request);
+
+	size_t determineSampleSize(StreamEntry* stream);
+
 public:
 
-	VideoFileDeserializer();
+	MediaDecoder();
 	void getSegment(SegmentRequest request);
 
 };
 
 
-#endif //IMGC_VIDEOFILEDESERIALIZER_HPP
+#endif //IMGC_MEDIADECODER_HPP

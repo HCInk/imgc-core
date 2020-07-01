@@ -7,7 +7,7 @@
 #include <fstream>
 #include <thread>
 #include <iostream>
-#include <torasu/mod/imgc/VideoFileDeserializer.hpp>
+#include <torasu/mod/imgc/MediaDecoder.hpp>
 
 void writeFrames(torasu::tstd::Dbimg_sequence* sequence, std::string base_path) {
 	auto& frames = sequence->getFrames();
@@ -39,7 +39,7 @@ void writeAudio(std::string path, torasu::tstd::Daudio_buffer* audioBuff) {
 }
 
 int main() {
-	VideoFileDeserializer des("143386147_Superstar W.mp4");
+	MediaDecoder des("143386147_Superstar W.mp4");
 	//  auto totalLength = des.streams[0]->duration * av_q2d(des.streams[0]->base_time);
 	torasu::tstd::Dbimg_FORMAT vidFormat(-1, -1);
 	torasu::tstd::Daudio_buffer_FORMAT audFormat(44100, torasu::tstd::Daudio_buffer_CHFMT::FLOAT32);
@@ -122,7 +122,7 @@ int main() {
 	});
 
 
-	VideoFileDeserializer desC("104188354_In Memory of Firestarter.mp4");
+	MediaDecoder desC("104188354_In Memory of Firestarter.mp4");
 	torasu::tstd::Dbimg_sequence* videoResultC1;
 	torasu::tstd::Daudio_buffer* audioResultC1;
 	desC.getSegment((SegmentRequest) {
@@ -134,9 +134,9 @@ int main() {
 
 	
 
-//	std::cout << "B1 Video-Size: " << resultB1->vidFrames.size() << " AudioSize: " << resultB1->audFrames.size() << std::endl;
+//	std::cout << "B1 Video-Size: " << resultB1->videoFrames.size() << " AudioSize: " << resultB1->audioFrames.size() << std::endl;
 //
-//	std::cout << "B2 Video-Size: " << resultB2->vidFrames.size() << " AudioSize: " << resultB2->audFrames.size() << std::endl;
+//	std::cout << "B2 Video-Size: " << resultB2->videoFrames.size() << " AudioSize: " << resultB2->audioFrames.size() << std::endl;
 
 	std::thread write1([videoResult1, audioResult1]() {
 

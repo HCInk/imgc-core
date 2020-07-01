@@ -13,7 +13,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 #include <thread>
-#include "torasu/mod/imgc/VideoFileDeserializer.hpp"
+#include "torasu/mod/imgc/MediaDecoder.hpp"
 #include <fstream>
 
 using namespace std;
@@ -55,39 +55,43 @@ void avTest(char* file) {
 	audio_state* state = new audio_state();
 	state->audio_len = 0;
 	state->audio_pos = nullptr;
-	VideoFileDeserializer des(file);
+	MediaDecoder des(file);
+
 	torasu::tstd::Dbimg_sequence* firstFrameSeekVidBuffer;
 	torasu::tstd::Dbimg_FORMAT vidFormat(-1, -1);
+    torasu::tstd::Daudio_buffer* audioTestSample = NULL;
+    torasu::tstd::Daudio_buffer_FORMAT audioFormat(44100, torasu::tstd::Daudio_buffer_CHFMT::FLOAT32);
 
 	des.getSegment((SegmentRequest) {
 		.start = 0,
-		.end = 0.04,
+		.end = 0.01,
 		.videoBuffer = &firstFrameSeekVidBuffer,
-		.videoFormat = &vidFormat
+		.videoFormat = &vidFormat,
+		.audioBuffer = &audioTestSample,
+		.audioFormat = &audioFormat
 	});
-	auto fristFrame = firstFrameSeekVidBuffer->getFrames().begin()->second;
-	int w = fristFrame->getWidth();
-	int h = fristFrame->getHeight();
+	auto firstFrame = firstFrameSeekVidBuffer->getFrames().begin()->second;
+	int w = firstFrame->getWidth();
+	int h = firstFrame->getHeight();
 	delete firstFrameSeekVidBuffer;
 
 	std::vector<std::pair<Dbimg_sequence*, Daudio_buffer*>> frames;
 	std::vector<uint8_t> audio;
 	bool decodingDone = false;
 	int totalFrames = (des.streams[0]->duration * av_q2d(des.streams[0]->base_time)) * 25;
-	auto* rendererThread = new std::thread([&frames, &des, &decodingDone, &totalFrames, &audio]() {
+	auto* rendererThread = new std::thread([&frames, &des, &decodingDone, &totalFrames, &audio, &audioFormat]() {
 		double i = 0;
 		for (int j = 0; j < totalFrames; ++j) {
 			torasu::tstd::Dbimg_sequence* vidBuffer;
 			torasu::tstd::Dbimg_FORMAT vidFormat(-1, -1);
 			torasu::tstd::Daudio_buffer* audBuffer = NULL;
-			torasu::tstd::Daudio_buffer_FORMAT audFormat(44100, torasu::tstd::Daudio_buffer_CHFMT::FLOAT32);
 			des.getSegment((SegmentRequest) {
 				.start = i+0,
 				.end = i+0.04,
 				.videoBuffer = &vidBuffer,
 				.videoFormat = &vidFormat,
 				.audioBuffer = &audBuffer,
-				.audioFormat = &audFormat
+				.audioFormat = &audioFormat
 			});
 
 			frames.push_back(
@@ -97,7 +101,7 @@ void avTest(char* file) {
 			auto l = audBuffer->getChannels()[0];
             auto r = audBuffer->getChannels()[1];
 
-			uint8_t *mixed = mixChannels(l.data,r.data, l.dataSize / 4, 4);
+			uint8_t *mixed = mixChannels(l.data,r.data, l.dataSize / 4, audBuffer->getChannels()[0].sampleSize);
 			auto* p = &(audio);
             p->insert(p->end(), mixed,  mixed+(l.dataSize * 2));
             delete[] mixed;
@@ -149,8 +153,8 @@ void avTest(char* file) {
 		SDL_AudioSpec spec;
 		spec.channels = 2;
 		spec.format = AUDIO_F32;
-		spec.samples = (audio.size() / 4) - (44100 * 2);
-		spec.freq = 44100;
+		spec.samples = (audio.size() / audioTestSample->getChannels()[0].sampleSize) - (audioTestSample->getChannels()[0].sampleRate * 2);
+		spec.freq = audioTestSample->getChannels()[0].sampleRate;
 		spec.callback = my_audio_callback;
 		state->audio_len = audio.size();
 		state->audio_pos = &audio[0];
