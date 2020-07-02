@@ -58,17 +58,13 @@ void avTest(char* file) {
 	MediaDecoder des(file);
 
 	torasu::tstd::Dbimg_sequence* firstFrameSeekVidBuffer;
-	torasu::tstd::Dbimg_FORMAT vidFormat(-1, -1);
     torasu::tstd::Daudio_buffer* audioTestSample = NULL;
-    torasu::tstd::Daudio_buffer_FORMAT audioFormat(44100, torasu::tstd::Daudio_buffer_CHFMT::FLOAT32);
 
 	des.getSegment((SegmentRequest) {
 		.start = 0,
 		.end = 0.01,
 		.videoBuffer = &firstFrameSeekVidBuffer,
-		.videoFormat = &vidFormat,
-		.audioBuffer = &audioTestSample,
-		.audioFormat = &audioFormat
+		.audioBuffer = &audioTestSample
 	});
 	auto firstFrame = firstFrameSeekVidBuffer->getFrames().begin()->second;
 	int w = firstFrame->getWidth();
@@ -79,19 +75,16 @@ void avTest(char* file) {
 	std::vector<uint8_t> audio;
 	bool decodingDone = false;
 	int totalFrames = (des.streams[0]->duration * av_q2d(des.streams[0]->base_time)) * 25;
-	auto* rendererThread = new std::thread([&frames, &des, &decodingDone, &totalFrames, &audio, &audioFormat]() {
+	auto* rendererThread = new std::thread([&frames, &des, &decodingDone, &totalFrames, &audio]() {
 		double i = 0;
 		for (int j = 0; j < totalFrames; ++j) {
 			torasu::tstd::Dbimg_sequence* vidBuffer;
-			torasu::tstd::Dbimg_FORMAT vidFormat(-1, -1);
 			torasu::tstd::Daudio_buffer* audBuffer = NULL;
 			des.getSegment((SegmentRequest) {
 				.start = i+0,
 				.end = i+0.04,
 				.videoBuffer = &vidBuffer,
-				.videoFormat = &vidFormat,
-				.audioBuffer = &audBuffer,
-				.audioFormat = &audioFormat
+				.audioBuffer = &audBuffer
 			});
 
 			frames.push_back(
@@ -227,6 +220,6 @@ void avTest(char* file) {
 }
 
 int main(int argc, char** argv) {
-	avTest(argv[1]);
+	avTest("/home/cedric/Downloads/EfuRf6dYwu1hCpjfYrHlXpXJks8RtQVrzw1O7qr7PfI.gif.mp4");
 	return 0;
 }

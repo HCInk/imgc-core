@@ -41,16 +41,14 @@ void writeAudio(std::string path, torasu::tstd::Daudio_buffer* audioBuff) {
 int main() {
 	MediaDecoder des("143386147_Superstar W.mp4");
 	//  auto totalLength = des.streams[0]->duration * av_q2d(des.streams[0]->base_time);
-	torasu::tstd::Dbimg_FORMAT vidFormat(-1, -1);
-	torasu::tstd::Daudio_buffer_FORMAT audFormat(44100, torasu::tstd::Daudio_buffer_CHFMT::FLOAT32);
 
 	torasu::tstd::Dbimg_sequence* videoResult1;
 	torasu::tstd::Daudio_buffer* audioResult1;
 	des.getSegment((SegmentRequest) {
 		.start = 0.05,
 		.end = 3,
-		.videoBuffer = &videoResult1, .videoFormat = &vidFormat,
-		.audioBuffer = &audioResult1, .audioFormat = &audFormat
+		.videoBuffer = &videoResult1,
+		.audioBuffer = &audioResult1
 	});
 
 	torasu::tstd::Dbimg_sequence* videoResult2;
@@ -58,8 +56,8 @@ int main() {
 	des.getSegment((SegmentRequest) {
 		.start = 0.04,
 		.end = 0.12,
-		.videoBuffer = &videoResult2, .videoFormat = &vidFormat,
-		.audioBuffer = &audioResult2, .audioFormat = &audFormat
+		.videoBuffer = &videoResult2,
+		.audioBuffer = &audioResult2
 	});
 
 	torasu::tstd::Dbimg_sequence* videoResult3;
@@ -67,8 +65,8 @@ int main() {
 	des.getSegment((SegmentRequest) {
 		.start = 3.04,
 		.end = 4.08,
-		.videoBuffer = &videoResult3, .videoFormat = &vidFormat,
-		.audioBuffer = &audioResult3, .audioFormat = &audFormat
+		.videoBuffer = &videoResult3,
+		.audioBuffer = &audioResult3
 	});
 
 	torasu::tstd::Dbimg_sequence* videoResult4;
@@ -76,8 +74,8 @@ int main() {
 	des.getSegment((SegmentRequest) {
 		.start = 4.08,
 		.end = 5,
-		.videoBuffer = &videoResult4, .videoFormat = &vidFormat,
-		.audioBuffer = &audioResult4, .audioFormat = &audFormat
+		.videoBuffer = &videoResult4,
+		.audioBuffer = &audioResult4
 	});
 
 	torasu::tstd::Dbimg_sequence* videoResult5;
@@ -85,8 +83,8 @@ int main() {
 	des.getSegment((SegmentRequest) {
 		.start = 5.04,
 		.end = 5.33,
-		.videoBuffer = &videoResult5, .videoFormat = &vidFormat,
-		.audioBuffer = &audioResult5, .audioFormat = &audFormat
+		.videoBuffer = &videoResult5,
+		.audioBuffer = &audioResult5
 	});
 
 	torasu::tstd::Dbimg_sequence* videoResult6;
@@ -94,19 +92,16 @@ int main() {
 	des.getSegment((SegmentRequest) {
 		.start = 5.33,
 		.end = 6,
-		.videoBuffer = &videoResult6, .videoFormat = &vidFormat,
-		.audioBuffer = &audioResult6, .audioFormat = &audFormat
+		.videoBuffer = &videoResult6,
+		.audioBuffer = &audioResult6
 	});
 
 	torasu::tstd::Dbimg_sequence* videoResultB;
-	torasu::tstd::Dbimg_FORMAT vidFmtB(200, 300);
 	des.getSegment((SegmentRequest) {
 		.start = 1,
 		.end = 1.5,
 		.videoBuffer = &videoResultB,
-		.videoFormat = &vidFmtB,
-		.audioBuffer = NULL,
-		.audioFormat = NULL
+		.audioBuffer = NULL
 	});
 
 
@@ -116,9 +111,7 @@ int main() {
 		.start = 1,
 		.end = 1.5,
 		.videoBuffer = NULL,
-		.videoFormat = NULL,
-		.audioBuffer = &audioBuffer,
-		.audioFormat = &audioFmt
+		.audioBuffer = &audioBuffer
 	});
 
 
@@ -128,8 +121,8 @@ int main() {
 	desC.getSegment((SegmentRequest) {
 		.start = 0,
 		.end = 10,
-		.videoBuffer = &videoResultC1, .videoFormat = &vidFormat,
-		.audioBuffer = &audioResultC1, .audioFormat = &audFormat
+		.videoBuffer = &videoResultC1,
+		.audioBuffer = &audioResultC1
 	});
 
 	

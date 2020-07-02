@@ -26,10 +26,7 @@ struct SegmentRequest {
 	double end = -1;
 
 	torasu::tstd::Dbimg_sequence** videoBuffer = NULL;
-	const torasu::tstd::Dbimg_FORMAT* videoFormat;
-
 	torasu::tstd::Daudio_buffer** audioBuffer = NULL;
-	const torasu::tstd::Daudio_buffer_FORMAT* audioFormat;
 };
 
 struct AudioFrame {
@@ -118,7 +115,6 @@ private:
 	StreamEntry* getStreamEntryByIndex(int index);
 	void removeCacheFrame(int64_t pos, std::vector<BufferedFrame>* list);
 	void extractVideoFrame(StreamEntry* stream, uint8_t* outPt);
-//    int32_t* getRealBounds(StreamEntry* stream);
 
 	/**
 	 * @brief  Converts float time into an base_time-format, by applying the AVStream->base_time

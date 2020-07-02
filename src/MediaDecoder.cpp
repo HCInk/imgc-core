@@ -172,33 +172,6 @@ StreamEntry* MediaDecoder::getStreamEntryByIndex(int index) {
 	return nullptr;
 }
 
-/*int *MediaDecoder::getRealBounds(StreamEntry *stream) { // Still in use?
-    AVFrame *video_frame = stream->frame;
-    int32_t video_width = stream->ctx->width;
-    int32_t video_height = stream->ctx->height;
-
-    int32_t rWidth, rHeight;
-    if (video_width < 0) {
-        if (video_height < 0) {
-            rWidth = video_frame->width;
-            rHeight = video_frame->height;
-        } else {
-            rWidth = video_height * (static_cast<double>(video_frame->width) / video_frame->height);
-            rHeight = video_height;
-        }
-    } else {
-        if (video_height < 0) {
-            rWidth = video_width;
-            rHeight = video_width * (static_cast<double>(video_frame->height) / video_frame->width);
-        } else {
-            rWidth = video_width;
-            rHeight = video_height;
-        }
-    }
-    int32_t vals[] = {rWidth, rHeight};
-    return vals;
-}*/
-
 void MediaDecoder::removeCacheFrame(int64_t pos, std::vector<BufferedFrame>* list) {
 	for (auto it = list->begin(); it != list->end(); ++it) {
 		BufferedFrame entry = *it;
@@ -287,7 +260,7 @@ void MediaDecoder::getSegment(SegmentRequest request) {
 		std::vector<uint8_t*> data;
 
 		if (!decodingState->audioAvailable) {
-			*request.audioBuffer = new torasu::tstd::Daudio_buffer(1, 1, torasu::tstd::Daudio_buffer_CHFMT::FLOAT32, 0, 0);
+			*request.audioBuffer = new torasu::tstd::Daudio_buffer(1, 1, torasu::tstd::Daudio_buffer_CHFMT::FLOAT32, 4, 0);
 		} else {
 			auto audioStream = getStreamEntryByIndex(audio_stream_index);
 			*request.audioBuffer = new torasu::tstd::Daudio_buffer(audioStream->ctx->channels, audioStream->ctx->sample_rate, torasu::tstd::Daudio_buffer_CHFMT::FLOAT32, determineSampleSize(audioStream), 0);
