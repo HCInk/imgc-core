@@ -96,6 +96,7 @@ int main() {
 		.audioBuffer = &audioResult6
 	});
 
+	/*
 	torasu::tstd::Dbimg_sequence* videoResultB;
 	des.getSegment((imgc::SegmentRequest) {
 		.start = 1,
@@ -104,16 +105,14 @@ int main() {
 		.audioBuffer = NULL
 	});
 
-
 	torasu::tstd::Daudio_buffer* audioBuffer;
-	torasu::tstd::Daudio_buffer_FORMAT audioFmt(44100, torasu::tstd::Daudio_buffer_CHFMT::FLOAT32);
 	des.getSegment((imgc::SegmentRequest) {
 		.start = 1,
 		.end = 1.5,
 		.videoBuffer = NULL,
 		.audioBuffer = &audioBuffer
 	});
-
+	*/
 
 	imgc::MediaDecoder desC("104188354_In Memory of Firestarter.mp4");
 	torasu::tstd::Dbimg_sequence* videoResultC1;
@@ -132,46 +131,52 @@ int main() {
 //	std::cout << "B2 Video-Size: " << resultB2->videoFrames.size() << " AudioSize: " << resultB2->audioFrames.size() << std::endl;
 
 	std::thread write1([videoResult1, audioResult1]() {
-
 		writeAudio(std::string("test_files/one/audio.pcm"), audioResult1);
 		writeFrames(videoResult1, std::string("test_files/one/"));
-
+		delete videoResult1;
+		delete audioResult1;
 	});
-	std::thread write2([videoResult2, audioResult2]() {
 
+	std::thread write2([videoResult2, audioResult2]() {
 		writeAudio(std::string("test_files/two/audio.pcm"), audioResult2);
 		writeFrames(videoResult2, std::string("test_files/two/"));
-
+		delete videoResult2;
+		delete audioResult2;
 	});
-	std::thread write3([videoResult3, audioResult3]() {
 
+	std::thread write3([videoResult3, audioResult3]() {
 		writeAudio(std::string("test_files/three/audio.pcm"), audioResult3);
 		writeFrames(videoResult3, std::string("test_files/three/"));
-
+		delete videoResult3;
+		delete audioResult3;
 	});
-	std::thread write4([videoResult4, audioResult4]() {
 
+	std::thread write4([videoResult4, audioResult4]() {
 		writeAudio(std::string("test_files/four/audio.pcm"), audioResult4);
 		writeFrames(videoResult4, std::string("test_files/four/"));
-
+		delete videoResult4;
+		delete audioResult4;
 	});
-	std::thread write5([videoResult5, audioResult5]() {
 
+	std::thread write5([videoResult5, audioResult5]() {
 		writeAudio(std::string("test_files/five/audio.pcm"), audioResult5);
 		writeFrames(videoResult5, std::string("test_files/five/"));
-
+		delete videoResult5;
+		delete audioResult5;
 	});
-	std::thread write6([videoResult6, audioResult6]() {
 
+	std::thread write6([videoResult6, audioResult6]() {
 		writeAudio(std::string("test_files/six/audio.pcm"), audioResult6);
 		writeFrames(videoResult6, std::string("test_files/six/"));
-
+		delete videoResult6;
+		delete audioResult6;
 	});
-	std::thread write7([videoResultC1, audioResultC1]() {
 
+	std::thread write7([videoResultC1, audioResultC1]() {
 		writeAudio(std::string("test_files/seven/audio.pcm"), audioResultC1);
 		writeFrames(videoResultC1, std::string("test_files/seven/"));
-
+		delete videoResultC1;
+		delete audioResultC1;
 	});
 
 	write1.join();
