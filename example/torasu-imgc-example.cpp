@@ -292,12 +292,17 @@ void anotherIMGCTest() {
 
 }
 
-void writeFrames(std::vector<VideoFrame> frames, std::string base_path, int w, int h) {
-	for (int i = 0; i < frames.size(); ++i) {
-		auto curr = frames[i];
-		unsigned error = lodepng::encode(base_path + "file-" + std::to_string(i + 1) + ".png",
-										 curr.data, w, h);
-
+void writeFrames(torasu::tstd::Dbimg_sequence* sequence, std::string base_path) {
+	auto& frames = sequence->getFrames();
+	int i = 0;
+	for (auto& frame : frames) {
+		std::string path = base_path + "file-" + std::to_string(i + 1) + ".png";
+		unsigned error = lodepng::encode(path,
+										 frame.second->getImageData(), frame.second->getWidth(), frame.second->getHeight());
+		if (error) {
+			std::cerr << "LODEPNG ERROR " << error << ": " << lodepng_error_text(error) << " - while writing " << path << std::endl;
+		}
+		++i;
 	}
 }
 
@@ -307,7 +312,7 @@ void writeAudio(std::string path, torasu::tstd::Daudio_buffer* audioBuff) {
 	uint8_t* l = audioBuff->getChannels()[0].data;
 	uint8_t* r = audioBuff->getChannels()[1].data;
 
-	for (int i = 0; i < audioBuff->getChannels()[0].dataSize/size; i++) {
+	for (size_t i = 0; i < audioBuff->getChannels()[0].dataSize/size; i++) {
 		out.write(reinterpret_cast<const char*>(l), size);
 		out.write(reinterpret_cast<const char*>(r), size);
 		l += size;
@@ -316,25 +321,45 @@ void writeAudio(std::string path, torasu::tstd::Daudio_buffer* audioBuff) {
 	out.close();
 }
 
+
+void videoTest() {
+	imgc::MediaDecoder des2("/home/cedric/Downloads/143386147_Superstar W.mp4");
+	// imgc::MediaDecoder des2("/home/cedric/Shadow Lady-71f_1JB3T1s.webm"); // Has issues
+	// imgc::MediaDecoder des2("/home/cedric/Shadow Lady-71f_1JB3T1s.mkv"); // Has issues
+
+	torasu::tstd::Dbimg_sequence* videoBuffer;
+
+	des2.getSegment((SegmentRequest) {
+		.start = 0,
+		.end = 180,
+		.videoBuffer = &videoBuffer,
+		.audioBuffer = NULL
+	});
+
+	delete videoBuffer;
+}
+
 void audioTest() {
 
-	// VideoFileDeserializer des2("/home/liz3/Downloads/smptstps.mp3");
-	// VideoFileDeserializer des2("/home/cedric/smptstps.mp3");
-	VideoFileDeserializer des2("/home/cedric/Hold the line-WlHHS6nq1w4.mp3");
+	// imgc::MediaDecoder des2("/home/liz3/Downloads/smptstps.mp3");
+	// imgc::MediaDecoder des2("/home/cedric/smptstps.mp3");
+	imgc::MediaDecoder des2("/home/cedric/Hold the line-WlHHS6nq1w4.mp3");
+	// imgc::MediaDecoder des2("/home/cedric/Hold the line-WlHHS6nq1w4.opus");
+	// imgc::MediaDecoder des2("/home/cedric/Shadow Lady-71f_1JB3T1s.webm"); // Has issues
+	// imgc::MediaDecoder des2("/home/cedric/Shadow Lady-71f_1JB3T1s.mkv"); // Has issues
 
-	torasu::tstd::Daudio_buffer_FORMAT audioFmt(44100, torasu::tstd::Daudio_buffer_CHFMT::FLOAT32);
 	torasu::tstd::Daudio_buffer* audioBuffer;
 
 	des2.getSegment((SegmentRequest) {
 		.start = 0,
 		.end = 180,
 		.videoBuffer = NULL,
-		.videoFormat = NULL,
-		.audioBuffer = &audioBuffer,
-		.audioFormat = &audioFmt
+		.audioBuffer = &audioBuffer
 	});
 
-	writeAudio(std::string("test_files/mp3test.pcm"), audioBuffer);
+	writeAudio(std::string("test_files/audio_test.pcm"), audioBuffer);
+
+	delete audioBuffer;
 
 }
 
@@ -343,6 +368,7 @@ int main() {
 	//avTest();
 	//anotherIMGCTest();
 	audioTest();
+	// videoTest();
 
 	return 0;
 }
