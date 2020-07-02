@@ -39,12 +39,6 @@ struct AudioFrame {
 	std::vector<uint8_t*> data;
 };
 
-struct VideoFrame {
-	int64_t start;
-	int64_t end;
-	uint32_t size;
-	uint8_t* data;
-};
 struct DecodingState {
 	double requestStart;
 	double requestEnd;
@@ -58,7 +52,8 @@ struct DecodingState {
 	int frameWidth;
 	int frameHeight;
 
-	std::vector<VideoFrame> videoFrames;
+	// Video has been read until this point (exclusive) - INT64_MIN = no frame has been read yet
+	int64_t videoReadUntil = INT64_MIN;
 	std::vector<AudioFrame> audioFrames;
 
 	SegmentRequest segmentRequest;

@@ -46,7 +46,7 @@ void my_audio_callback(void* userdata, Uint8* stream, int len) {
 	if (state->audio_len == 0) {
 		return;// simply copy from one buffer into the other
 	}
-	len = (len > state->audio_len ? state->audio_len : len);
+	len = ( (Uint32) len > state->audio_len ? state->audio_len : len);
 	SDL_memcpy(stream, state->audio_pos, len);                    // simply copy from one buffer into the other
 	// SDL_MixAudio(stream, state->audio_pos, len, SDL_MIX_MAXVOLUME);// mix from one buffer into another
 	state->audio_pos += len;

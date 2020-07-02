@@ -57,6 +57,7 @@ int64_t SeekFunc(void* ptr, int64_t pos, int whence) {
 	// Return the new position:
 	return reader->pos;
 }
+
 }
 
 namespace imgc {
@@ -291,21 +292,18 @@ void MediaDecoder::handleFrame(StreamEntry* stream, DecodingState* decodingState
 
 	if (!decodingState->videoDone && stream->index == video_stream_index) {
 		if (checkFrameTargetBound(stream->frame, targetPosition, targetPositionEnd)) {
-			if (!decodingState->videoFrames.empty() && decodingState->videoFrames.rbegin()->end > stream->frame->pts) {
+			if (decodingState->videoReadUntil > stream->frame->pts) {
 				return;
 			}
 			int32_t rWidth = stream->frame->width;
 			int32_t rHeight = stream->frame->height;
-			uint32_t frameSize = rWidth * rHeight * 4;
 
 			uint8_t* target = (**decodingState->segmentRequest.videoBuffer).addFrame(
 								  ((double)(stream->frame->pts * stream->base_time.num)) / stream->base_time.den,
 								  torasu::tstd::Dbimg_FORMAT(rWidth, rHeight))->getImageData();
 			extractVideoFrame(stream, target);
 
-			auto frame = VideoFrame{stream->frame->pts, stream->frame->pts + stream->frame->pkt_duration, frameSize,
-									target};
-			decodingState->videoFrames.push_back(frame);
+			decodingState->videoReadUntil = stream->frame->pts + stream->frame->pkt_duration;
 		}
 
 		if (targetPositionEnd <= stream->nextFramePts) {
@@ -393,8 +391,8 @@ void MediaDecoder::initializePosition(DecodingState* decodingState) {
 	bool videoSeekForward = false;
 	if (!decodingState->videoDone && decodingState->videoAvailable) {
 		auto vidStream = getStreamEntryByIndex(video_stream_index);
-		int64_t vidTargetPosition = decodingState->videoFrames.empty() ?
-									toBaseTime(decodingState->requestStart, vidStream->base_time) : decodingState->videoFrames.rbegin()->end;
+		int64_t vidTargetPosition = decodingState->videoReadUntil == INT64_MIN ?
+									toBaseTime(decodingState->requestStart, vidStream->base_time) : decodingState->videoReadUntil;
 
 		int64_t videoPlayHead = vidStream->nextFramePts >= 0 ?
 								vidStream->nextFramePts : INT64_MAX;
@@ -492,9 +490,8 @@ void MediaDecoder::concatAudio(DecodingState* decodingState) {
 
 	auto* channels = (*decodingState->segmentRequest.audioBuffer)->getChannels();
 
-	// Requested start/end in base-time
+	// Requested start in base-time
 	int64_t requestStartBased = toBaseTime(decodingState->requestStart, audioBaseTime);
-	int64_t requestEndBased = toBaseTime(decodingState->requestEnd, audioBaseTime);
 
 	for (AudioFrame& frame : decodingState->audioFrames) {
 		int64_t copySrcStart, copySrcEnd, copyDestPos;
@@ -518,7 +515,7 @@ void MediaDecoder::concatAudio(DecodingState* decodingState) {
 
 		for (int i = 0; i < channelCount; ++i) {
 			std::copy(frame.data[i]+(copySrcStart * sampleSize), frame.data[i] + (copySrcEnd * sampleSize), channels[i].data + (copyDestPos * sampleSize) );
-			delete [] frame.data[i];
+			delete[] frame.data[i];
 		}
 
 	}
