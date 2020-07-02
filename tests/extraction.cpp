@@ -18,7 +18,7 @@ void writeFrames(torasu::tstd::Dbimg_sequence* sequence, std::string base_path) 
 										 frame.second->getImageData(), frame.second->getWidth(), frame.second->getHeight());
 		if (error) {
 			std::cerr << "LODEPNG ERROR " << error << ": " << lodepng_error_text(error) << " - while writing " << path << std::endl;
-		} 
+		}
 		++i;
 	}
 }
@@ -125,7 +125,7 @@ int main() {
 		.audioBuffer = &audioResultC1
 	});
 
-	
+
 
 //	std::cout << "B1 Video-Size: " << resultB1->videoFrames.size() << " AudioSize: " << resultB1->audioFrames.size() << std::endl;
 //

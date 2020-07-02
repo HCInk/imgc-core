@@ -31,13 +31,13 @@ struct audio_state {
 };
 void my_audio_callback(void* userdata, Uint8* stream, int len);
 
-uint8_t *mixChannels(uint8_t* l, uint8_t* r, size_t nbSamples, size_t sampleSize) {
-    uint8_t * out =new uint8_t[nbSamples * sampleSize * 2];
-    for (size_t i = 0; i < nbSamples; ++i) {
-        std::copy(&l[i *sampleSize], &l[(i * sampleSize) + sampleSize], &out[i * (2*sampleSize)]);
-        std::copy(&r[i *sampleSize], &r[(i * sampleSize) + sampleSize], &out[(i * (2*sampleSize)) + sampleSize]);
-    }
-    return out;
+uint8_t* mixChannels(uint8_t* l, uint8_t* r, size_t nbSamples, size_t sampleSize) {
+	uint8_t* out =new uint8_t[nbSamples * sampleSize * 2];
+	for (size_t i = 0; i < nbSamples; ++i) {
+		std::copy(&l[i *sampleSize], &l[(i * sampleSize) + sampleSize], &out[i * (2*sampleSize)]);
+		std::copy(&r[i *sampleSize], &r[(i * sampleSize) + sampleSize], &out[(i * (2*sampleSize)) + sampleSize]);
+	}
+	return out;
 }
 
 void my_audio_callback(void* userdata, Uint8* stream, int len) {
@@ -60,7 +60,7 @@ void avTest(char* file) {
 	MediaDecoder des(file);
 
 	torasu::tstd::Dbimg_sequence* firstFrameSeekVidBuffer;
-    torasu::tstd::Daudio_buffer* audioTestSample = NULL;
+	torasu::tstd::Daudio_buffer* audioTestSample = NULL;
 
 	des.getSegment((SegmentRequest) {
 		.start = 0,
@@ -94,12 +94,12 @@ void avTest(char* file) {
 			// audio-buffer is NULL because we currently have a different audio handling
 
 			auto l = audBuffer->getChannels()[0];
-            auto r = audBuffer->getChannels()[1];
+			auto r = audBuffer->getChannels()[1];
 
-			uint8_t *mixed = mixChannels(l.data,r.data, l.dataSize / 4, audBuffer->getChannels()[0].sampleSize);
+			uint8_t* mixed = mixChannels(l.data,r.data, l.dataSize / 4, audBuffer->getChannels()[0].sampleSize);
 			auto* p = &(audio);
-            p->insert(p->end(), mixed,  mixed+(l.dataSize * 2));
-            delete[] mixed;
+			p->insert(p->end(), mixed,  mixed+(l.dataSize * 2));
+			delete[] mixed;
 			delete audBuffer;
 
 			//  delete result;

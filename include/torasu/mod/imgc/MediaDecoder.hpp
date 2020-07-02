@@ -55,10 +55,10 @@ struct DecodingState {
 	bool videoAvailable = false;
 	bool audioAvailable = false;
 
-    int frameWidth;
-    int frameHeight;
+	int frameWidth;
+	int frameHeight;
 
-    std::vector<VideoFrame> videoFrames;
+	std::vector<VideoFrame> videoFrames;
 	std::vector<AudioFrame> audioFrames;
 
 	SegmentRequest segmentRequest;

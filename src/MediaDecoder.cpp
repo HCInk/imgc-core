@@ -146,11 +146,11 @@ MediaDecoder::~MediaDecoder() {
 	for (unsigned long i = 0; i < streams.size(); ++i) {
 		auto stream = streams[i];
 		if (stream->frame != nullptr) {
-            av_frame_free(&stream->frame);
-        }
+			av_frame_free(&stream->frame);
+		}
 		if (stream->ctx != nullptr) {
-            avcodec_free_context(&stream->ctx);
-        }
+			avcodec_free_context(&stream->ctx);
+		}
 		delete stream;
 	}
 	delete[] in_stream.data;
@@ -168,7 +168,7 @@ StreamEntry* MediaDecoder::getStreamEntryByIndex(int index) {
 	for (unsigned long i = 0; i < streams.size(); ++i) {
 		auto entry = streams[i];
 		if (entry->index == index) {
-            return entry;
+			return entry;
 		}
 	}
 	return nullptr;
@@ -219,7 +219,7 @@ void MediaDecoder::getSegment(SegmentRequest request) {
 
 	while (true) {
 		if ((decodingState->videoDone||!decodingState->videoAvailable) && (decodingState->audioDone || !decodingState->audioAvailable)) {
-            break;
+			break;
 		}
 		av_packet_unref(av_packet);
 		int nextFrameStat = av_read_frame(av_format_ctx, av_packet);
@@ -274,7 +274,7 @@ void MediaDecoder::getSegment(SegmentRequest request) {
 }
 
 bool MediaDecoder::checkFrameTargetBound(AVFrame* frame, int64_t start, int64_t end) {
-    return ((frame->pts < end) && (frame->pts >= start || frame->pts + frame->pkt_duration > start));
+	return ((frame->pts < end) && (frame->pts >= start || frame->pts + frame->pkt_duration > start));
 }
 
 void MediaDecoder::handleFrame(StreamEntry* stream, DecodingState* decodingState) {
@@ -299,8 +299,8 @@ void MediaDecoder::handleFrame(StreamEntry* stream, DecodingState* decodingState
 			uint32_t frameSize = rWidth * rHeight * 4;
 
 			uint8_t* target = (**decodingState->segmentRequest.videoBuffer).addFrame(
-								((double)(stream->frame->pts * stream->base_time.num)) / stream->base_time.den, 
-								torasu::tstd::Dbimg_FORMAT(rWidth, rHeight))->getImageData();
+								  ((double)(stream->frame->pts * stream->base_time.num)) / stream->base_time.den,
+								  torasu::tstd::Dbimg_FORMAT(rWidth, rHeight))->getImageData();
 			extractVideoFrame(stream, target);
 
 			auto frame = VideoFrame{stream->frame->pts, stream->frame->pts + stream->frame->pkt_duration, frameSize,
@@ -359,7 +359,7 @@ void MediaDecoder::fetchBuffered(DecodingState* decodingState) {
 		int64_t vidTargetPosition = toBaseTime(decodingState->requestStart, vidStream->base_time);
 
 		if (!vidStream->frameIsPresent) {
-            return;
+			return;
 		}
 
 		auto vidFrameStart = vidStream->frame->pts;
@@ -374,7 +374,7 @@ void MediaDecoder::fetchBuffered(DecodingState* decodingState) {
 		int64_t audTargetPosition = toBaseTime(decodingState->requestStart, audStream->base_time);
 
 		if (!audStream->frameIsPresent) {
-            return;
+			return;
 		}
 		auto audFrameStart = audStream->frame->pts;
 
@@ -397,12 +397,12 @@ void MediaDecoder::initializePosition(DecodingState* decodingState) {
 									toBaseTime(decodingState->requestStart, vidStream->base_time) : decodingState->videoFrames.rbegin()->end;
 
 		int64_t videoPlayHead = vidStream->nextFramePts >= 0 ?
-                                vidStream->nextFramePts : INT64_MAX;
+								vidStream->nextFramePts : INT64_MAX;
 
-        videoSeekBack = videoPlayHead > vidTargetPosition;
+		videoSeekBack = videoPlayHead > vidTargetPosition;
 
 
-        videoSeekForward = !videoSeekBack && vidTargetPosition > 0;
+		videoSeekForward = !videoSeekBack && vidTargetPosition > 0;
 
 		if (videoSeekForward) {
 
@@ -431,9 +431,9 @@ void MediaDecoder::initializePosition(DecodingState* decodingState) {
 									toBaseTime(decodingState->requestStart, audStream->base_time) : decodingState->audioFrames.rbegin()->end;
 
 		int64_t audPlayHead = audStream->nextFramePts >= 0 ?
-                              audStream->nextFramePts : INT64_MAX;
+							  audStream->nextFramePts : INT64_MAX;
 
-        audioSeekBack = (audPlayHead > audTargetPosition);
+		audioSeekBack = (audPlayHead > audTargetPosition);
 
 	}
 
@@ -458,15 +458,15 @@ void MediaDecoder::drainStream(StreamEntry* stream, DecodingState* decodingState
 	while(true) {
 		int response = avcodec_receive_frame(stream->ctx, stream->frame);
 		if (response == AVERROR(EAGAIN)) {
-            continue;
+			continue;
 		}
 
 		if (response == AVERROR_EOF) {
-            break;
+			break;
 		}
 
 		if (response != 0) {
-            throw runtime_error("non 0 response code from receive frame while draining");
+			throw runtime_error("non 0 response code from receive frame while draining");
 		}
 
 		removeCacheFrame(stream->frame->pkt_pos, &stream->cachedFrames);
@@ -526,51 +526,51 @@ void MediaDecoder::concatAudio(DecodingState* decodingState) {
 
 }
 
-DecodingState *MediaDecoder::createDecoderState(SegmentRequest request) {
-    DecodingState* decodingState = new DecodingState();
+DecodingState* MediaDecoder::createDecoderState(SegmentRequest request) {
+	DecodingState* decodingState = new DecodingState();
 
-    decodingState->segmentRequest = request;
-    decodingState->requestStart = request.start;
-    decodingState->requestEnd = request.end;
-    decodingState->videoAvailable = video_stream_index != -1;
-    decodingState->audioAvailable = audio_stream_index != -1;
-    decodingState->audioDone = audio_stream_index == -1 || request.audioBuffer == NULL;
-    decodingState->videoDone = video_stream_index == -1 || request.videoBuffer == NULL;
+	decodingState->segmentRequest = request;
+	decodingState->requestStart = request.start;
+	decodingState->requestEnd = request.end;
+	decodingState->videoAvailable = video_stream_index != -1;
+	decodingState->audioAvailable = audio_stream_index != -1;
+	decodingState->audioDone = audio_stream_index == -1 || request.audioBuffer == NULL;
+	decodingState->videoDone = video_stream_index == -1 || request.videoBuffer == NULL;
 
-    if(decodingState->videoAvailable && request.videoBuffer != NULL) {
-        auto vidStream = getStreamEntryByIndex(video_stream_index);
-        decodingState->frameWidth = vidStream->ctx->width;
-        decodingState->frameHeight = vidStream->ctx->height;
+	if(decodingState->videoAvailable && request.videoBuffer != NULL) {
+		auto vidStream = getStreamEntryByIndex(video_stream_index);
+		decodingState->frameWidth = vidStream->ctx->width;
+		decodingState->frameHeight = vidStream->ctx->height;
 
-        *request.videoBuffer = new torasu::tstd::Dbimg_sequence();
-    }
-    return decodingState;
+		*request.videoBuffer = new torasu::tstd::Dbimg_sequence();
+	}
+	return decodingState;
 }
 
-size_t MediaDecoder::determineSampleSize(StreamEntry *stream) {
-    switch(stream->ctx->sample_fmt) {
-        case AV_SAMPLE_FMT_NONE:
-            return 0;
-        case AV_SAMPLE_FMT_U8:
-        case AV_SAMPLE_FMT_U8P:
-            return 1;
-        case AV_SAMPLE_FMT_S16:
-        case AV_SAMPLE_FMT_S16P:
-            return 2;
-        case AV_SAMPLE_FMT_S32:
-        case AV_SAMPLE_FMT_FLT:
-        case AV_SAMPLE_FMT_S32P:
-        case AV_SAMPLE_FMT_FLTP:
-            return 4;
-        case AV_SAMPLE_FMT_DBL:
-        case AV_SAMPLE_FMT_DBLP:
-        case AV_SAMPLE_FMT_S64:
-        case AV_SAMPLE_FMT_S64P:
-            return 8;
-        default:
-            //ambiguous default, but leave it for now
-            return 4;
-    }
+size_t MediaDecoder::determineSampleSize(StreamEntry* stream) {
+	switch(stream->ctx->sample_fmt) {
+	case AV_SAMPLE_FMT_NONE:
+		return 0;
+	case AV_SAMPLE_FMT_U8:
+	case AV_SAMPLE_FMT_U8P:
+		return 1;
+	case AV_SAMPLE_FMT_S16:
+	case AV_SAMPLE_FMT_S16P:
+		return 2;
+	case AV_SAMPLE_FMT_S32:
+	case AV_SAMPLE_FMT_FLT:
+	case AV_SAMPLE_FMT_S32P:
+	case AV_SAMPLE_FMT_FLTP:
+		return 4;
+	case AV_SAMPLE_FMT_DBL:
+	case AV_SAMPLE_FMT_DBLP:
+	case AV_SAMPLE_FMT_S64:
+	case AV_SAMPLE_FMT_S64P:
+		return 8;
+	default:
+		//ambiguous default, but leave it for now
+		return 4;
+	}
 }
 
 } // namespace imgc
