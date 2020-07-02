@@ -16,6 +16,7 @@
 
 #include <torasu/mod/imgc/Rimg_file.hpp>
 #include <torasu/mod/imgc/Rvideo_file.hpp>
+#include <torasu/mod/imgc/MediaDecoder.hpp>
 
 
 using namespace std;
@@ -216,7 +217,7 @@ void avTest() {
 
 
 void anotherIMGCTest() {
-	
+
 	// Tree building
 
 	Rnet_file file("https://cdn.discordapp.com/attachments/598323767202152458/666010465809465410/8807502_Bender_and_penguins.mp4");
@@ -235,9 +236,9 @@ void anotherIMGCTest() {
 	Dbimg_FORMAT format(1340, 1200);
 	auto rf = format.asFormat();
 	auto handle = rib.addSegmentWithHandle<Dbimg>(TORASU_STD_PL_VIS, &rf);
-	
-	// Rendering Results 
-	
+
+	// Rendering Results
+
 	double frameTimes[] = {0.1, 2, 4, 2.5, 5.1};
 	int frameCount = sizeof(frameTimes) / sizeof(double);
 
@@ -291,10 +292,83 @@ void anotherIMGCTest() {
 
 }
 
+void writeFrames(torasu::tstd::Dbimg_sequence* sequence, std::string base_path) {
+	auto& frames = sequence->getFrames();
+	int i = 0;
+	for (auto& frame : frames) {
+		std::string path = base_path + "file-" + std::to_string(i + 1) + ".png";
+		unsigned error = lodepng::encode(path,
+										 frame.second->getImageData(), frame.second->getWidth(), frame.second->getHeight());
+		if (error) {
+			std::cerr << "LODEPNG ERROR " << error << ": " << lodepng_error_text(error) << " - while writing " << path << std::endl;
+		}
+		++i;
+	}
+}
+
+void writeAudio(std::string path, torasu::tstd::Daudio_buffer* audioBuff) {
+	std::ofstream out(path);
+	size_t size = 4;
+	uint8_t* l = audioBuff->getChannels()[0].data;
+	uint8_t* r = audioBuff->getChannels()[1].data;
+
+	for (size_t i = 0; i < audioBuff->getChannels()[0].dataSize/size; i++) {
+		out.write(reinterpret_cast<const char*>(l), size);
+		out.write(reinterpret_cast<const char*>(r), size);
+		l += size;
+		r += size;
+	}
+	out.close();
+}
+
+
+void videoTest() {
+	imgc::MediaDecoder des2("/home/cedric/Downloads/143386147_Superstar W.mp4");
+	// imgc::MediaDecoder des2("/home/cedric/Shadow Lady-71f_1JB3T1s.webm"); // Has issues
+	// imgc::MediaDecoder des2("/home/cedric/Shadow Lady-71f_1JB3T1s.mkv"); // Has issues
+
+	torasu::tstd::Dbimg_sequence* videoBuffer;
+
+	des2.getSegment((SegmentRequest) {
+		.start = 0,
+		.end = 180,
+		.videoBuffer = &videoBuffer,
+		.audioBuffer = NULL
+	});
+
+	delete videoBuffer;
+}
+
+void audioTest() {
+
+	// imgc::MediaDecoder des2("/home/liz3/Downloads/smptstps.mp3");
+	// imgc::MediaDecoder des2("/home/cedric/smptstps.mp3");
+	imgc::MediaDecoder des2("/home/cedric/Hold the line-WlHHS6nq1w4.mp3");
+	// imgc::MediaDecoder des2("/home/cedric/Hold the line-WlHHS6nq1w4.opus");
+	// imgc::MediaDecoder des2("/home/cedric/Shadow Lady-71f_1JB3T1s.webm"); // Has issues
+	// imgc::MediaDecoder des2("/home/cedric/Shadow Lady-71f_1JB3T1s.mkv"); // Has issues
+
+	torasu::tstd::Daudio_buffer* audioBuffer;
+
+	des2.getSegment((SegmentRequest) {
+		.start = 0,
+		.end = 180,
+		.videoBuffer = NULL,
+		.audioBuffer = &audioBuffer
+	});
+
+	writeAudio(std::string("test_files/audio_test.pcm"), audioBuffer);
+
+	delete audioBuffer;
+
+}
+
 int main() {
 	//netImageTest();
 	//avTest();
-	anotherIMGCTest();
+	//anotherIMGCTest();
+	audioTest();
+	// videoTest();
 
 	return 0;
 }

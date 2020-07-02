@@ -6,80 +6,171 @@
 #include <string>
 #include <fstream>
 #include <thread>
-#include "torasu/mod/imgc/VideoFileDeserializer.hpp"
+#include <iostream>
+#include <torasu/mod/imgc/MediaDecoder.hpp>
 
-void writeFrames(std::vector<VideoFrame> frames, std::string base_path, int w, int h) {
-    for (int i = 0; i < frames.size(); ++i) {
-        auto curr = frames[i];
-        unsigned error = lodepng::encode(base_path + "file-" + std::to_string(i + 1) + ".png",
-                                         curr.data, w, h);
-
-    }
+void writeFrames(torasu::tstd::Dbimg_sequence* sequence, std::string base_path) {
+	auto& frames = sequence->getFrames();
+	int i = 0;
+	for (auto& frame : frames) {
+		std::string path = base_path + "file-" + std::to_string(i + 1) + ".png";
+		unsigned error = lodepng::encode(path,
+										 frame.second->getImageData(), frame.second->getWidth(), frame.second->getHeight());
+		if (error) {
+			std::cerr << "LODEPNG ERROR " << error << ": " << lodepng_error_text(error) << " - while writing " << path << std::endl;
+		}
+		++i;
+	}
 }
 
-void writeAudio(std::string path, std::vector<AudioFrame> frames) {
-    std::ofstream out(path);
-    for (int j = 0; j < frames.size(); ++j) {
-        auto part = frames[j];
-        size_t size = 4;
-        uint8_t *l = part.data[0];
-        uint8_t *r = part.data[1];
+void writeAudio(std::string path, torasu::tstd::Daudio_buffer* audioBuff) {
+	std::ofstream out(path);
+	size_t size = 4;
+	uint8_t* l = audioBuff->getChannels()[0].data;
+	uint8_t* r = audioBuff->getChannels()[1].data;
 
-        for (int i = 0; i < part.numSamples; i++) {
-            out.write(reinterpret_cast<const char *>(l), size);
-            out.write(reinterpret_cast<const char *>(r), size);
-            l += size;
-            r += size;
-        }
-
-    }
-    out.close();
+	for (int i = 0; i < audioBuff->getChannels()[0].dataSize/size; i++) {
+		out.write(reinterpret_cast<const char*>(l), size);
+		out.write(reinterpret_cast<const char*>(r), size);
+		l += size;
+		r += size;
+	}
+	out.close();
 }
 
 int main() {
-    VideoFileDeserializer des("143386147_Superstar W.mp4");
-  //  auto totalLength = des.streams[0]->duration * av_q2d(des.streams[0]->base_time);
-    auto result = des.getSegment(0.05, 3);
-    auto result2 = des.getSegment(0.04, 0.12);
-    auto result3 = des.getSegment(3.04, 4.08);
-    auto result4 = des.getSegment(4.08, 5);
-    auto result5 = des.getSegment(5.04, 5.33);
-    auto result6 = des.getSegment(5.33, 6);
+	imgc::MediaDecoder des("143386147_Superstar W.mp4");
+	//  auto totalLength = des.streams[0]->duration * av_q2d(des.streams[0]->base_time);
 
-	std::thread write1([&result](){ 
-		
-		writeFrames(result->vidFrames, std::string("test_files/one/"), result->frameWidth, result->frameHeight);
-		writeAudio(std::string("test_files/one/audio.pcm"), result->audioParts);
+	torasu::tstd::Dbimg_sequence* videoResult1;
+	torasu::tstd::Daudio_buffer* audioResult1;
+	des.getSegment((imgc::SegmentRequest) {
+		.start = 0.05,
+		.end = 3,
+		.videoBuffer = &videoResult1,
+		.audioBuffer = &audioResult1
+	});
+
+	torasu::tstd::Dbimg_sequence* videoResult2;
+	torasu::tstd::Daudio_buffer* audioResult2;
+	des.getSegment((imgc::SegmentRequest) {
+		.start = 0.04,
+		.end = 0.12,
+		.videoBuffer = &videoResult2,
+		.audioBuffer = &audioResult2
+	});
+
+	torasu::tstd::Dbimg_sequence* videoResult3;
+	torasu::tstd::Daudio_buffer* audioResult3;
+	des.getSegment((imgc::SegmentRequest) {
+		.start = 3.04,
+		.end = 4.08,
+		.videoBuffer = &videoResult3,
+		.audioBuffer = &audioResult3
+	});
+
+	torasu::tstd::Dbimg_sequence* videoResult4;
+	torasu::tstd::Daudio_buffer* audioResult4;
+	des.getSegment((imgc::SegmentRequest) {
+		.start = 4.08,
+		.end = 5,
+		.videoBuffer = &videoResult4,
+		.audioBuffer = &audioResult4
+	});
+
+	torasu::tstd::Dbimg_sequence* videoResult5;
+	torasu::tstd::Daudio_buffer* audioResult5;
+	des.getSegment((imgc::SegmentRequest) {
+		.start = 5.04,
+		.end = 5.33,
+		.videoBuffer = &videoResult5,
+		.audioBuffer = &audioResult5
+	});
+
+	torasu::tstd::Dbimg_sequence* videoResult6;
+	torasu::tstd::Daudio_buffer* audioResult6;
+	des.getSegment((imgc::SegmentRequest) {
+		.start = 5.33,
+		.end = 6,
+		.videoBuffer = &videoResult6,
+		.audioBuffer = &audioResult6
+	});
+
+	torasu::tstd::Dbimg_sequence* videoResultB;
+	des.getSegment((imgc::SegmentRequest) {
+		.start = 1,
+		.end = 1.5,
+		.videoBuffer = &videoResultB,
+		.audioBuffer = NULL
+	});
+
+
+	torasu::tstd::Daudio_buffer* audioBuffer;
+	torasu::tstd::Daudio_buffer_FORMAT audioFmt(44100, torasu::tstd::Daudio_buffer_CHFMT::FLOAT32);
+	des.getSegment((imgc::SegmentRequest) {
+		.start = 1,
+		.end = 1.5,
+		.videoBuffer = NULL,
+		.audioBuffer = &audioBuffer
+	});
+
+
+	imgc::MediaDecoder desC("104188354_In Memory of Firestarter.mp4");
+	torasu::tstd::Dbimg_sequence* videoResultC1;
+	torasu::tstd::Daudio_buffer* audioResultC1;
+	desC.getSegment((imgc::SegmentRequest) {
+		.start = 0,
+		.end = 10,
+		.videoBuffer = &videoResultC1,
+		.audioBuffer = &audioResultC1
+	});
+
+
+
+//	std::cout << "B1 Video-Size: " << resultB1->videoFrames.size() << " AudioSize: " << resultB1->audioFrames.size() << std::endl;
+//
+//	std::cout << "B2 Video-Size: " << resultB2->videoFrames.size() << " AudioSize: " << resultB2->audioFrames.size() << std::endl;
+
+	std::thread write1([videoResult1, audioResult1]() {
+
+		writeAudio(std::string("test_files/one/audio.pcm"), audioResult1);
+		writeFrames(videoResult1, std::string("test_files/one/"));
 
 	});
-	std::thread write2([&result2](){ 
-		
-		writeFrames(result2->vidFrames, std::string("test_files/two/"), result2->frameWidth, result2->frameHeight);
-		writeAudio(std::string("test_files/two/audio.pcm"), result2->audioParts);
+	std::thread write2([videoResult2, audioResult2]() {
+
+		writeAudio(std::string("test_files/two/audio.pcm"), audioResult2);
+		writeFrames(videoResult2, std::string("test_files/two/"));
 
 	});
-	std::thread write3([&result3](){ 
-		
-		writeFrames(result3->vidFrames, std::string("test_files/three/"), result3->frameWidth, result3->frameHeight);
-		writeAudio(std::string("test_files/three/audio.pcm"), result3->audioParts);
+	std::thread write3([videoResult3, audioResult3]() {
+
+		writeAudio(std::string("test_files/three/audio.pcm"), audioResult3);
+		writeFrames(videoResult3, std::string("test_files/three/"));
 
 	});
-	std::thread write4([&result4](){ 
-		
-		writeFrames(result4->vidFrames, std::string("test_files/four/"), result4->frameWidth, result4->frameHeight);
-		writeAudio(std::string("test_files/four/audio.pcm"), result4->audioParts);
+	std::thread write4([videoResult4, audioResult4]() {
+
+		writeAudio(std::string("test_files/four/audio.pcm"), audioResult4);
+		writeFrames(videoResult4, std::string("test_files/four/"));
 
 	});
-	std::thread write5([&result5](){ 
-		
-		writeFrames(result5->vidFrames, std::string("test_files/five/"), result5->frameWidth, result5->frameHeight);
-		writeAudio(std::string("test_files/five/audio.pcm"), result5->audioParts);
+	std::thread write5([videoResult5, audioResult5]() {
+
+		writeAudio(std::string("test_files/five/audio.pcm"), audioResult5);
+		writeFrames(videoResult5, std::string("test_files/five/"));
 
 	});
-	std::thread write6([&result6](){ 
-		
-		writeFrames(result6->vidFrames, std::string("test_files/six/"), result6->frameWidth, result6->frameHeight);
-		writeAudio(std::string("test_files/six/audio.pcm"), result6->audioParts);
+	std::thread write6([videoResult6, audioResult6]() {
+
+		writeAudio(std::string("test_files/six/audio.pcm"), audioResult6);
+		writeFrames(videoResult6, std::string("test_files/six/"));
+
+	});
+	std::thread write7([videoResultC1, audioResultC1]() {
+
+		writeAudio(std::string("test_files/seven/audio.pcm"), audioResultC1);
+		writeFrames(videoResultC1, std::string("test_files/seven/"));
 
 	});
 
@@ -89,5 +180,6 @@ int main() {
 	write4.join();
 	write5.join();
 	write6.join();
+	write7.join();
 
 }

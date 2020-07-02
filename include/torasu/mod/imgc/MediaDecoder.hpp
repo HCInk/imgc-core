@@ -2,8 +2,8 @@
 // Created by Yann Holme Nielsen on 14/06/2020.
 //
 
-#ifndef IMGC_VIDEOFILEDESERIALIZER_HPP
-#define IMGC_VIDEOFILEDESERIALIZER_HPP
+#ifndef IMGC_MEDIADECODER_HPP
+#define IMGC_MEDIADECODER_HPP
 
 #include <vector>
 
@@ -17,31 +17,46 @@ extern "C" {
 #include <libavutil/frame.h>
 }
 
+#include <torasu/std/Dbimg.hpp>
+#include <torasu/std/Dbimg_sequence.hpp>
+#include <torasu/std/Daudio_buffer.hpp>
+
+namespace imgc {
+
+struct SegmentRequest {
+	double start;
+	double end = -1;
+
+	torasu::tstd::Dbimg_sequence** videoBuffer = NULL;
+	torasu::tstd::Daudio_buffer** audioBuffer = NULL;
+};
+
 struct AudioFrame {
 	int64_t start;
 	int64_t end;
 	int numSamples;
-	int size;
+	size_t size;
 	std::vector<uint8_t*> data;
 };
-struct VideoFrame {
-	int64_t start;
-	int64_t end;
-	uint32_t size;
-	uint8_t* data;
-};
+
 struct DecodingState {
 	double requestStart;
 	double requestEnd;
 
-	bool videoPresent = false;
-	bool audioPresent = false;
+	bool videoDone = false;
+	bool audioDone = false;
 
-	std::vector<AudioFrame> audioParts;
-	std::vector<VideoFrame> vidFrames;
+	bool videoAvailable = false;
+	bool audioAvailable = false;
 
 	int frameWidth;
 	int frameHeight;
+
+	// Video has been read until this point (exclusive) - INT64_MIN = no frame has been read yet
+	int64_t videoReadUntil = INT64_MIN;
+	std::vector<AudioFrame> audioFrames;
+
+	SegmentRequest segmentRequest;
 };
 
 struct BufferedFrame {
@@ -51,7 +66,7 @@ struct BufferedFrame {
 };
 
 struct StreamEntry {
-	int id;
+	int index;
 	AVMediaType codecType;
 	AVCodec* codec = nullptr;
 	AVCodecContext* ctx = nullptr;
@@ -70,11 +85,11 @@ struct StreamEntry {
 	bool draining = false;
 	int64_t nextFramePts = 0;
 };
-class VideoFileDeserializer {
+class MediaDecoder {
 public:
-	VideoFileDeserializer(std::string path);
+	MediaDecoder(std::string path);
 
-	~VideoFileDeserializer();
+	~MediaDecoder();
 	struct FileReader {
 		uint8_t* data;
 		size_t size;
@@ -86,18 +101,17 @@ private:
 	void prepare();
 	AVFormatContext* av_format_ctx;
 
-	int vid_stream_id = -1;
-	int audio_stream_id = -1;
+	int video_stream_index = -1;
+	int audio_stream_index = -1;
 
 	double decoderPosition = -1;
 	SwsContext* sws_scaler_ctx = nullptr;
 
 
 	AVPacket* av_packet;
-	StreamEntry* getEntryById(int index);
+	StreamEntry* getStreamEntryByIndex(int index);
 	void removeCacheFrame(int64_t pos, std::vector<BufferedFrame>* list);
 	void extractVideoFrame(StreamEntry* stream, uint8_t* outPt);
-//    int32_t* getRealBounds(StreamEntry* stream);
 
 	/**
 	 * @brief  Converts float time into an base_time-format, by applying the AVStream->base_time
@@ -147,12 +161,17 @@ private:
 	 */
 	void concatAudio(DecodingState* decodingState);
 
+	DecodingState* createDecoderState(SegmentRequest request);
+
+	size_t determineSampleSize(StreamEntry* stream);
+
 public:
 
-	VideoFileDeserializer();
-	DecodingState* getSegment(double start, double end);
+	MediaDecoder();
+	void getSegment(SegmentRequest request);
 
 };
 
+} // namespace imgc
 
-#endif //IMGC_VIDEOFILEDESERIALIZER_HPP
+#endif //IMGC_MEDIADECODER_HPP
