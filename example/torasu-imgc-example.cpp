@@ -22,8 +22,8 @@
 #ifdef IMGC_SDL_EXAMPLE
 // Local header for sdl_example
 namespace imgc::example_sdl {
-	int main(int argc, char** argv);
-}
+int main(int argc, char** argv);
+} // namespace imgc::example_sdl
 #endif
 
 using namespace std;
