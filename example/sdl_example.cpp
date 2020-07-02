@@ -221,9 +221,9 @@ void avTest(char* file) {
 	SDL_DestroyWindow(window);
 }
 
-} // namespace imgc::example_sdl
-
 int main(int argc, char** argv) {
-	example_sdl::avTest(argv[1]);
+	example_sdl::avTest("/home/cedric/Downloads/143386147_Superstar W.mp4");
 	return 0;
 }
+
+} // namespace imgc::example_sdl

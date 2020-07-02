@@ -19,6 +19,13 @@
 #include <torasu/mod/imgc/MediaDecoder.hpp>
 
 
+#ifdef IMGC_SDL_EXAMPLE
+// Local header for sdl_example
+namespace imgc::example_sdl {
+	int main(int argc, char** argv);
+}
+#endif
+
 using namespace std;
 using namespace torasu;
 using namespace torasu::tstd;
@@ -363,12 +370,13 @@ void audioTest() {
 
 }
 
-int main() {
+int main(int argc, char** argv) {
 	//netImageTest();
 	//avTest();
 	//anotherIMGCTest();
-	audioTest();
+	// audioTest();
 	// videoTest();
+	example_sdl::main(argc, argv);
 
 	return 0;
 }
