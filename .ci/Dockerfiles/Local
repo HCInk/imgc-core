@@ -1,0 +1,41 @@
+FROM debian:10.4
+
+
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -yq \
+    gcc \
+    g++ \
+    cmake \
+    make \
+    wget \
+    unzip \
+    nodejs \
+    nlohmann-json3-dev \
+	libcurl4-openssl-dev \
+	git \
+	libavcodec-dev \
+	libavformat-dev \
+	libavutil-dev \
+	libswscale-dev \
+	libsdl2-dev \
+	libsdl2-ttf-dev
+
+
+WORKDIR /build
+RUN git clone https://gitlab.com/HCInk/torasu/torasu-cpp.git
+WORKDIR /build/torasu-cpp
+RUN git submodule update --init
+ARG build_hash
+RUN git pull
+RUN ./setup.sh
+RUN ./build.sh install nosudo
+WORKDIR /app
+COPY CMakeLists.txt .
+COPY assets assets
+COPY src src
+COPY build.sh build.sh
+COPY test.sh test.sh
+COPY include include
+COPY tests tests
+COPY thirdparty thirdparty
+COPY example example
+RUN ./build.sh
