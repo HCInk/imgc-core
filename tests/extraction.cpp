@@ -39,12 +39,12 @@ void writeAudio(std::string path, torasu::tstd::Daudio_buffer* audioBuff) {
 }
 
 int main() {
-	MediaDecoder des("143386147_Superstar W.mp4");
+	imgc::MediaDecoder des("143386147_Superstar W.mp4");
 	//  auto totalLength = des.streams[0]->duration * av_q2d(des.streams[0]->base_time);
 
 	torasu::tstd::Dbimg_sequence* videoResult1;
 	torasu::tstd::Daudio_buffer* audioResult1;
-	des.getSegment((SegmentRequest) {
+	des.getSegment((imgc::SegmentRequest) {
 		.start = 0.05,
 		.end = 3,
 		.videoBuffer = &videoResult1,
@@ -53,7 +53,7 @@ int main() {
 
 	torasu::tstd::Dbimg_sequence* videoResult2;
 	torasu::tstd::Daudio_buffer* audioResult2;
-	des.getSegment((SegmentRequest) {
+	des.getSegment((imgc::SegmentRequest) {
 		.start = 0.04,
 		.end = 0.12,
 		.videoBuffer = &videoResult2,
@@ -62,7 +62,7 @@ int main() {
 
 	torasu::tstd::Dbimg_sequence* videoResult3;
 	torasu::tstd::Daudio_buffer* audioResult3;
-	des.getSegment((SegmentRequest) {
+	des.getSegment((imgc::SegmentRequest) {
 		.start = 3.04,
 		.end = 4.08,
 		.videoBuffer = &videoResult3,
@@ -71,7 +71,7 @@ int main() {
 
 	torasu::tstd::Dbimg_sequence* videoResult4;
 	torasu::tstd::Daudio_buffer* audioResult4;
-	des.getSegment((SegmentRequest) {
+	des.getSegment((imgc::SegmentRequest) {
 		.start = 4.08,
 		.end = 5,
 		.videoBuffer = &videoResult4,
@@ -80,7 +80,7 @@ int main() {
 
 	torasu::tstd::Dbimg_sequence* videoResult5;
 	torasu::tstd::Daudio_buffer* audioResult5;
-	des.getSegment((SegmentRequest) {
+	des.getSegment((imgc::SegmentRequest) {
 		.start = 5.04,
 		.end = 5.33,
 		.videoBuffer = &videoResult5,
@@ -89,7 +89,7 @@ int main() {
 
 	torasu::tstd::Dbimg_sequence* videoResult6;
 	torasu::tstd::Daudio_buffer* audioResult6;
-	des.getSegment((SegmentRequest) {
+	des.getSegment((imgc::SegmentRequest) {
 		.start = 5.33,
 		.end = 6,
 		.videoBuffer = &videoResult6,
@@ -97,7 +97,7 @@ int main() {
 	});
 
 	torasu::tstd::Dbimg_sequence* videoResultB;
-	des.getSegment((SegmentRequest) {
+	des.getSegment((imgc::SegmentRequest) {
 		.start = 1,
 		.end = 1.5,
 		.videoBuffer = &videoResultB,
@@ -107,7 +107,7 @@ int main() {
 
 	torasu::tstd::Daudio_buffer* audioBuffer;
 	torasu::tstd::Daudio_buffer_FORMAT audioFmt(44100, torasu::tstd::Daudio_buffer_CHFMT::FLOAT32);
-	des.getSegment((SegmentRequest) {
+	des.getSegment((imgc::SegmentRequest) {
 		.start = 1,
 		.end = 1.5,
 		.videoBuffer = NULL,
@@ -115,10 +115,10 @@ int main() {
 	});
 
 
-	MediaDecoder desC("104188354_In Memory of Firestarter.mp4");
+	imgc::MediaDecoder desC("104188354_In Memory of Firestarter.mp4");
 	torasu::tstd::Dbimg_sequence* videoResultC1;
 	torasu::tstd::Daudio_buffer* audioResultC1;
-	desC.getSegment((SegmentRequest) {
+	desC.getSegment((imgc::SegmentRequest) {
 		.start = 0,
 		.end = 10,
 		.videoBuffer = &videoResultC1,
