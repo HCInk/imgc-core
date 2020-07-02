@@ -220,6 +220,6 @@ void avTest(char* file) {
 }
 
 int main(int argc, char** argv) {
-	avTest("/home/cedric/Downloads/EfuRf6dYwu1hCpjfYrHlXpXJks8RtQVrzw1O7qr7PfI.gif.mp4");
+	avTest(argv[1]);
 	return 0;
 }
