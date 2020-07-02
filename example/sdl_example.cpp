@@ -21,6 +21,8 @@ using namespace torasu;
 using namespace torasu::tstd;
 using namespace imgc;
 
+namespace imgc::example_sdl {
+
 // variable declarations
 struct audio_state {
 	Uint8* audio_pos; // global pointer to the audio buffer to be played
@@ -219,7 +221,9 @@ void avTest(char* file) {
 	SDL_DestroyWindow(window);
 }
 
+} // namespace imgc::example_sdl
+
 int main(int argc, char** argv) {
-	avTest(argv[1]);
+	example_sdl::avTest(argv[1]);
 	return 0;
 }

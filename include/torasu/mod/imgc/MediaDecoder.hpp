@@ -21,6 +21,8 @@ extern "C" {
 #include <torasu/std/Dbimg_sequence.hpp>
 #include <torasu/std/Daudio_buffer.hpp>
 
+namespace imgc {
+
 struct SegmentRequest {
 	double start;
 	double end = -1;
@@ -175,5 +177,6 @@ public:
 
 };
 
+} // namespace imgc
 
 #endif //IMGC_MEDIADECODER_HPP

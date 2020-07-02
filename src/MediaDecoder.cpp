@@ -16,7 +16,7 @@ using namespace std;
 namespace {
 
 int ReadFunc(void* ptr, uint8_t* buf, int buf_size) {
-	MediaDecoder::FileReader* reader = reinterpret_cast<MediaDecoder::FileReader*>(ptr);
+	imgc::MediaDecoder::FileReader* reader = reinterpret_cast<imgc::MediaDecoder::FileReader*>(ptr);
 
 	size_t nextPos = reader->pos + buf_size;
 	size_t read;
@@ -37,7 +37,7 @@ int ReadFunc(void* ptr, uint8_t* buf, int buf_size) {
 }
 
 int64_t SeekFunc(void* ptr, int64_t pos, int whence) {
-	MediaDecoder::FileReader* reader = reinterpret_cast<MediaDecoder::FileReader*>(ptr);
+	imgc::MediaDecoder::FileReader* reader = reinterpret_cast<imgc::MediaDecoder::FileReader*>(ptr);
 	switch (whence) {
 	case SEEK_SET:
 		reader->pos = pos;
@@ -58,6 +58,8 @@ int64_t SeekFunc(void* ptr, int64_t pos, int whence) {
 	return reader->pos;
 }
 }
+
+namespace imgc {
 
 MediaDecoder::MediaDecoder(std::string path) {
 	ifstream is = ifstream(path.c_str());
@@ -570,3 +572,5 @@ size_t MediaDecoder::determineSampleSize(StreamEntry *stream) {
             return 4;
     }
 }
+
+} // namespace imgc
