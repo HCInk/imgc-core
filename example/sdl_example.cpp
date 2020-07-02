@@ -222,7 +222,7 @@ void avTest(char* file) {
 }
 
 int main(int argc, char** argv) {
-	example_sdl::avTest("/home/cedric/Downloads/143386147_Superstar W.mp4");
+	example_sdl::avTest(argv[1]);
 	return 0;
 }
 
