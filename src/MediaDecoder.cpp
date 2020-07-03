@@ -497,6 +497,8 @@ void MediaDecoder::concatAudio(DecodingState* decodingState) {
 	// Requested start in base-time
 	int64_t requestStartBased = toBaseTime(decodingState->requestStart, audioBaseTime);
 
+	int64_t lastWrittenPos = 0; // Until which position has been written (exclusive)
+
 	for (AudioFrame& frame : decodingState->audioFrames) {
 		int64_t copySrcStart, copySrcEnd, copyDestPos;
 
@@ -517,12 +519,24 @@ void MediaDecoder::concatAudio(DecodingState* decodingState) {
 			copySrcEnd -= copyOverflow;
 		}
 
+		int64_t fillGap = (copyDestPos * sampleSize)-lastWrittenPos;
 		for (int i = 0; i < channelCount; ++i) {
 			std::copy(frame.data[i]+(copySrcStart * sampleSize), frame.data[i] + (copySrcEnd * sampleSize), channels[i].data + (copyDestPos * sampleSize) );
+			if (fillGap > 0) {
+				std::fill(channels[i].data+lastWrittenPos, channels[i].data+lastWrittenPos+fillGap, 0);
+			}
 			delete[] frame.data[i];
 		}
-
+		lastWrittenPos = (copyDestPos + (copySrcEnd-copySrcStart)) * sampleSize;
 	}
+
+	for (int i = 0; i < channelCount; ++i) {
+		int64_t fillGap = channels[i].dataSize-lastWrittenPos;
+		if (fillGap > 0) {
+			std::fill(channels[i].data+lastWrittenPos, channels[i].data+lastWrittenPos+fillGap, 0);
+		}
+	}
+
 	decodingState->audioFrames.clear();
 
 }
