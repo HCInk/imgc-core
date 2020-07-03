@@ -110,6 +110,10 @@ void MediaDecoder::prepare() {
 		entry->base_time = stream->time_base;
 		entry->duration = stream->duration;
 
+		// Sets pkt_timebase so timestamps can be corrected (anyone knows why this isnt set by default?)
+		// Needs this to update timestamps for skipped samples - fixes "Could not update timestamps for skipped samples."-message
+		entry->ctx->pkt_timebase = entry->base_time;
+
 		if (entry->codec) {
 			if (stream->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
 				video_stream_index = entry->index;
