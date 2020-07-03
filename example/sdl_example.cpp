@@ -123,8 +123,9 @@ void avTest(char* file) {
     if (TTF_Init() < 0) {
         throw runtime_error("Error initializing sdl-TTF");
     }
-
+#ifdef __linux__
     SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR, "0");
+#endif
     SDL_CreateWindowAndRenderer(w, h, SDL_RENDERER_ACCELERATED, &window, &renderer);
     SDL_SetWindowTitle(window, "Playback test");
     TTF_Font* Sans = TTF_OpenFont("Roboto-Regular.ttf",
