@@ -108,7 +108,12 @@ void MediaDecoder::prepare() {
 		entry->ctx = avcodec_alloc_context3(entry->codec);
 		entry->ctx_params = stream->codecpar;
 		entry->base_time = stream->time_base;
-		entry->duration = stream->duration;
+
+		if (stream->duration == AV_NOPTS_VALUE) {
+			entry->duration = av_format_ctx->duration;
+		} else {
+			entry->duration = stream->duration;
+		}
 
 		// Sets pkt_timebase so timestamps can be corrected (anyone knows why this isnt set by default?)
 		// Needs this to update timestamps for skipped samples - fixes "Could not update timestamps for skipped samples."-message
