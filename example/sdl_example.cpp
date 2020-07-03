@@ -56,11 +56,13 @@ void my_audio_callback(void* userdata, Uint8* stream, int len) {
 void avTest(char* file) {
 	audio_state* state = new audio_state();
 	state->audio_len = 0;
+
 	state->audio_pos = nullptr;
 	MediaDecoder des(file);
 
 	torasu::tstd::Dbimg_sequence* firstFrameSeekVidBuffer;
 	torasu::tstd::Daudio_buffer* audioTestSample = NULL;
+    int currentFrameCount = 0;
 
 	des.getSegment((SegmentRequest) {
 		.start = 0,
@@ -79,9 +81,12 @@ void avTest(char* file) {
 	size_t totalAudioLen = ((des.streams[1]->duration * av_q2d(des.streams[1]->base_time))) * audioTestSample->getChannels()[0].sampleRate *  audioTestSample->getChannels()[0].sampleSize * 2;
 	bool decodingDone = false;
 	uint8_t* audio = new uint8_t[totalAudioLen];
-	auto* rendererThread = new std::thread([&frames, &des, &decodingDone, &totalFrames, audio, &audioLen]() {
+	auto* rendererThread = new std::thread([&frames, &des, &decodingDone, &totalFrames, audio, &audioLen, &currentFrameCount]() {
 		double i = 0;
 		for (int j = 0; j < totalFrames; ++j) {
+		    if(frames.size() -currentFrameCount > 60) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(300));
+            }
 			torasu::tstd::Dbimg_sequence* vidBuffer;
 			torasu::tstd::Daudio_buffer* audBuffer = NULL;
 			des.getSegment((SegmentRequest) {
@@ -148,9 +153,8 @@ void avTest(char* file) {
 		std::this_thread::sleep_for(std::chrono::milliseconds(40));
 
 	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-	int j = 0;
 	int t = 0;
-	if(j == 0) {
+	if(currentFrameCount == 0) {
 		SDL_AudioSpec spec;
 		spec.channels = 2;
 		spec.format = AUDIO_F32;
@@ -169,7 +173,7 @@ void avTest(char* file) {
 
     bool forceStop = false;
 	while (true) {
-		if (j >= totalFrames && decodingDone) {
+		if (currentFrameCount >= totalFrames && decodingDone) {
 			SDL_PauseAudio(1);
 			break;
 		}
@@ -177,7 +181,7 @@ void avTest(char* file) {
 
 		begin = std::chrono::steady_clock::now();
 
-		auto part = frames[j];
+		auto part = frames[currentFrameCount];
 
 		uint8_t* imageData = part.first->getFrames().begin()->second->getImageData();
 		SDL_UpdateTexture(texture, NULL, imageData, w * 4);
@@ -193,7 +197,7 @@ void avTest(char* file) {
 
 		}
 		SDL_RenderPresent(renderer);
-		j++;
+		currentFrameCount++;
 		delete part.first;
         if (SDL_PollEvent(&event) && event.type == SDL_QUIT) {
             forceStop = true;
