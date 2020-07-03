@@ -142,7 +142,6 @@ void avTest(char* file) {
                                                         surfaceMessage);
 
     SDL_RenderPresent(renderer);
-
     SDL_PollEvent(&event);
 	while (frames.size() < 40)
 		std::this_thread::sleep_for(std::chrono::milliseconds(40));
@@ -154,7 +153,7 @@ void avTest(char* file) {
 		SDL_AudioSpec spec;
 		spec.channels = 2;
 		spec.format = AUDIO_F32;
-		spec.samples = (totalFrames / 25) * audioTestSample->getChannels()[0].sampleRate;
+		spec.samples = 4096;
 		spec.freq = audioTestSample->getChannels()[0].sampleRate;
 		spec.callback = my_audio_callback;
 		state->audio_len = totalAudioLen;
