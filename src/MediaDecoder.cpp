@@ -110,7 +110,7 @@ void MediaDecoder::prepare() {
 		entry->base_time = stream->time_base;
 
 		if (stream->duration == AV_NOPTS_VALUE) {
-			entry->duration = av_format_ctx->duration;
+			entry->duration = av_format_ctx->duration * stream->time_base.den / stream->time_base.num / AV_TIME_BASE;
 		} else {
 			entry->duration = stream->duration;
 		}
