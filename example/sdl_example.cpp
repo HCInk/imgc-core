@@ -220,10 +220,13 @@ void avTest(char* file) {
 	SDL_RenderCopy(renderer, message, NULL,
                    &Message_rect);
 	SDL_RenderPresent(renderer);
-	while (!forceStop)
-		if (SDL_PollEvent(&event) && event.type == SDL_QUIT)
-			break;
+	if(!forceStop) {
+        while (true)
+            if (SDL_PollEvent(&event) && event.type == SDL_QUIT)
+                break;
 
+
+    }
 	delete state;
 	SDL_DestroyTexture(message);
 	SDL_DestroyTexture(texture);
