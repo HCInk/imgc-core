@@ -72,12 +72,14 @@ void avTest(char* file) {
 	int w = firstFrame->getWidth();
 	int h = firstFrame->getHeight();
 	delete firstFrameSeekVidBuffer;
-
-	std::vector<std::pair<Dbimg_sequence*, Daudio_buffer*>> frames;
-	std::vector<uint8_t> audio;
-	bool decodingDone = false;
+  	std::vector<std::pair<Dbimg_sequence*, Daudio_buffer*>> frames;
+	size_t audioLen = 0;
+  //  des.streams[1]->dur
 	int totalFrames = (des.streams[0]->duration * av_q2d(des.streams[0]->base_time)) * 25;
-	auto* rendererThread = new std::thread([&frames, &des, &decodingDone, &totalFrames, &audio]() {
+	size_t totalAudioLen = ((des.streams[1]->duration * av_q2d(des.streams[1]->base_time))) * audioTestSample->getChannels()[0].sampleRate *  audioTestSample->getChannels()[0].sampleSize * 2;
+	bool decodingDone = false;
+	uint8_t* audio = new uint8_t[totalAudioLen];
+	auto* rendererThread = new std::thread([&frames, &des, &decodingDone, &totalFrames, audio, &audioLen]() {
 		double i = 0;
 		for (int j = 0; j < totalFrames; ++j) {
 			torasu::tstd::Dbimg_sequence* vidBuffer;
@@ -95,10 +97,9 @@ void avTest(char* file) {
 
 			auto l = audBuffer->getChannels()[0];
 			auto r = audBuffer->getChannels()[1];
-
 			uint8_t* mixed = mixChannels(l.data,r.data, l.dataSize / 4, audBuffer->getChannels()[0].sampleSize);
-			auto* p = &(audio);
-			p->insert(p->end(), mixed,  mixed+(l.dataSize * 2));
+			std::copy(mixed, mixed+ (l.dataSize*2), &audio[audioLen]);
+			audioLen += l.dataSize * 2;
 			delete[] mixed;
 			delete audBuffer;
 
@@ -109,37 +110,42 @@ void avTest(char* file) {
 		decodingDone = true;
 	});
 	rendererThread->detach();
+    SDL_Event event;
+    SDL_Renderer* renderer = NULL;
+    SDL_Window* window = NULL;
 
-	while (!decodingDone)
+    int ec;
+    if ((ec = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO)) < 0) {
+        printf("Error: couldn't initialize SDL2. EC %d\n", ec);
+        throw runtime_error(string("SDL Error: ") + SDL_GetError());
+    }
+
+    if (TTF_Init() < 0) {
+        throw runtime_error("Error initializing sdl-TTF");
+    }
+
+    SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR, "0");
+    SDL_CreateWindowAndRenderer(w, h, SDL_RENDERER_ACCELERATED, &window, &renderer);
+    SDL_SetWindowTitle(window, "Playback test");
+    TTF_Font* Sans = TTF_OpenFont("Roboto-Regular.ttf",
+                                  16);
+    SDL_Color White = {255, 255,
+                       255
+    };
+    SDL_Surface* surfaceMessage = TTF_RenderText_Solid(Sans, "Decoding",
+                                                       White);
+    SDL_Texture* texture = SDL_CreateTexture(renderer,
+                                             SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, w, h);
+    SDL_RenderCopy(renderer, texture, NULL, NULL);
+
+    SDL_Texture* message = SDL_CreateTextureFromSurface(renderer,
+                                                        surfaceMessage);
+
+    SDL_RenderPresent(renderer);
+
+    SDL_PollEvent(&event);
+	while (frames.size() < 40)
 		std::this_thread::sleep_for(std::chrono::milliseconds(40));
-	SDL_Event event;
-	SDL_Renderer* renderer = NULL;
-	SDL_Window* window = NULL;
-
-	int ec;
-	if ((ec = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO)) < 0) {
-		printf("Error: couldn't initialize SDL2. EC %d\n", ec);
-		throw runtime_error(string("SDL Error: ") + SDL_GetError());
-	}
-
-	if (TTF_Init() < 0) {
-		throw runtime_error("Error initializing sdl-TTF");
-	}
-
-	SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR, "0");
-	SDL_CreateWindowAndRenderer(w, h, SDL_RENDERER_ACCELERATED, &window, &renderer);
-	SDL_SetWindowTitle(window, "Playback test");
-	TTF_Font* Sans = TTF_OpenFont("Roboto-Regular.ttf",
-								  16);
-	SDL_Texture* texture = SDL_CreateTexture(renderer,
-						   SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, w, h);
-	SDL_Color White = {255, 255,
-					   255
-					  };
-	SDL_Surface* surfaceMessage = TTF_RenderText_Solid(Sans, "Decoding",
-								  White);
-	SDL_Texture* Message = SDL_CreateTextureFromSurface(renderer,
-						   surfaceMessage);
 
 	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 	int j = 0;
@@ -148,11 +154,11 @@ void avTest(char* file) {
 		SDL_AudioSpec spec;
 		spec.channels = 2;
 		spec.format = AUDIO_F32;
-		spec.samples = (audio.size() / audioTestSample->getChannels()[0].sampleSize) - (audioTestSample->getChannels()[0].sampleRate * 2);
+		spec.samples = (totalFrames / 25) * audioTestSample->getChannels()[0].sampleRate;
 		spec.freq = audioTestSample->getChannels()[0].sampleRate;
 		spec.callback = my_audio_callback;
-		state->audio_len = audio.size();
-		state->audio_pos = &audio[0];
+		state->audio_len = totalAudioLen;
+		state->audio_pos = audio;
 		spec.userdata = state;
 		if (SDL_OpenAudio(&spec, NULL) < 0) return;
 		SDL_PauseAudio(0);
@@ -161,13 +167,13 @@ void avTest(char* file) {
 		std::cout << "lol\n";
 	}
 
-	if (SDL_PollEvent(&event) && event.type == SDL_QUIT)
-		return;
+    bool forceStop = false;
 	while (true) {
 		if (j >= totalFrames && decodingDone) {
 			SDL_PauseAudio(1);
 			break;
 		}
+
 
 		begin = std::chrono::steady_clock::now();
 
@@ -182,13 +188,17 @@ void avTest(char* file) {
 			Message_rect.y = 0;
 			Message_rect.w = 200;
 			Message_rect.h = 100;
-			SDL_RenderCopy(renderer, Message, NULL,
-						   &Message_rect);
+			SDL_RenderCopy(renderer, message, NULL,
+                           &Message_rect);
 
 		}
 		SDL_RenderPresent(renderer);
 		j++;
 		delete part.first;
+        if (SDL_PollEvent(&event) && event.type == SDL_QUIT) {
+            forceStop = true;
+            break;
+        }
 		std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 		t = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
 		//   if (t < 40)
@@ -197,25 +207,25 @@ void avTest(char* file) {
 		// SDL_PauseAudio(1);
 
 	}
-	audio.clear();
+	delete[] audio;
 	surfaceMessage = TTF_RenderText_Solid(Sans, "Done",
 										  White);
-	SDL_DestroyTexture(Message);
-	Message = SDL_CreateTextureFromSurface(renderer, surfaceMessage);
+	SDL_DestroyTexture(message);
+    message = SDL_CreateTextureFromSurface(renderer, surfaceMessage);
 	SDL_Rect Message_rect;
 	Message_rect.x = 0;
 	Message_rect.y = 0;
 	Message_rect.w = 200;
 	Message_rect.h = 100;
-	SDL_RenderCopy(renderer, Message, NULL,
-				   &Message_rect);
+	SDL_RenderCopy(renderer, message, NULL,
+                   &Message_rect);
 	SDL_RenderPresent(renderer);
-	while (true)
+	while (!forceStop)
 		if (SDL_PollEvent(&event) && event.type == SDL_QUIT)
 			break;
 
-	delete  state;
-	SDL_DestroyTexture(Message);
+	delete state;
+	SDL_DestroyTexture(message);
 	SDL_DestroyTexture(texture);
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);
