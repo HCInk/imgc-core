@@ -74,45 +74,49 @@ void avTest(char* file) {
 	int w = firstFrame->getWidth();
 	int h = firstFrame->getHeight();
 	delete firstFrameSeekVidBuffer;
-  	std::vector<std::pair<Dbimg_sequence*, Daudio_buffer*>> frames;
+  	std::vector<Dbimg*> frames;
 	size_t audioLen = 0;
 	double frameDuration = (double) des.streams[0]->vid_fps.den / des.streams[0]->vid_fps.num;
 	// dont ask.....
-	if(frameDuration == 0.033333333333333333) {
-	    frameDuration = 0.03;
-	}
+//	if(frameDuration == 0.033333333333333333) {
+//	    frameDuration = 0.03;
+//	}
 
 	int totalFrames = (des.streams[0]->duration * av_q2d(des.streams[0]->base_time)) * des.streams[0]->vid_fps.num;
 	size_t totalAudioLen = ((des.streams[1]->duration * av_q2d(des.streams[1]->base_time))) * audioTestSample->getChannels()[0].sampleRate *  audioTestSample->getChannels()[0].sampleSize * 2;
 	bool decodingDone = false;
 	uint8_t* audio = new uint8_t[totalAudioLen];
-	auto* rendererThread = new std::thread([&frames, &des, &decodingDone, &totalFrames, audio, &audioLen, &currentFrameCount, &frameDuration]() {
+	auto* rendererThread = new std::thread([&frames, &des, &decodingDone, &totalFrames, audio, &audioLen, &currentFrameCount, &frameDuration, &totalAudioLen]() {
 		double i = 0;
 		for (int j = 0; j < totalFrames; ++j) {
-		    while(frames.size() -currentFrameCount > 15) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(15));
+		    while(frames.size() -currentFrameCount > 64 && currentFrameCount > 32) {
+            //    std::this_thread::sleep_for(std::chrono::milliseconds(1));
             }
 			torasu::tstd::Dbimg_sequence* vidBuffer;
 			torasu::tstd::Daudio_buffer* audBuffer = NULL;
 			des.getSegment((SegmentRequest) {
 				.start = i+0,
-				.end = i+frameDuration,
+				.end = (i+frameDuration * 32) >(des.streams[0]->duration * av_q2d(des.streams[0]->base_time)) ? totalFrames * frameDuration : (i+frameDuration * 32),
 				.videoBuffer = &vidBuffer,
 				.audioBuffer = &audBuffer
 			});
 
-			frames.push_back(
-				std::pair<Dbimg_sequence*, Daudio_buffer*>(vidBuffer, NULL));
+			for(auto& frame : vidBuffer->getFrames()) {
+			    frames.push_back(frame.second);
+			}
 			// audio-buffer is NULL because we currently have a different audio handling
 
 			auto l = audBuffer->getChannels()[0];
 			auto r = audBuffer->getChannels()[1];
 			uint8_t* mixed = mixChannels(l.data,r.data, l.dataSize /  audBuffer->getChannels()[0].sampleSize, audBuffer->getChannels()[0].sampleSize);
-			std::copy(mixed, mixed+ (l.dataSize*2), &audio[audioLen]);
+			std::copy(mixed, mixed+ (audioLen + (l.dataSize*2) > totalAudioLen ? totalAudioLen-audioLen:  (l.dataSize*2)), &audio[audioLen]);
 			audioLen += l.dataSize * 2;
 			delete[] mixed;
 			delete audBuffer;
-			i += frameDuration;
+			if(frames.size() >= totalFrames) {
+                break;
+			}
+			i += frameDuration * 32;
 		}
 
 		decodingDone = true;
@@ -152,7 +156,7 @@ void avTest(char* file) {
 
     SDL_RenderPresent(renderer);
     SDL_PollEvent(&event);
-	while (frames.size() < 15)
+	while (frames.size() < 32)
 		std::this_thread::sleep_for(std::chrono::milliseconds(40));
 
 	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
@@ -186,7 +190,7 @@ void avTest(char* file) {
 
 		auto part = frames[currentFrameCount];
 
-		uint8_t* imageData = part.first->getFrames().begin()->second->getImageData();
+		uint8_t* imageData = part->getImageData();
 		SDL_UpdateTexture(texture, NULL, imageData, w * 4);
 		SDL_RenderCopy(renderer, texture, NULL, NULL);
 		if (!decodingDone) {
@@ -201,7 +205,7 @@ void avTest(char* file) {
 		}
 		SDL_RenderPresent(renderer);
 		currentFrameCount++;
-		delete part.first;
+		delete part;
         if (SDL_PollEvent(&event) && event.type == SDL_QUIT) {
             forceStop = true;
             break;
@@ -210,7 +214,7 @@ void avTest(char* file) {
 		t = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
 		//   if (t < 40)
 		//   SDL_Delay(39 - t);
-		std::this_thread::sleep_for(std::chrono::milliseconds(((int)(frameDuration * 1000)) - t - 1));
+		std::this_thread::sleep_for(std::chrono::milliseconds(((int)(frameDuration * 1000)) - t));
 		// SDL_PauseAudio(1);
 
 	}
