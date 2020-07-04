@@ -6,7 +6,7 @@ option(IMGC_SDL_EXAMPLE "Generate SDL example" ON)
 
 option(IMGC_TESTS "Generate test Executable" ON)
 if (NOT MINGW AND NOT APPLE)
-    set(IMGC_DEBUG_ASAN true)
+    set(IMGC_DEBUG_ASAN false)
 endif ()
 
 include_directories(${CMAKE_CURRENT_LIST_DIR}/thirdparty/lodepng)

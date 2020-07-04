@@ -447,6 +447,7 @@ void MediaDecoder::initializePosition(DecodingState* decodingState) {
 	// TODO Seek inidividual streams if required
 
 	if (videoSeekBack || audioSeekBack || videoSeekForward) {
+	    std::cout << "seeking\n";
 		av_seek_frame(av_format_ctx, -1, decodingState->requestStart * AV_TIME_BASE,
 					  AVSEEK_FLAG_BACKWARD); //Assuming the -1 includes all streams
 		for (auto& stream : streams) {
