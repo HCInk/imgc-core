@@ -284,7 +284,7 @@ void MediaDecoder::getSegment(SegmentRequest request) {
 }
 
 bool MediaDecoder::checkFrameTargetBound(AVFrame* frame, int64_t start, int64_t end) {
-	return ((frame->pts < end) && (frame->pts >= start || frame->pts + frame->pkt_duration > start));
+	return ( (frame->pts < end) && (frame->pts >= start || frame->pts + frame->pkt_duration > start) ) || (frame->pts == start);
 }
 
 void MediaDecoder::handleFrame(StreamEntry* stream, DecodingState* decodingState) {
