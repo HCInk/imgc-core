@@ -90,12 +90,17 @@ public:
 	MediaDecoder(std::string path);
 
 	~MediaDecoder();
+
+	void getSegment(SegmentRequest request);
+
 	struct FileReader {
 		uint8_t* data;
 		size_t size;
 		size_t pos;
 	};
+
 	std::vector<StreamEntry*> streams;
+	
 private:
 	FileReader in_stream;
 	void prepare();
@@ -164,11 +169,6 @@ private:
 	DecodingState* createDecoderState(SegmentRequest request);
 
 	size_t determineSampleSize(StreamEntry* stream);
-
-public:
-
-	MediaDecoder();
-	void getSegment(SegmentRequest request);
 
 };
 
