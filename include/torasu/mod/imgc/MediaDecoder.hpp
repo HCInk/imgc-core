@@ -88,6 +88,7 @@ struct StreamEntry {
 class MediaDecoder {
 public:
 	MediaDecoder(std::string path);
+	MediaDecoder(uint8_t* dataP, size_t len);
 
 	~MediaDecoder();
 

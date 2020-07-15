@@ -75,6 +75,12 @@ MediaDecoder::MediaDecoder(std::string path) {
 	in_stream.size = length;
 	prepare();
 }
+    MediaDecoder::MediaDecoder(uint8_t *dataP, size_t len) {
+        in_stream.data = dataP;
+        in_stream.pos = 0;
+        in_stream.size = len;
+        prepare();
+    }
 
 void MediaDecoder::prepare() {
 	uint8_t* alloc_buf = (uint8_t*) av_malloc(32 * 1024);
@@ -546,7 +552,8 @@ void MediaDecoder::concatAudio(DecodingState* decodingState) {
 
 }
 
-DecodingState* MediaDecoder::createDecoderState(SegmentRequest request) {
+
+    DecodingState* MediaDecoder::createDecoderState(SegmentRequest request) {
 	DecodingState* decodingState = new DecodingState();
 
 	decodingState->segmentRequest = request;
