@@ -104,6 +104,7 @@ public:
 	
 private:
 	FileReader in_stream;
+	bool freeInput;
 	void prepare();
 	AVFormatContext* av_format_ctx;
 
