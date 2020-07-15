@@ -73,14 +73,17 @@ MediaDecoder::MediaDecoder(std::string path) {
 	in_stream.data = data;
 	in_stream.pos = 0;
 	in_stream.size = length;
+	freeInput = true;
 	prepare();
 }
-    MediaDecoder::MediaDecoder(uint8_t *dataP, size_t len) {
-        in_stream.data = dataP;
-        in_stream.pos = 0;
-        in_stream.size = len;
-        prepare();
-    }
+
+MediaDecoder::MediaDecoder(uint8_t *dataP, size_t len) {
+	in_stream.data = dataP;
+	in_stream.pos = 0;
+	in_stream.size = len;
+	freeInput = false;
+	prepare();
+}
 
 void MediaDecoder::prepare() {
 	uint8_t* alloc_buf = (uint8_t*) av_malloc(32 * 1024);
@@ -156,9 +159,11 @@ void MediaDecoder::prepare() {
 }
 
 MediaDecoder::~MediaDecoder() {
+	
 	if (sws_scaler_ctx != nullptr) {
 		sws_freeContext(sws_scaler_ctx);
 	}
+
 	for (unsigned long i = 0; i < streams.size(); ++i) {
 		auto stream = streams[i];
 		if (stream->frame != nullptr) {
@@ -169,9 +174,12 @@ MediaDecoder::~MediaDecoder() {
 		}
 		delete stream;
 	}
-	delete[] in_stream.data;
+
 	av_packet_free(&av_packet);
 	avformat_close_input(&av_format_ctx);
+	
+	if (freeInput) delete[] in_stream.data;
+
 }
 
 void MediaDecoder::flushBuffers(StreamEntry* entry) {
