@@ -17,6 +17,7 @@
 #include <torasu/mod/imgc/Rimg_file.hpp>
 #include <torasu/mod/imgc/Rvideo_file.hpp>
 #include <torasu/mod/imgc/MediaDecoder.hpp>
+#include <torasu/mod/imgc/Rmedia_file.hpp>
 
 
 #ifdef IMGC_SDL_EXAMPLE
@@ -370,13 +371,92 @@ void audioTest() {
 
 }
 
+
+void yetAnotherIMGCTest() {
+
+	// Tree building
+
+	Rnet_file file("https://cdn.discordapp.com/attachments/598323767202152458/666010465809465410/8807502_Bender_and_penguins.mp4");
+	// Rnet_file file("https://cdn.discordapp.com/attachments/598323767202152458/666010465809465410/8807502_Bender_and_penguins.mp4");
+	// Rlocal_file file("/home/cedric/git/imgc/test-res/in.mp4");
+	imgc::Rmedia_file tree(&file);
+
+	// Creating Engine
+
+	EIcore_runner* runner = new EIcore_runner();
+	ExecutionInterface* ei = runner->createInterface();
+
+	// Building Instruction
+
+	tools::RenderInstructionBuilder rib;
+	Dbimg_FORMAT format(1340, 1200);
+	auto rf = format.asFormat();
+	auto handle = rib.addSegmentWithHandle<Dbimg>(TORASU_STD_PL_VIS, &rf);
+
+	// Rendering Results
+
+	double frameTimes[] = {0.1, 2, 4, 2.5, 5.1};
+	int frameCount = sizeof(frameTimes) / sizeof(double);
+
+	cout << frameCount << " FRAMES TO RENDER!" << endl;
+
+	for (int i = 0; i < frameCount; i++) {
+
+		double frameTime = frameTimes[i];
+
+		cout << "===== FRAME " << i << " @ " << frameTime << " =====" << endl;
+
+		// Creating RenderContext
+		Dnum timeBuf(frameTime);
+		RenderContext rctx;
+		rctx[TORASU_STD_CTX_TIME] = &timeBuf;
+
+		// Render Result
+		auto result = rib.runRender(&tree, &rctx, ei);
+
+		// Evaluate Result
+
+		auto castedRes = handle.getFrom(result);
+		ResultSegmentStatus rss = castedRes.getStatus();
+
+		cout << "STATUS " << rss << endl;
+
+		if (rss >= ResultSegmentStatus::ResultSegmentStatus_OK) {
+			Dbimg* bimg = castedRes.getResult();
+			int width = bimg->getWidth();
+			int height = bimg->getHeight();
+
+			stringstream out_name;
+			out_name << "test-res/out";
+			out_name << std::setfill('0') << std::setw(5) << i;
+			out_name << ".png";
+
+			unsigned error = lodepng::encode(out_name.str(), bimg->getImageData(), width, height);
+			if (error) {
+				cerr << "ENCODE STAT[" << i << "] " << lodepng_error_text(error) << endl;
+			}
+		}
+
+		delete result;
+	}
+
+
+	// Cleanup
+
+	delete ei;
+	delete runner;
+
+}
+
+
 int main(int argc, char** argv) {
 	//netImageTest();
 	//avTest();
-	//anotherIMGCTest();
+	// anotherIMGCTest();
 	// audioTest();
 	// videoTest();
-	example_sdl::main(argc, argv);
+	// example_sdl::main(argc, argv);
+	yetAnotherIMGCTest();
 
 	return 0;
 }
