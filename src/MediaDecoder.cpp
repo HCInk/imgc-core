@@ -329,7 +329,7 @@ void MediaDecoder::handleFrame(StreamEntry* stream, DecodingState* decodingState
 			decodingState->videoReadUntil = stream->frame->pts + stream->frame->pkt_duration;
 		}
 
-		if (targetPositionEnd <= stream->nextFramePts) {
+		if (targetPositionEnd <= stream->nextFramePts && targetPosition != stream->nextFramePts) {
 			decodingState->videoDone = true;
 		}
 
