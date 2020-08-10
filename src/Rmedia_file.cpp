@@ -10,6 +10,7 @@
 #include <torasu/std/Dfile.hpp>
 
 #include <torasu/mod/imgc/MediaDecoder.hpp>
+#include <torasu/mod/imgc/Scaler.hpp>
 
 namespace imgc {
 
@@ -70,11 +71,22 @@ torasu::RenderResult* Rmedia_file::render(torasu::RenderInstruction* ri) {
 	std::map<std::string, torasu::ResultSegment*>* results = new std::map<std::string, torasu::ResultSegment*>();
 
 	std::optional<std::string> videoKey;
+	torasu::tstd::Dbimg_FORMAT* videoFormat = NULL;
 	std::optional<std::string> audioKey;
 
 	for (torasu::ResultSegmentSettings* segmentSettings : *ri->getResultSettings()) {
 		if (segmentSettings->getPipeline() == TORASU_STD_PL_VIS) {
 			videoKey = segmentSettings->getKey();
+			auto fmtSettings = segmentSettings->getResultFormatSettings();
+			torasu::tstd::Dbimg_FORMAT* formatCasted;
+
+			if (fmtSettings != NULL) {
+				if (!( fmtSettings->getFormat() == "STD::DBIMG" &&
+						(videoFormat = dynamic_cast<torasu::tstd::Dbimg_FORMAT*>(fmtSettings->getData())) )) {
+					(*results)[videoKey.value()] = new torasu::ResultSegment(torasu::ResultSegmentStatus_INVALID_FORMAT);
+				}
+			}
+				
 		} else if (segmentSettings->getPipeline() == TORASU_STD_PL_AUDIO) {
 			audioKey = segmentSettings->getKey();
 		} else {
@@ -121,7 +133,19 @@ torasu::RenderResult* Rmedia_file::render(torasu::RenderInstruction* ri) {
 			vidBuff->getFrames().erase(firstFrame);
 			delete vidBuff;
 
-			(*results)[videoKey.value()] = new torasu::ResultSegment(torasu::ResultSegmentStatus_OK, firstFrame->second, true);
+			torasu::tstd::Dbimg* resultFrame = firstFrame->second;
+
+			if (videoFormat != NULL) {
+				
+				auto* scaled = scaler::scaleImg(firstFrame->second, videoFormat);
+
+				if (scaled != NULL) {
+					delete firstFrame->second;
+					resultFrame = scaled;
+				}
+			}
+
+			(*results)[videoKey.value()] = new torasu::ResultSegment(torasu::ResultSegmentStatus_OK, resultFrame, true);
 		}
 
 		if (audioKey.has_value()) {
