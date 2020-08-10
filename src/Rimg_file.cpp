@@ -12,6 +12,7 @@
 #include <torasu/std/Dstring.hpp>
 #include <torasu/std/Dbimg.hpp>
 #include <torasu/std/Dfile.hpp>
+#include <torasu/mod/imgc/Scaler.hpp>
 
 using namespace std;
 using namespace torasu;
@@ -83,66 +84,11 @@ ResultSegment* Rimg_file::renderSegment(ResultSegmentSettings* resSettings, Rend
 				rHeight = srcHeight;
 			}
 
-			Dbimg* resultImage;
 
-			if (rWidth == ((int32_t)srcWidth) && rHeight == ((int32_t)srcHeight)) {
-				resultImage = new Dbimg(rWidth, rHeight);
-				copy(loadedImage.data(), loadedImage.data()+loadedImage.size(), resultImage->getImageData());
+			Dbimg_FORMAT fmt(rWidth, rHeight);
 
-			} else {
+			Dbimg* resultImage = scaler::scaleImg(loadedImage.data(), srcWidth, srcHeight, &fmt);
 
-				resultImage = new Dbimg(rWidth, rHeight);
-				uint8_t* resData = resultImage->getImageData();
-				uint8_t* srcData = loadedImage.data();
-
-				uint8_t channels = 4;
-				uint64_t i = 0;
-
-				uint32_t widthB = srcWidth*channels;
-
-				float xFact = ((double)srcWidth)/rWidth;
-				float yFact = ((double)srcHeight)/rHeight;
-
-				float posX, posY;
-				float fX, fXi, fY, fYi;
-
-				uint8_t* addrA;
-				uint8_t* addrB;
-				uint8_t* addrC;
-				uint8_t* addrD;
-
-				for (int32_t y = 0; y < rHeight; y++) {
-					for (int32_t x = 0; x < rWidth; x++) {
-						posX = ((float)x)*xFact;
-						posY = ((float)y)*yFact;
-
-						//cout << (std::fmod(posX, 1)) << " ";
-						// A B
-						// C D
-						addrA = srcData + ( ((uint32_t)posX) + ((uint32_t)posY)*srcWidth ) * channels;
-						addrB = addrA + channels;
-						addrC = addrA + widthB;
-						addrD = addrC + channels;
-
-						fX = posX-((int32_t)posX);
-						fXi = 1-fX;
-						fY = posY-((int32_t)posY);
-						fYi = 1-fY;
-
-						for (int32_t c = 0; c < channels; c++) {
-							resData[i] =  ( (*addrA)*fXi + (*addrB)*fX ) * fYi
-										  + ( (*addrC)*fXi + (*addrD)*fX ) * fY;
-
-							addrA++;
-							addrB++;
-							addrC++;
-							addrD++;
-							i++;
-						}
-					}
-					//cout << endl;
-				}
-			}
 
 			return new ResultSegment(ResultSegmentStatus_OK, resultImage, true);
 
