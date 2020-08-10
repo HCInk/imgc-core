@@ -13,6 +13,7 @@
 #include <torasu/std/Dfile.hpp>
 #include <torasu/std/Rlocal_file.hpp>
 #include <torasu/std/Rnet_file.hpp>
+#include <torasu/std/Rmultiply.hpp>
 
 #include <torasu/mod/imgc/Rimg_file.hpp>
 #include <torasu/mod/imgc/Rvideo_file.hpp>
@@ -379,7 +380,10 @@ void yetAnotherIMGCTest() {
 	Rnet_file file("https://cdn.discordapp.com/attachments/598323767202152458/666010465809465410/8807502_Bender_and_penguins.mp4");
 	// Rnet_file file("https://cdn.discordapp.com/attachments/598323767202152458/666010465809465410/8807502_Bender_and_penguins.mp4");
 	// Rlocal_file file("/home/cedric/git/imgc/test-res/in.mp4");
-	imgc::Rmedia_file tree(&file);
+
+	imgc::Rmedia_file video(&file);
+
+	torasu::tstd::Rmultiply tree(&video, &video);
 
 	// Creating Engine
 
@@ -395,7 +399,7 @@ void yetAnotherIMGCTest() {
 
 	// Rendering Results
 
-	double frameTimes[] = {0.1, 2, 4, 2.5, 5.1};
+	double frameTimes[] = {0.1, 2, 4, 2.5, 5.1, 5.1, 5.14, 5.18, 5.22};
 	int frameCount = sizeof(frameTimes) / sizeof(double);
 
 	cout << frameCount << " FRAMES TO RENDER!" << endl;
@@ -405,6 +409,8 @@ void yetAnotherIMGCTest() {
 		double frameTime = frameTimes[i];
 
 		cout << "===== FRAME " << i << " @ " << frameTime << " =====" << endl;
+
+		auto benchBegin = std::chrono::steady_clock::now();
 
 		// Creating RenderContext
 		Dnum timeBuf(frameTime);
@@ -418,6 +424,10 @@ void yetAnotherIMGCTest() {
 
 		auto castedRes = handle.getFrom(result);
 		ResultSegmentStatus rss = castedRes.getStatus();
+
+
+		auto benchEnd = std::chrono::steady_clock::now();
+		std::cout << "  Render Time = " << std::chrono::duration_cast<std::chrono::milliseconds>(benchEnd - benchBegin).count() << "[ms]" << std::endl;
 
 		cout << "STATUS " << rss << endl;
 
