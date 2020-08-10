@@ -11,11 +11,11 @@ namespace imgc {
 
 // Spoil for MediaDecoder so <torasu/mod/imgc/MediaDecoder.hpp> doesnt have to be included in the header
 // Reason for avoiding include: Heavy FFmpeg-headers
-class MediaDecoder; 
+class MediaDecoder;
 
 class Rmedia_file :  public torasu::Renderable,
-							public torasu::tools::NamedIdentElement, 
-							public torasu::tools::SimpleDataElement {
+	public torasu::tools::NamedIdentElement,
+	public torasu::tools::SimpleDataElement {
 private:
 	torasu::Renderable* srcRnd;
 	torasu::RenderResult* srcRendRes = NULL;

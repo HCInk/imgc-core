@@ -15,9 +15,9 @@ namespace imgc {
 
 
 Rmedia_file::Rmedia_file(torasu::Renderable* src)
-	: torasu::tools::NamedIdentElement("IMGC::RMEDIA_FILE"), 
-	torasu::tools::SimpleDataElement(false, true),
-	srcRnd(src) {}
+	: torasu::tools::NamedIdentElement("IMGC::RMEDIA_FILE"),
+	  torasu::tools::SimpleDataElement(false, true),
+	  srcRnd(src) {}
 
 Rmedia_file::~Rmedia_file() {
 
@@ -55,7 +55,7 @@ void Rmedia_file::load(torasu::ExecutionInterface* ei) {
 	}
 
 	srcFile = castedResultSeg.getResult();
-	
+
 	// Create Decoder
 
 	decoder = new MediaDecoder(srcFile->getFileData(), srcFile->getFileSize());
@@ -78,7 +78,7 @@ torasu::RenderResult* Rmedia_file::render(torasu::RenderInstruction* ri) {
 		} else if (segmentSettings->getPipeline() == TORASU_STD_PL_AUDIO) {
 			audioKey = segmentSettings->getKey();
 		} else {
-			(*results)[segmentSettings->getKey()] 
+			(*results)[segmentSettings->getKey()]
 				= new torasu::ResultSegment(torasu::ResultSegmentStatus_INVALID_SEGMENT);
 		}
 	}

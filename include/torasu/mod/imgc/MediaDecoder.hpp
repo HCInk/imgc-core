@@ -101,7 +101,7 @@ public:
 	};
 
 	std::vector<StreamEntry*> streams;
-	
+
 private:
 	FileReader in_stream;
 	bool freeInput;

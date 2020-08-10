@@ -77,7 +77,7 @@ MediaDecoder::MediaDecoder(std::string path) {
 	prepare();
 }
 
-MediaDecoder::MediaDecoder(uint8_t *dataP, size_t len) {
+MediaDecoder::MediaDecoder(uint8_t* dataP, size_t len) {
 	in_stream.data = dataP;
 	in_stream.pos = 0;
 	in_stream.size = len;
@@ -159,7 +159,7 @@ void MediaDecoder::prepare() {
 }
 
 MediaDecoder::~MediaDecoder() {
-	
+
 	if (sws_scaler_ctx != nullptr) {
 		sws_freeContext(sws_scaler_ctx);
 	}
@@ -177,7 +177,7 @@ MediaDecoder::~MediaDecoder() {
 
 	av_packet_free(&av_packet);
 	avformat_close_input(&av_format_ctx);
-	
+
 	if (freeInput) delete[] in_stream.data;
 
 }
@@ -561,7 +561,7 @@ void MediaDecoder::concatAudio(DecodingState* decodingState) {
 }
 
 
-    DecodingState* MediaDecoder::createDecoderState(SegmentRequest request) {
+DecodingState* MediaDecoder::createDecoderState(SegmentRequest request) {
 	DecodingState* decodingState = new DecodingState();
 
 	decodingState->segmentRequest = request;
