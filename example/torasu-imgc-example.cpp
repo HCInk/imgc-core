@@ -378,12 +378,13 @@ void yetAnotherIMGCTest() {
 	// Tree building
 
 	Rnet_file file("https://cdn.discordapp.com/attachments/598323767202152458/666010465809465410/8807502_Bender_and_penguins.mp4");
-	// Rnet_file file("https://cdn.discordapp.com/attachments/598323767202152458/666010465809465410/8807502_Bender_and_penguins.mp4");
+	Rnet_file file2("https://assets.gitlab-static.net/uploads/-/system/project/avatar/14033279/TorasuLogo2Color.png");
 	// Rlocal_file file("/home/cedric/git/imgc/test-res/in.mp4");
 
 	imgc::Rmedia_file video(&file);
+	imgc::Rimg_file image(&file2);
 
-	torasu::tstd::Rmultiply tree(&video, &video);
+	torasu::tstd::Rmultiply tree(&video, &image);
 
 	// Creating Engine
 
@@ -393,7 +394,8 @@ void yetAnotherIMGCTest() {
 	// Building Instruction
 
 	tools::RenderInstructionBuilder rib;
-	Dbimg_FORMAT format(1340, 1200);
+	// Dbimg_FORMAT format(1340, 1200);
+	Dbimg_FORMAT format(1340*2, 1200);
 	auto rf = format.asFormat();
 	auto handle = rib.addSegmentWithHandle<Dbimg>(TORASU_STD_PL_VIS, &rf);
 
