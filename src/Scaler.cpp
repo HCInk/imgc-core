@@ -25,10 +25,13 @@ torasu::tstd::Dbimg* scaleImg(u_int8_t* srcData, uint32_t srcWidth, uint32_t src
 
 	uint32_t widthB = srcWidth*channels;
 
+	// Factor by what the destination-coordinates become the source-coordinates
+	// xDest*xFact=xSrc
 	float xFact = ((double)srcWidth)/destWidth;
+	// yDest*yFact=ySrc
 	float yFact = ((double)srcHeight)/destHeight;
 
-	float posX, posY;
+	float xSrc, ySrc;
 	float fX, fXi, fY, fYi;
 
 	uint8_t* addrA;
@@ -36,21 +39,23 @@ torasu::tstd::Dbimg* scaleImg(u_int8_t* srcData, uint32_t srcWidth, uint32_t src
 	uint8_t* addrC;
 	uint8_t* addrD;
 
-	for (int32_t y = 0; y < destHeight; y++) {
-		for (int32_t x = 0; x < destWidth; x++) {
-			posX = ((float)x)*xFact;
-			posY = ((float)y)*yFact;
+	for (int32_t yDest = 0; y < destHeight; y++) {
+		for (int32_t xDest = 0; x < destWidth; x++) {
+			xSrc = ((float)xDest)*xFact;
+			ySrc = ((float)yDest)*yFact;
 
 			// A B
 			// C D
-			addrA = srcData + ( ((uint32_t)posX) + ((uint32_t)posY)*srcWidth ) * channels;
+			addrA = srcData + ( ((uint32_t)xSrc) + ((uint32_t)ySrc)*srcWidth ) * channels;
 			addrB = addrA + channels;
 			addrC = addrA + widthB;
 			addrD = addrC + channels;
 
-			fX = posX-((int32_t)posX);
+			// fX: the factor by which the lower X-pixel should be taken (0) or the higher one (1) 
+			fX = xSrc-((int32_t)xSrc);
 			fXi = 1-fX;
-			fY = posY-((int32_t)posY);
+			// fY: the factor by which the lower Y-pixel should be taken (0) or the higher one (1)
+			fY = ySrc-((int32_t)ySrc);
 			fYi = 1-fY;
 
 			for (int32_t c = 0; c < channels; c++) {
