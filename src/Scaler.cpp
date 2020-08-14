@@ -27,9 +27,23 @@ torasu::tstd::Dbimg* scaleImg(u_int8_t* srcData, uint32_t srcWidth, uint32_t src
 
 	// Factor by what the destination-coordinates become the source-coordinates
 	// xDest*xFact=xSrc
-	float xFact = ((double)srcWidth)/destWidth;
+	float xFact;
 	// yDest*yFact=ySrc
-	float yFact = ((double)srcHeight)/destHeight;
+	float yFact;
+	
+	if (srcWidth<=1  || destWidth<=1) {
+		xFact = 0;
+	} else {
+		xFact = ((double)srcWidth-1)/(destWidth-1);
+	}
+
+	if (srcHeight<=1 || destHeight<=1) {
+		yFact = 0;
+	} else {
+		yFact = ((double)srcHeight-1)/(destHeight-1);
+	}
+
+
 
 	float xSrc, ySrc;
 	float fX, fXi, fY, fYi;
