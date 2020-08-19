@@ -36,6 +36,9 @@ protected:
 public:
 	Ralign2d(Renderable* rndSrc, double posX, double posY, double zoomFactor, double alignRatio);
 	~Ralign2d();
+
+	std::map<std::string, Element*> getElements() override;
+	void setElement(std::string key, Element* elem) override;
 };
 
 } // namespace imgc

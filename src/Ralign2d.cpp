@@ -10,7 +10,7 @@
 namespace imgc {
 
 Ralign2d::Ralign2d(Renderable* rndSrc, double posX, double posY, double zoomFactor, double imageRatio) 
-	: torasu::tools::SimpleRenderable("IMGC::RALIGN2D"),
+	: torasu::tools::SimpleRenderable("IMGC::RALIGN2D", false, true),
 	rndSrc(rndSrc),
 	posX(posX),
 	posY(posY),
@@ -202,6 +202,38 @@ torasu::ResultSegment* Ralign2d::renderSegment(torasu::ResultSegmentSettings* re
 
 	} else {
 		return new torasu::ResultSegment(torasu::ResultSegmentStatus_INVALID_SEGMENT);
+	}
+
+}
+
+std::map<std::string, torasu::Element*> Ralign2d::getElements() {
+	std::map<std::string, torasu::Element*> elems;
+
+	elems["src"] = rndSrc;
+
+	return elems;
+}
+
+void Ralign2d::setElement(std::string key, torasu::Element* elem) {
+
+	if (key.compare("src") == 0) {
+
+		if (elem == NULL) {
+			throw std::invalid_argument("Element slot \"src\" may not be empty!");
+		}
+		if (torasu::Renderable* rnd = dynamic_cast<torasu::Renderable*>(elem)) {
+			rndSrc = rnd;
+			return;
+		} else {
+			throw std::invalid_argument("Element slot \"src\" only accepts Renderables!");
+		}
+
+	} else {
+		std::ostringstream errMsg;
+		errMsg << "The element slot \""
+			   << key
+			   << "\" does not exist!";
+		throw std::invalid_argument(errMsg.str());
 	}
 
 }
