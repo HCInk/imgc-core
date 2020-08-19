@@ -17,7 +17,8 @@ set(IMGC_SRC
 		${CMAKE_CURRENT_LIST_DIR}/src/Rvideo_file.cpp
         ${CMAKE_CURRENT_LIST_DIR}/src/MediaDecoder.cpp
         ${CMAKE_CURRENT_LIST_DIR}/src/Scaler.cpp
-        ${CMAKE_CURRENT_LIST_DIR}/src/Rmedia_file.cpp)
+        ${CMAKE_CURRENT_LIST_DIR}/src/Rmedia_file.cpp
+		${CMAKE_CURRENT_LIST_DIR}/src/Ralign2d.cpp)
 
 add_library(imgc SHARED ${IMGC_SRC})
 
