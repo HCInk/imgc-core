@@ -253,14 +253,18 @@ void MediaDecoder::getSegment(SegmentRequest request) {
 				drainStream(streams[i], decodingState);
 			}
 			break;
+		} else if (nextFrameStat < 0) {
+			throw runtime_error(std::string("Unknown error (") + std::to_string(nextFrameStat) + std::string(" occurred while reading frame!") );
 		}
 		int response = avcodec_send_packet(stream->ctx, av_packet);
 		if (response == AVERROR(EAGAIN)) {
 			continue;
-		}
-		if(response == AVERROR(ENOMEM)) {
+		} else if (response == AVERROR(ENOMEM)) {
 			throw runtime_error("Send packet returned ENOMEM");
+		} else if (response < 0) {
+			throw runtime_error(std::string("Unknown error (") + std::to_string(nextFrameStat) + std::string(" occurred while sending frame to decoder!") );
 		}
+
 		auto fr = BufferedFrame{av_packet->pts, av_packet->pos, av_packet->duration};
 		stream->cachedFrames.push_back(fr);
 		response = avcodec_receive_frame(stream->ctx, stream->frame);
@@ -269,6 +273,8 @@ void MediaDecoder::getSegment(SegmentRequest request) {
 				stream->flushCount--;
 			}
 			continue;
+		} else if (response < 0) {
+			throw runtime_error(std::string("Unknown error (") + std::to_string(nextFrameStat) + std::string(" occurred while recieving frame from decoder!") );
 		}
 		stream->frameIsPresent = true;
 		removeCacheFrame(stream->frame->pkt_pos, &stream->cachedFrames);
@@ -324,6 +330,9 @@ void MediaDecoder::handleFrame(StreamEntry* stream, DecodingState* decodingState
 			uint8_t* target = (**decodingState->segmentRequest.videoBuffer).addFrame(
 								  ((double)(stream->frame->pts * stream->base_time.num)) / stream->base_time.den,
 								  torasu::tstd::Dbimg_FORMAT(rWidth, rHeight))->getImageData();
+			// For testing purposes
+			std::fill(target, target+rWidth*rHeight*4, 0x00);
+			std::cout << "extracting video frame to " << ((void*)target) << " - " << ((void*)(target+rWidth*rHeight*4-1)) << std::endl;
 			extractVideoFrame(stream, target);
 
 			decodingState->videoReadUntil = stream->frame->pts + stream->frame->pkt_duration;
