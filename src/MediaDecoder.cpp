@@ -254,7 +254,7 @@ void MediaDecoder::getSegment(SegmentRequest request) {
 			}
 			break;
 		} else if (nextFrameStat < 0) {
-			throw runtime_error(std::string("Unknown error (") + std::to_string(nextFrameStat) + std::string(" occurred while reading frame!") );
+			throw runtime_error(std::string("Unknown error (") + std::to_string(nextFrameStat) + std::string(") occurred while reading frame!") );
 		}
 		int response = avcodec_send_packet(stream->ctx, av_packet);
 		if (response == AVERROR(EAGAIN)) {
@@ -262,7 +262,7 @@ void MediaDecoder::getSegment(SegmentRequest request) {
 		} else if (response == AVERROR(ENOMEM)) {
 			throw runtime_error("Send packet returned ENOMEM");
 		} else if (response < 0) {
-			throw runtime_error(std::string("Unknown error (") + std::to_string(nextFrameStat) + std::string(" occurred while sending frame to decoder!") );
+			throw runtime_error(std::string("Unknown error (") + std::to_string(nextFrameStat) + std::string(") occurred while sending frame to decoder!") );
 		}
 
 		auto fr = BufferedFrame{av_packet->pts, av_packet->pos, av_packet->duration};
@@ -274,7 +274,7 @@ void MediaDecoder::getSegment(SegmentRequest request) {
 			}
 			continue;
 		} else if (response < 0) {
-			throw runtime_error(std::string("Unknown error (") + std::to_string(nextFrameStat) + std::string(" occurred while recieving frame from decoder!") );
+			throw runtime_error(std::string("Unknown error (") + std::to_string(nextFrameStat) + std::string(") occurred while recieving frame from decoder!") );
 		}
 		stream->frameIsPresent = true;
 		removeCacheFrame(stream->frame->pkt_pos, &stream->cachedFrames);
