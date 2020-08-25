@@ -172,6 +172,8 @@ private:
 
 	size_t determineSampleSize(StreamEntry* stream);
 
+	std::string getErrorMessage(int errorCode);
+
 };
 
 } // namespace imgc
