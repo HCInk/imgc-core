@@ -32,7 +32,7 @@ int ReadFunc(void* ptr, uint8_t* buf, int buf_size) {
 	if (read > 0) {
 		return read;
 	} else {
-		return -1;
+		return AVERROR_EOF;
 	}
 }
 
