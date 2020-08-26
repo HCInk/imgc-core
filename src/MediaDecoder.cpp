@@ -331,7 +331,7 @@ void MediaDecoder::handleFrame(StreamEntry* stream, DecodingState* decodingState
 								  ((double)(stream->frame->pts * stream->base_time.num)) / stream->base_time.den,
 								  torasu::tstd::Dbimg_FORMAT(rWidth, rHeight))->getImageData();
 			// For testing purposes
-			std::fill(target, target+rWidth*rHeight*4, 0x00);
+			// std::fill(target, target+rWidth*rHeight*4, 0x00);
 			std::cout << "extracting video frame to " << ((void*)target) << " - " << ((void*)(target+rWidth*rHeight*4-1)) << std::endl;
 			extractVideoFrame(stream, target);
 
