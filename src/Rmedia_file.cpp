@@ -87,7 +87,7 @@ torasu::RenderResult* Rmedia_file::render(torasu::RenderInstruction* ri) {
 					(*results)[videoKey.value()] = new torasu::ResultSegment(torasu::ResultSegmentStatus_INVALID_FORMAT);
 				}
 			}
-				
+
 		} else if (segmentSettings->getPipeline() == TORASU_STD_PL_AUDIO) {
 			audioKey = segmentSettings->getKey();
 		} else {
@@ -140,7 +140,7 @@ torasu::RenderResult* Rmedia_file::render(torasu::RenderInstruction* ri) {
 				torasu::tstd::Dbimg* resultFrame = firstFrame->second;
 
 				if (videoFormat != NULL) {
-				
+
 					auto* scaled = scaler::scaleImg(firstFrame->second, videoFormat);
 
 					if (scaled != NULL) {

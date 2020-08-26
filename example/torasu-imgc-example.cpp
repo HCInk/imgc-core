@@ -314,7 +314,7 @@ void writeFrames(torasu::tstd::Dbimg_sequence* sequence, std::string base_path) 
 		Dbimg* image = frame.second;
 		saver.enqueue([path, image]() {
 			unsigned error = lodepng::encode(path,
-											image->getImageData(), image->getWidth(), image->getHeight());
+											 image->getImageData(), image->getWidth(), image->getHeight());
 			if (error) {
 				std::cerr << "LODEPNG ERROR " << error << ": " << lodepng_error_text(error) << " - while writing " << path << std::endl;
 			}
@@ -421,7 +421,7 @@ void yetAnotherIMGCTest() {
 	for (int i = 0; i < frameCount; i++) {
 		frameTimes[i] = (double) i/25;
 	}
-	
+
 	extools::TaskPool saver(10);
 
 	cout << frameCount << " FRAMES TO RENDER!" << endl;
@@ -468,7 +468,7 @@ void yetAnotherIMGCTest() {
 			// 	cerr << "ENCODE STAT[" << name << "] " << lodepng_error_text(error) << endl;
 			// }
 			// delete result;
-			saver.enqueue([result, bimg, name](){
+			saver.enqueue([result, bimg, name]() {
 				unsigned error = lodepng::encode(name, bimg->getImageData(), bimg->getWidth(), bimg->getHeight());
 				if (error) {
 					cerr << "ENCODE STAT[" << name << "] " << lodepng_error_text(error) << endl;

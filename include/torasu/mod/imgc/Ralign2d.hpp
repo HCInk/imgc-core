@@ -12,7 +12,7 @@ class Ralign2d : public torasu::tools::SimpleRenderable {
 private:
 	Renderable* rndSrc;
 
-	double posX; 
+	double posX;
 	double posY;
 	double zoomFactor;
 	double imageRatio;
@@ -25,9 +25,9 @@ private:
 	};
 
 	void calcAlign(double posX, double posY, double zoomFactor, bool autoRatio, double imageRatio,
-					uint32_t destWidth, uint32_t destHeight, 
-					Ralign2d_CROPDATA& outCropData) const;
-	
+				   uint32_t destWidth, uint32_t destHeight,
+				   Ralign2d_CROPDATA& outCropData) const;
+
 	void align(torasu::tstd::Dbimg* srcImg, torasu::tstd::Dbimg* destImg, Ralign2d_CROPDATA* cropData) const;
 
 protected:

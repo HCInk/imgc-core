@@ -9,27 +9,27 @@
 
 namespace imgc {
 
-Ralign2d::Ralign2d(Renderable* rndSrc, double posX, double posY, double zoomFactor, double imageRatio) 
+Ralign2d::Ralign2d(Renderable* rndSrc, double posX, double posY, double zoomFactor, double imageRatio)
 	: torasu::tools::SimpleRenderable("IMGC::RALIGN2D", false, true),
-	rndSrc(rndSrc),
-	posX(posX),
-	posY(posY),
-	zoomFactor(zoomFactor),
-	imageRatio(imageRatio),
-	autoRatio(false) {}
+	  rndSrc(rndSrc),
+	  posX(posX),
+	  posY(posY),
+	  zoomFactor(zoomFactor),
+	  imageRatio(imageRatio),
+	  autoRatio(false) {}
 
 Ralign2d::~Ralign2d() {}
 
 void Ralign2d::calcAlign(double posX, double posY, double zoomFactor, bool autoRatio, double imageRatio,
-					uint32_t destWidth, uint32_t destHeight, 
-					Ralign2d_CROPDATA& outCropdata) const {
+						 uint32_t destWidth, uint32_t destHeight,
+						 Ralign2d_CROPDATA& outCropdata) const {
 
 	posX = 0.5 + posX / 2;
 	posY = 0.5 + posY / 2;
-	
+
 	double ratio;
 	if (autoRatio) {
-		// TODO Ralign2d - AutoRatio 
+		// TODO Ralign2d - AutoRatio
 		ratio = 1;
 	} else {
 		ratio = imageRatio;
@@ -45,8 +45,8 @@ void Ralign2d::calcAlign(double posX, double posY, double zoomFactor, bool autoR
 		outCropdata.offTop = 0;
 		outCropdata.offBottom = 0;
 	} else {
-		uint32_t containWidth, containHeight, 
-					coverWidth, coverHeight;
+		uint32_t containWidth, containHeight,
+				 coverWidth, coverHeight;
 		if (destRatio > imageRatio) { // Destination more wide
 
 			containWidth = destHeight*imageRatio;
@@ -71,7 +71,7 @@ void Ralign2d::calcAlign(double posX, double posY, double zoomFactor, bool autoR
 
 		outCropdata.offRight = outCropdata.offLeft*(1-posX);
 		outCropdata.offBottom = outCropdata.offTop*(1-posY);
-		
+
 		outCropdata.offLeft -= outCropdata.offRight;
 		outCropdata.offTop -= outCropdata.offBottom;
 
@@ -81,9 +81,9 @@ void Ralign2d::calcAlign(double posX, double posY, double zoomFactor, bool autoR
 
 
 void Ralign2d::align(torasu::tstd::Dbimg* srcImg, torasu::tstd::Dbimg* destImg, Ralign2d_CROPDATA* cropData) const {
-	
-	uint8_t*const srcData = srcImg->getImageData();
-	uint8_t*const destData = destImg->getImageData();
+
+	uint8_t* const srcData = srcImg->getImageData();
+	uint8_t* const destData = destImg->getImageData();
 
 	const uint32_t srcWidth = srcImg->getWidth();
 	const uint32_t srcHeight = srcImg->getHeight();
@@ -116,15 +116,15 @@ void Ralign2d::align(torasu::tstd::Dbimg* srcImg, torasu::tstd::Dbimg* destImg, 
 
 	currSrcData+=srcBegin;
 	currDestData+=destBegin;
-	
+
 	std::fill(destData, currDestData, 0);
-	
+
 	uint32_t y = srcCropTop;
 	while (true) {
 
 		std::copy(currSrcData, currSrcData+copySize, currDestData);
 		currDestData+=copySize;
-		
+
 		y++;
 		if (y < srcHeight-srcCropBottom) {
 			std::fill(currDestData, currDestData+destSkipSize, 0);
@@ -154,9 +154,9 @@ torasu::ResultSegment* Ralign2d::renderSegment(torasu::ResultSegmentSettings* re
 
 		Ralign2d_CROPDATA cropData;
 
-		calcAlign(posX, posY, zoomFactor, autoRatio, imageRatio, 
-					fmt->getWidth(), fmt->getHeight(),
-					cropData);
+		calcAlign(posX, posY, zoomFactor, autoRatio, imageRatio,
+				  fmt->getWidth(), fmt->getHeight(),
+				  cropData);
 
 		torasu::tstd::Dbimg_FORMAT srcFmt(cropData.srcWidth, cropData.srcHeight);
 

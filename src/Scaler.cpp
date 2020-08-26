@@ -3,7 +3,7 @@
 namespace imgc::scaler {
 
 torasu::tstd::Dbimg* scaleImg(u_int8_t* srcData, uint32_t srcWidth, uint32_t srcHeight, torasu::tstd::Dbimg_FORMAT* fmt, bool copySame) {
-	
+
 	auto destWidth = fmt->getWidth();
 	auto destHeight = fmt->getHeight();
 
@@ -30,7 +30,7 @@ torasu::tstd::Dbimg* scaleImg(u_int8_t* srcData, uint32_t srcWidth, uint32_t src
 	float xFact;
 	// yDest*yFact=ySrc
 	float yFact;
-	
+
 	if (srcWidth<=1  || destWidth<=1) {
 		xFact = 0;
 	} else {
@@ -66,7 +66,7 @@ torasu::tstd::Dbimg* scaleImg(u_int8_t* srcData, uint32_t srcWidth, uint32_t src
 			addrC = addrA + widthB;
 			addrD = addrC + channels;
 
-			// fX: the factor by which the lower X-pixel should be taken (0) or the higher one (1) 
+			// fX: the factor by which the lower X-pixel should be taken (0) or the higher one (1)
 			fX = xSrc-((int32_t)xSrc);
 			fXi = 1-fX;
 			// fY: the factor by which the lower Y-pixel should be taken (0) or the higher one (1)
@@ -88,11 +88,11 @@ torasu::tstd::Dbimg* scaleImg(u_int8_t* srcData, uint32_t srcWidth, uint32_t src
 						// A B
 						// C X
 						destData[i] =  ( (*addrA)*fXi + (*addrB)*fX ) * fYi
-									+ (*addrC) * fY;
+									   + (*addrC) * fY;
 					}
 				} else {
 					destData[i] =  ( (*addrA)*fXi + (*addrB)*fX ) * fYi
-								+ ( (*addrC)*fXi + (*addrD)*fX ) * fY;
+								   + ( (*addrC)*fXi + (*addrD)*fX ) * fY;
 				}
 
 				addrA++;
