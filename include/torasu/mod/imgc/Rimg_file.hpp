@@ -1,6 +1,9 @@
 #ifndef INCLUDE_TORASU_MOD_IMGC_RIMG_FILE_HPP_
 #define INCLUDE_TORASU_MOD_IMGC_RIMG_FILE_HPP_
 
+#include <mutex>
+#include <vector>
+
 #include <torasu/torasu.hpp>
 #include <torasu/SimpleRenderable.hpp>
 
@@ -18,6 +21,11 @@ private:
 
 	torasu::tools::RenderInstructionBuilder rib;
 	torasu::tools::RenderResultSegmentHandle<torasu::tstd::Dfile> resHandle;
+
+	std::mutex loadLock;
+	bool loaded = false;
+	std::vector<uint8_t> loadedImage;
+	uint32_t srcWidth, srcHeight;
 
 protected:
 	torasu::ResultSegment* renderSegment(torasu::ResultSegmentSettings* resSettings, torasu::RenderInstruction* ri);

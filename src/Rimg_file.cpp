@@ -51,29 +51,35 @@ ResultSegment* Rimg_file::renderSegment(ResultSegmentSettings* resSettings, Rend
 			auto ei = ri->getExecutionInterface();
 			auto rctx = ri->getRenderContext();
 
-			RenderResult* fileRenderResult = rib.runRender(rfile, rctx, ei);
+			loadLock.lock();
 
-			auto fileRes = resHandle.getFrom(fileRenderResult);
+			if (!loaded) {
 
-			if (fileRes.getStatus() < ResultSegmentStatus_OK) {
-				// Stop because of file-render-error
-				return new ResultSegment(ResultSegmentStatus_INTERNAL_ERROR);
+				RenderResult* fileRenderResult = rib.runRender(rfile, rctx, ei);
+
+				auto fileRes = resHandle.getFrom(fileRenderResult);
+
+				if (fileRes.getStatus() < ResultSegmentStatus_OK) {
+					// Stop because of file-render-error
+					return new ResultSegment(ResultSegmentStatus_INTERNAL_ERROR);
+				}
+
+				Dfile* file = fileRes.getResult();
+
+				uint32_t error = lodepng::decode(loadedImage, srcWidth, srcHeight, file->getFileData(), file->getFileSize());
+
+				delete fileRenderResult;
+
+				cout << "DECODE STATUS " << error << endl;
+				if (error) {
+					// Stop because file-decoding error
+					return new ResultSegment(ResultSegmentStatus_INTERNAL_ERROR);
+				}
+
+				loaded = true;
 			}
 
-			Dfile* file = fileRes.getResult();
-
-			vector<uint8_t> loadedImage;
-			uint32_t srcWidth, srcHeight;
-
-			uint32_t error = lodepng::decode(loadedImage, srcWidth, srcHeight, file->getFileData(), file->getFileSize());
-
-			delete fileRenderResult;
-
-			cout << "DECODE STATUS " << error << endl;
-			if (error) {
-				// Stop because file-decoding error
-				return new ResultSegment(ResultSegmentStatus_INTERNAL_ERROR);
-			}
+			loadLock.unlock();
 
 			if (rWidth == 0 || rHeight == 0) {
 				return new ResultSegment(ResultSegmentStatus_OK, new Dbimg(rWidth, rHeight), true);
