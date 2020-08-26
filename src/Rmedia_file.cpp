@@ -8,6 +8,7 @@
 #include <torasu/std/context_names.hpp>
 #include <torasu/std/Dnum.hpp>
 #include <torasu/std/Dfile.hpp>
+#include <torasu/std/Dbimg.hpp>
 
 #include <torasu/mod/imgc/MediaDecoder.hpp>
 #include <torasu/mod/imgc/Scaler.hpp>
@@ -129,23 +130,30 @@ torasu::RenderResult* Rmedia_file::render(torasu::RenderInstruction* ri) {
 		});
 
 		if (videoKey.has_value()) {
-			auto firstFrame = vidBuff->getFrames().begin();
-			vidBuff->getFrames().erase(firstFrame);
-			delete vidBuff;
+			auto& frames = vidBuff->getFrames();
+			if (frames.size() > 0) {
 
-			torasu::tstd::Dbimg* resultFrame = firstFrame->second;
+				auto firstFrame = vidBuff->getFrames().begin();
+				vidBuff->getFrames().erase(firstFrame);
+				delete vidBuff;
 
-			if (videoFormat != NULL) {
+				torasu::tstd::Dbimg* resultFrame = firstFrame->second;
+
+				if (videoFormat != NULL) {
 				
-				auto* scaled = scaler::scaleImg(firstFrame->second, videoFormat);
+					auto* scaled = scaler::scaleImg(firstFrame->second, videoFormat);
 
-				if (scaled != NULL) {
-					delete firstFrame->second;
-					resultFrame = scaled;
+					if (scaled != NULL) {
+						delete firstFrame->second;
+						resultFrame = scaled;
+					}
 				}
-			}
 
-			(*results)[videoKey.value()] = new torasu::ResultSegment(torasu::ResultSegmentStatus_OK, resultFrame, true);
+				(*results)[videoKey.value()] = new torasu::ResultSegment(torasu::ResultSegmentStatus_OK, resultFrame, true);
+			} else {
+				std::cerr << "DECODER RETURNED NO FRAME" << std::endl;
+				(*results)[videoKey.value()] = new torasu::ResultSegment(torasu::ResultSegmentStatus_OK_WARN, new torasu::tstd::Dbimg(*videoFormat), true);
+			}
 		}
 
 		if (audioKey.has_value()) {
