@@ -302,16 +302,23 @@ void anotherIMGCTest() {
 
 }
 
+
+#include "example_tools.hpp"
+
 void writeFrames(torasu::tstd::Dbimg_sequence* sequence, std::string base_path) {
+	extools::TaskPool saver(10);
 	auto& frames = sequence->getFrames();
 	int i = 0;
 	for (auto& frame : frames) {
 		std::string path = base_path + "file-" + std::to_string(i + 1) + ".png";
-		unsigned error = lodepng::encode(path,
-										 frame.second->getImageData(), frame.second->getWidth(), frame.second->getHeight());
-		if (error) {
-			std::cerr << "LODEPNG ERROR " << error << ": " << lodepng_error_text(error) << " - while writing " << path << std::endl;
-		}
+		Dbimg* image = frame.second;
+		saver.enqueue([path, image]() {
+			unsigned error = lodepng::encode(path,
+											image->getImageData(), image->getWidth(), image->getHeight());
+			if (error) {
+				std::cerr << "LODEPNG ERROR " << error << ": " << lodepng_error_text(error) << " - while writing " << path << std::endl;
+			}
+		});
 		++i;
 	}
 }
@@ -345,6 +352,8 @@ void videoTest() {
 		.videoBuffer = &videoBuffer,
 		.audioBuffer = NULL
 	});
+
+	writeFrames(videoBuffer, "test-res/extract-");
 
 	delete videoBuffer;
 }
@@ -403,8 +412,17 @@ void yetAnotherIMGCTest() {
 
 	// Rendering Results
 
-	double frameTimes[] = {0.1, 2, 4, 2.5, 5.1, 5.1, 5.14, 5.18, 5.22};
-	int frameCount = sizeof(frameTimes) / sizeof(double);
+	// double frameTimes[] = {0.1, 2, 4, 2.5, 5.1, 5.1, 5.14, 5.18, 5.22};
+	// int frameCount = sizeof(frameTimes) / sizeof(double);
+	int frameCount = 25*4;
+	double frameTimes[frameCount];
+
+
+	for (int i = 0; i < frameCount; i++) {
+		frameTimes[i] = (double) i/25;
+	}
+	
+	extools::TaskPool saver(10);
 
 	cout << frameCount << " FRAMES TO RENDER!" << endl;
 
@@ -437,23 +455,35 @@ void yetAnotherIMGCTest() {
 
 		if (rss >= ResultSegmentStatus::ResultSegmentStatus_OK) {
 			Dbimg* bimg = castedRes.getResult();
-			int width = bimg->getWidth();
-			int height = bimg->getHeight();
 
 			stringstream out_name;
 			out_name << "test-res/out";
 			out_name << std::setfill('0') << std::setw(5) << i;
 			out_name << ".png";
+			std::string name = out_name.str();
 
-			unsigned error = lodepng::encode(out_name.str(), bimg->getImageData(), width, height);
-			if (error) {
-				cerr << "ENCODE STAT[" << i << "] " << lodepng_error_text(error) << endl;
-			}
+
+			// unsigned error = lodepng::encode(name, bimg->getImageData(), bimg->getWidth(), bimg->getHeight());
+			// if (error) {
+			// 	cerr << "ENCODE STAT[" << name << "] " << lodepng_error_text(error) << endl;
+			// }
+			// delete result;
+			saver.enqueue([result, bimg, name](){
+				unsigned error = lodepng::encode(name, bimg->getImageData(), bimg->getWidth(), bimg->getHeight());
+				if (error) {
+					cerr << "ENCODE STAT[" << name << "] " << lodepng_error_text(error) << endl;
+				}
+
+				delete result;
+			});
+
+		} else {
+			delete result;
 		}
 
-		delete result;
 	}
 
+	saver.sync();
 
 	// Cleanup
 
