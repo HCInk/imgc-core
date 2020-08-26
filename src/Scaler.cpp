@@ -52,6 +52,7 @@ torasu::tstd::Dbimg* scaleImg(u_int8_t* srcData, uint32_t srcWidth, uint32_t src
 	uint8_t* addrB;
 	uint8_t* addrC;
 	uint8_t* addrD;
+	uint8_t* addrMax = srcData + (widthB*srcHeight);
 
 	for (int32_t yDest = 0; yDest < destHeight; yDest++) {
 		for (int32_t xDest = 0; xDest < destWidth; xDest++) {
@@ -73,8 +74,26 @@ torasu::tstd::Dbimg* scaleImg(u_int8_t* srcData, uint32_t srcWidth, uint32_t src
 			fYi = 1-fY;
 
 			for (int32_t c = 0; c < channels; c++) {
-				destData[i] =  ( (*addrA)*fXi + (*addrB)*fX ) * fYi
+				// XXX somehow equally performant, as without of bounds checking, or further manual optimisation required?
+				if (addrD >= addrMax) {
+					if (addrB >= addrMax) {
+						// A X
+						// X X
+						destData[i] =  *addrA;
+					} else if (addrC >= addrMax) {
+						// A B
+						// X X
+						destData[i] =  ( (*addrA)*fXi + (*addrB)*fX );
+					} else {
+						// A B
+						// C X
+						destData[i] =  ( (*addrA)*fXi + (*addrB)*fX ) * fYi
+									+ (*addrC) * fY;
+					}
+				} else {
+					destData[i] =  ( (*addrA)*fXi + (*addrB)*fX ) * fYi
 								+ ( (*addrC)*fXi + (*addrD)*fX ) * fY;
+				}
 
 				addrA++;
 				addrB++;
