@@ -93,8 +93,7 @@ ResultSegment* Rimg_file::renderSegment(ResultSegmentSettings* resSettings, Rend
 
 			Dbimg_FORMAT fmt(rWidth, rHeight);
 
-			Dbimg* resultImage = scaler::scaleImg(loadedImage.data(), srcWidth, srcHeight, &fmt);
-
+			Dbimg* resultImage = scaler::scaleImg(loadedImage.data(), srcWidth, srcHeight, &fmt, true);
 
 			return new ResultSegment(ResultSegmentStatus_OK, resultImage, true);
 
