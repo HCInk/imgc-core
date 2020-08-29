@@ -54,8 +54,8 @@ torasu::tstd::Dbimg* scaleImg(u_int8_t* srcData, uint32_t srcWidth, uint32_t src
 	uint8_t* addrD;
 	uint8_t* addrMax = srcData + (widthB*srcHeight);
 
-	for (int32_t yDest = 0; yDest < destHeight; yDest++) {
-		for (int32_t xDest = 0; xDest < destWidth; xDest++) {
+	for (uint32_t yDest = 0; yDest < destHeight; yDest++) {
+		for (uint32_t xDest = 0; xDest < destWidth; xDest++) {
 			xSrc = ((float)xDest)*xFact;
 			ySrc = ((float)yDest)*yFact;
 

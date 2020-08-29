@@ -97,9 +97,9 @@ void Ralign2d::align(torasu::tstd::Dbimg* srcImg, torasu::tstd::Dbimg* destImg, 
 	const uint32_t srcCropBottom = cropData->offBottom<0? -cropData->offBottom:0;
 
 	const uint32_t destCropLeft = cropData->offLeft>0? cropData->offLeft:0;
-	const uint32_t destCropRight = cropData->offRight>0? cropData->offRight:0;
+	// const uint32_t destCropRight = cropData->offRight>0? cropData->offRight:0;
 	const uint32_t destCropTop = cropData->offTop>0? cropData->offTop:0;
-	const uint32_t destCropBottom = cropData->offBottom>0? cropData->offBottom:0;
+	// const uint32_t destCropBottom = cropData->offBottom>0? cropData->offBottom:0;
 
 	const size_t copySize = ( srcWidth-(srcCropRight + srcCropLeft ) ) * channels;
 

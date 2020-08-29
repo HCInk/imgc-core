@@ -29,7 +29,7 @@ void writeAudio(std::string path, torasu::tstd::Daudio_buffer* audioBuff) {
 	uint8_t* l = audioBuff->getChannels()[0].data;
 	uint8_t* r = audioBuff->getChannels()[1].data;
 
-	for (int i = 0; i < audioBuff->getChannels()[0].dataSize/size; i++) {
+	for (size_t i = 0; i < audioBuff->getChannels()[0].dataSize/size; i++) {
 		out.write(reinterpret_cast<const char*>(l), size);
 		out.write(reinterpret_cast<const char*>(r), size);
 		l += size;

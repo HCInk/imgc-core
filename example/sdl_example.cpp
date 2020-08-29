@@ -62,7 +62,7 @@ void avTest(char* file) {
 
 	torasu::tstd::Dbimg_sequence* firstFrameSeekVidBuffer;
 	torasu::tstd::Daudio_buffer* audioTestSample = NULL;
-	int currentFrameCount = 0;
+	size_t currentFrameCount = 0;
 
 	des.getSegment((SegmentRequest) {
 		.start = 0,
@@ -82,13 +82,13 @@ void avTest(char* file) {
 //	    frameDuration = 0.03;
 //	}
 
-	int totalFrames = (des.streams[0]->duration * av_q2d(des.streams[0]->base_time)) * des.streams[0]->vid_fps.num;
+	size_t totalFrames = (des.streams[0]->duration * av_q2d(des.streams[0]->base_time)) * des.streams[0]->vid_fps.num;
 	size_t totalAudioLen = ((des.streams[1]->duration * av_q2d(des.streams[1]->base_time))) * audioTestSample->getChannels()[0].sampleRate *  audioTestSample->getChannels()[0].sampleSize * 2;
 	bool decodingDone = false;
 	uint8_t* audio = new uint8_t[totalAudioLen];
 	auto* rendererThread = new std::thread([&frames, &des, &decodingDone, &totalFrames, audio, &audioLen, &currentFrameCount, &frameDuration, &totalAudioLen]() {
 		double i = 0;
-		for (int j = 0; j < totalFrames; ++j) {
+		for (size_t j = 0; j < totalFrames; ++j) {
 			while(frames.size() -currentFrameCount > 64 && currentFrameCount > 32) {
 				//    std::this_thread::sleep_for(std::chrono::milliseconds(1));
 			}
