@@ -14,12 +14,14 @@
 #include <torasu/std/Rlocal_file.hpp>
 #include <torasu/std/Rnet_file.hpp>
 #include <torasu/std/Rmultiply.hpp>
+#include <torasu/std/Rnum.hpp>
 
 #include <torasu/mod/imgc/Rimg_file.hpp>
 #include <torasu/mod/imgc/Rvideo_file.hpp>
 #include <torasu/mod/imgc/MediaDecoder.hpp>
 #include <torasu/mod/imgc/Rmedia_file.hpp>
 #include <torasu/mod/imgc/Ralign2d.hpp>
+#include <torasu/mod/imgc/Rgain.hpp>
 
 
 #ifdef IMGC_SDL_EXAMPLE
@@ -394,8 +396,10 @@ void yetAnotherIMGCTest() {
 	imgc::Rmedia_file video(&file);
 	imgc::Rimg_file image(&file2);
 	imgc::Ralign2d align(&image, 0, 0, 1, 1);
+	torasu::tstd::Rnum gainVal(10);
 
-	torasu::tstd::Rmultiply tree(&video, &align);
+	torasu::tstd::Rmultiply mul(&video, &align);
+	imgc::Rgain tree(&mul, &gainVal);
 
 	// Creating Engine
 
