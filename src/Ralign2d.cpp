@@ -37,7 +37,7 @@ void Ralign2d::calcAlign(double posX, double posY, double zoomFactor, bool autoR
 
 	double destRatio = (double) destWidth/destHeight;
 
-	if (destRatio == imageRatio) {
+	if (destRatio == ratio) {
 		outCropdata.srcWidth = destWidth;
 		outCropdata.srcHeight = destHeight;
 		outCropdata.offLeft = 0;
@@ -47,18 +47,18 @@ void Ralign2d::calcAlign(double posX, double posY, double zoomFactor, bool autoR
 	} else {
 		uint32_t containWidth, containHeight,
 				 coverWidth, coverHeight;
-		if (destRatio > imageRatio) { // Destination more wide
+		if (destRatio > ratio) { // Destination more wide
 
-			containWidth = destHeight*imageRatio;
+			containWidth = destHeight*ratio;
 			containHeight = destHeight;
 			coverWidth = destWidth;
-			coverHeight = destWidth/imageRatio;
+			coverHeight = destWidth/ratio;
 
 		} else { // Destination more high
 
 			containWidth = destWidth;
-			containHeight = destWidth/imageRatio;
-			coverWidth = destHeight*imageRatio;
+			containHeight = destWidth/ratio;
+			coverWidth = destHeight*ratio;
 			coverHeight = destHeight;
 
 		}
