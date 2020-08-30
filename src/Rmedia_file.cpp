@@ -79,7 +79,6 @@ torasu::RenderResult* Rmedia_file::render(torasu::RenderInstruction* ri) {
 		if (segmentSettings->getPipeline() == TORASU_STD_PL_VIS) {
 			videoKey = segmentSettings->getKey();
 			auto fmtSettings = segmentSettings->getResultFormatSettings();
-			torasu::tstd::Dbimg_FORMAT* formatCasted;
 
 			if (fmtSettings != NULL) {
 				if (!( fmtSettings->getFormat() == "STD::DBIMG" &&
@@ -194,6 +193,10 @@ void Rmedia_file::setElement(std::string key, Element* elem) {
 			   << "\" does not exist!";
 		throw std::invalid_argument(errMsg.str());
 	}
+}
+
+torasu::RenderableProperties* Rmedia_file::getProperties() {
+	return new torasu::RenderableProperties();
 }
 
 }
