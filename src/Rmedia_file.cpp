@@ -199,13 +199,12 @@ void Rmedia_file::setElement(std::string key, Element* elem) {
 torasu::RenderableProperties* Rmedia_file::getProperties(torasu::PropertyInstruction* pi) {
 	auto* props = new torasu::RenderableProperties();
 	auto* ei = pi->getExecutionInterface();
-	auto requestedProperties = pi->getRequestedProperties();
 	load(ei);
 
 	{
-		bool getWidth = requestedProperties.contains(TORASU_STD_PROP_IMG_WIDTH);
-		bool getHeight = requestedProperties.contains(TORASU_STD_PROP_IMG_HEIGHT);
-		bool getRatio = requestedProperties.contains(TORASU_STD_PROP_IMG_RAITO);
+		bool getWidth = pi->checkPopProperty(TORASU_STD_PROP_IMG_WIDTH);
+		bool getHeight = pi->checkPopProperty(TORASU_STD_PROP_IMG_HEIGHT);
+		bool getRatio = pi->checkPopProperty(TORASU_STD_PROP_IMG_RAITO);
 		
 		if (getWidth || getHeight || getRatio) {
 
@@ -231,7 +230,7 @@ torasu::RenderableProperties* Rmedia_file::getProperties(torasu::PropertyInstruc
 
 	}
 
-	if (requestedProperties.contains(TORASU_STD_PROP_DURATION)) {
+	if (pi->checkPopProperty(TORASU_STD_PROP_IMG_RAITO)) {
 		(*props)[TORASU_STD_PROP_DURATION] = new torasu::tstd::Dnum(decoder->getDuration());
 	}
 
