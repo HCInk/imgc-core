@@ -5,9 +5,9 @@
 
 namespace imgc {
 
-Rgain::Rgain(Renderable* src, Renderable* gainVal) 
-	: SimpleRenderable("IMGC::RGAIN", false, true),
-	rSrc(src), rGainVal(gainVal) {}
+Rgain::Rgain(Renderable* src, Renderable* gainVal)
+	: SimpleRenderable("IMGC::RGAIN", false, true, false),
+	  rSrc(src), rGainVal(gainVal) {}
 
 Rgain::~Rgain() {}
 
@@ -15,7 +15,7 @@ torasu::ResultSegment* Rgain::renderSegment(torasu::ResultSegmentSettings* resSe
 	if (resSettings->getPipeline() != visPipeline) {
 		return new torasu::ResultSegment(torasu::ResultSegmentStatus_INVALID_SEGMENT);
 	}
-	
+
 	auto* format = resSettings->getResultFormatSettings();
 	uint32_t rWidth, rHeight;
 	if (format->getFormat() == "STD::DBIMG") {
@@ -32,7 +32,7 @@ torasu::ResultSegment* Rgain::renderSegment(torasu::ResultSegmentSettings* resSe
 
 	torasu::ExecutionInterface* ei = ri->getExecutionInterface();
 	torasu::RenderContext* rctx = ri->getRenderContext();
-	
+
 	// Creation of Requests
 
 	torasu::tools::RenderInstructionBuilder ribSrc;
@@ -50,7 +50,7 @@ torasu::ResultSegment* Rgain::renderSegment(torasu::ResultSegmentSettings* resSe
 
 	auto srcRes = srcHandle.getFrom(srcRndResult.get());
 	auto gainRes = gainHandle.getFrom(gainRndResult.get());
-	
+
 	torasu::tstd::Dbimg* srcImg = srcRes.getResult();
 
 	if (srcImg == NULL) {
@@ -68,10 +68,10 @@ torasu::ResultSegment* Rgain::renderSegment(torasu::ResultSegmentSettings* resSe
 	}
 
 	torasu::tstd::Dbimg* destImg = new torasu::tstd::Dbimg(rWidth, rHeight);
-	
+
 	uint8_t* srcData = srcImg->getImageData();
 	uint8_t* destData = destImg->getImageData();
-	
+
 	double buff;
 	for (uint32_t p = 0; p < rHeight*rWidth; p++) {
 		buff = gainVal*(*srcData);
@@ -90,7 +90,7 @@ torasu::ResultSegment* Rgain::renderSegment(torasu::ResultSegmentSettings* resSe
 		srcData++;
 		destData++;
 	}
-	
+
 	return new torasu::ResultSegment(torasu::ResultSegmentStatus_OK, destImg, true);
 
 }

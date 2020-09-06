@@ -67,17 +67,21 @@ void Rmedia_file::load(torasu::ExecutionInterface* ei) {
 
 
 torasu::RenderResult* Rmedia_file::render(torasu::RenderInstruction* ri) {
-
-	load(ri->getExecutionInterface());
+	torasu::ExecutionInterface* ei = ri->getExecutionInterface();
+	load(ei);
 
 	std::map<std::string, torasu::ResultSegment*>* results = new std::map<std::string, torasu::ResultSegment*>();
 
 	std::optional<std::string> videoKey;
 	torasu::tstd::Dbimg_FORMAT* videoFormat = NULL;
 	std::optional<std::string> audioKey;
+	std::set<std::string> propertiesToGet;
+	std::map<std::string, std::string> propertyMapping;
 
+	std::string currentPipeline;
 	for (torasu::ResultSegmentSettings* segmentSettings : *ri->getResultSettings()) {
-		if (segmentSettings->getPipeline() == TORASU_STD_PL_VIS) {
+		currentPipeline = segmentSettings->getPipeline();
+		if (currentPipeline == TORASU_STD_PL_VIS) {
 			videoKey = segmentSettings->getKey();
 			auto fmtSettings = segmentSettings->getResultFormatSettings();
 
@@ -88,12 +92,26 @@ torasu::RenderResult* Rmedia_file::render(torasu::RenderInstruction* ri) {
 				}
 			}
 
-		} else if (segmentSettings->getPipeline() == TORASU_STD_PL_AUDIO) {
+		} else if (currentPipeline == TORASU_STD_PL_AUDIO) {
 			audioKey = segmentSettings->getKey();
+		} else if (torasu::tools::isPropertyPipelineKey(currentPipeline)) {
+			auto propertyName = torasu::tools::pipelineKeyToPropertyKey(currentPipeline);
+			propertyMapping[propertyName] = segmentSettings->getKey();
+			propertiesToGet.insert(propertyName);
 		} else {
 			(*results)[segmentSettings->getKey()]
 				= new torasu::ResultSegment(torasu::ResultSegmentStatus_INVALID_SEGMENT);
 		}
+	}
+
+	torasu::RenderContext* rctx = ri->getRenderContext();
+
+	if (propertiesToGet.size() > 0) {
+		torasu::RenderableProperties* props = getProperties(
+				torasu::PropertyInstruction(&propertiesToGet, rctx, ei)
+											  );
+		torasu::tools::transferPropertiesToResults(props, propertyMapping, &propertiesToGet, results);
+		delete props;
 	}
 
 	if (videoKey.has_value() || audioKey.has_value()) {
@@ -101,7 +119,6 @@ torasu::RenderResult* Rmedia_file::render(torasu::RenderInstruction* ri) {
 		double time = 0;
 		double duration = 0;
 
-		torasu::RenderContext* rctx = ri->getRenderContext();
 		if (rctx != NULL) {
 			auto found = rctx->find(TORASU_STD_CTX_TIME);
 			if (found != rctx->end()) {
@@ -196,16 +213,14 @@ void Rmedia_file::setElement(std::string key, Element* elem) {
 	}
 }
 
-torasu::RenderableProperties* Rmedia_file::getProperties(torasu::PropertyInstruction* pi) {
+torasu::RenderableProperties* Rmedia_file::getProperties(torasu::PropertyInstruction pi) {
 	auto* props = new torasu::RenderableProperties();
-	auto* ei = pi->getExecutionInterface();
-	load(ei);
 
 	{
-		bool getWidth = pi->checkPopProperty(TORASU_STD_PROP_IMG_WIDTH);
-		bool getHeight = pi->checkPopProperty(TORASU_STD_PROP_IMG_HEIGHT);
-		bool getRatio = pi->checkPopProperty(TORASU_STD_PROP_IMG_RAITO);
-		
+		bool getWidth = pi.checkPopProperty(TORASU_STD_PROP_IMG_WIDTH);
+		bool getHeight = pi.checkPopProperty(TORASU_STD_PROP_IMG_HEIGHT);
+		bool getRatio = pi.checkPopProperty(TORASU_STD_PROP_IMG_RAITO);
+
 		if (getWidth || getHeight || getRatio) {
 
 			std::pair<int32_t, int32_t> dims = decoder->getDimensions();
@@ -230,7 +245,7 @@ torasu::RenderableProperties* Rmedia_file::getProperties(torasu::PropertyInstruc
 
 	}
 
-	if (pi->checkPopProperty(TORASU_STD_PROP_IMG_RAITO)) {
+	if (pi.checkPopProperty(TORASU_STD_PROP_DURATION)) {
 		(*props)[TORASU_STD_PROP_DURATION] = new torasu::tstd::Dnum(decoder->getDuration());
 	}
 

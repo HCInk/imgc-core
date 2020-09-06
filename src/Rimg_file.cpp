@@ -21,7 +21,7 @@ using namespace torasu::tstd;
 namespace imgc {
 
 Rimg_file::Rimg_file(Renderable* file)
-	: SimpleRenderable("STD::RIMG_FILE", false, true),
+	: SimpleRenderable("STD::RIMG_FILE", false, true, false),
 	  resHandle(rib.addSegmentWithHandle<Dfile>(TORASU_STD_PL_FILE, NULL)) {
 	this->rfile = file;
 }

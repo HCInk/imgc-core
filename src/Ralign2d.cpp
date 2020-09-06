@@ -10,7 +10,7 @@
 namespace imgc {
 
 Ralign2d::Ralign2d(Renderable* rndSrc, double posX, double posY, double zoomFactor, double imageRatio)
-	: torasu::tools::SimpleRenderable("IMGC::RALIGN2D", false, true),
+	: torasu::tools::SimpleRenderable("IMGC::RALIGN2D", false, true, false),
 	  rndSrc(rndSrc),
 	  posX(posX),
 	  posY(posY),
