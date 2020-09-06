@@ -6,6 +6,7 @@
 #include <torasu/render_tools.hpp>
 #include <torasu/std/pipeline_names.hpp>
 #include <torasu/std/context_names.hpp>
+#include <torasu/std/property_names.hpp>
 #include <torasu/std/EIcore_runner.hpp>
 #include <torasu/std/Dstring.hpp>
 #include <torasu/std/Dbimg.hpp>
@@ -406,6 +407,23 @@ void yetAnotherIMGCTest() {
 	EIcore_runner* runner = new EIcore_runner();
 	ExecutionInterface* ei = runner->createInterface();
 
+	// Some Properties
+
+	torasu::RenderableProperties* props = torasu::tools::getProperties(&video,
+		{TORASU_STD_PROP_DURATION, TORASU_STD_PROP_IMG_WIDTH, TORASU_STD_PROP_IMG_HEIGHT, TORASU_STD_PROP_IMG_RAITO}, 
+		ei);
+
+	auto* dataDuration = torasu::tools::getPropertyValue<torasu::tstd::Dnum>(props, TORASU_STD_PROP_DURATION);
+	double videoDuration = dataDuration->getNum();
+	auto* dataWidth = torasu::tools::getPropertyValue<torasu::tstd::Dnum>(props, TORASU_STD_PROP_IMG_WIDTH);
+	double videoWidth = dataWidth->getNum();
+	auto* dataHeight = torasu::tools::getPropertyValue<torasu::tstd::Dnum>(props, TORASU_STD_PROP_IMG_HEIGHT);
+	double videoHeight = dataHeight->getNum();
+	auto* dataRatio = torasu::tools::getPropertyValue<torasu::tstd::Dnum>(props, TORASU_STD_PROP_IMG_RAITO);
+	double videoRatio = dataRatio->getNum();
+	delete props;
+	std::cout << "VID DUR " << videoDuration << " SIZE " << videoWidth << "x" << videoHeight << " (" << videoRatio << ")"<< std::endl;
+
 	// Building Instruction
 
 	tools::RenderInstructionBuilder rib;
@@ -418,12 +436,13 @@ void yetAnotherIMGCTest() {
 
 	// double frameTimes[] = {0.1, 2, 4, 2.5, 5.1, 5.1, 5.14, 5.18, 5.22};
 	// int frameCount = sizeof(frameTimes) / sizeof(double);
-	int frameCount = 25*4;
+	double fps = 25;
+	int frameCount = fps*videoDuration;
 	double frameTimes[frameCount];
 
 
 	for (int i = 0; i < frameCount; i++) {
-		frameTimes[i] = (double) i/25;
+		frameTimes[i] = (double) i/fps;
 	}
 
 	extools::TaskPool saver(10);

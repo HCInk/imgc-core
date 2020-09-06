@@ -182,6 +182,18 @@ MediaDecoder::~MediaDecoder() {
 
 }
 
+std::pair<int32_t, int32_t> MediaDecoder::getDimensions() {
+	StreamEntry* stream = getStreamEntryByIndex(video_stream_index);
+	if (stream == nullptr) {
+		return std::pair<int32_t, int32_t>(-1, -1);
+	}
+	return std::pair<int32_t, int32_t>(stream->ctx->width, stream->ctx->height); 
+}
+
+double MediaDecoder::getDuration() {
+	return (double) av_format_ctx->duration / AV_TIME_BASE;
+}
+
 void MediaDecoder::flushBuffers(StreamEntry* entry) {
 	avcodec_flush_buffers(entry->ctx);
 	entry->cachedFrames.clear();

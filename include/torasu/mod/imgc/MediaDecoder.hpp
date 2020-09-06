@@ -6,6 +6,7 @@
 #define IMGC_MEDIADECODER_HPP
 
 #include <vector>
+#include <utility>
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -93,6 +94,9 @@ public:
 	~MediaDecoder();
 
 	void getSegment(SegmentRequest request);
+
+	std::pair<int32_t, int32_t> getDimensions();
+	double getDuration();
 
 	struct FileReader {
 		uint8_t* data;

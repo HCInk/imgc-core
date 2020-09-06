@@ -6,6 +6,7 @@
 #include <torasu/render_tools.hpp>
 #include <torasu/std/pipeline_names.hpp>
 #include <torasu/std/context_names.hpp>
+#include <torasu/std/property_names.hpp>
 #include <torasu/std/Dnum.hpp>
 #include <torasu/std/Dfile.hpp>
 #include <torasu/std/Dbimg.hpp>
@@ -195,8 +196,46 @@ void Rmedia_file::setElement(std::string key, Element* elem) {
 	}
 }
 
-torasu::RenderableProperties* Rmedia_file::getProperties() {
-	return new torasu::RenderableProperties();
+torasu::RenderableProperties* Rmedia_file::getProperties(torasu::PropertyInstruction* pi) {
+	auto* props = new torasu::RenderableProperties();
+	auto* ei = pi->getExecutionInterface();
+	auto requestedProperties = pi->getRequestedProperties();
+	load(ei);
+
+	{
+		bool getWidth = requestedProperties.contains(TORASU_STD_PROP_IMG_WIDTH);
+		bool getHeight = requestedProperties.contains(TORASU_STD_PROP_IMG_HEIGHT);
+		bool getRatio = requestedProperties.contains(TORASU_STD_PROP_IMG_RAITO);
+		
+		if (getWidth || getHeight || getRatio) {
+
+			std::pair<int32_t, int32_t> dims = decoder->getDimensions();
+
+			if (dims.first > 0) {
+
+				if (getWidth) {
+					(*props)[TORASU_STD_PROP_IMG_WIDTH] = new torasu::tstd::Dnum(dims.first);
+				}
+
+				if (getHeight) {
+					(*props)[TORASU_STD_PROP_IMG_HEIGHT] = new torasu::tstd::Dnum(dims.second);
+				}
+
+				if (getRatio) {
+					(*props)[TORASU_STD_PROP_IMG_RAITO] = new torasu::tstd::Dnum( (double) dims.first / dims.second );
+				}
+
+			}
+
+		}
+
+	}
+
+	if (requestedProperties.contains(TORASU_STD_PROP_DURATION)) {
+		(*props)[TORASU_STD_PROP_DURATION] = new torasu::tstd::Dnum(decoder->getDuration());
+	}
+
+	return props;
 }
 
 }

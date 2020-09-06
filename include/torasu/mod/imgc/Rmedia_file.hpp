@@ -32,7 +32,7 @@ public:
 
 	std::map<std::string, torasu::Element*> getElements() override;
 	void setElement(std::string key, torasu::Element* elem) override;
-	torasu::RenderableProperties* getProperties();
+	torasu::RenderableProperties* getProperties(torasu::PropertyInstruction* pi);
 
 };
 
