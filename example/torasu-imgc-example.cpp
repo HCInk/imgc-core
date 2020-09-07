@@ -410,17 +410,17 @@ void yetAnotherIMGCTest() {
 	// Some Properties
 
 	torasu::RenderableProperties* props = torasu::tools::getProperties(&video,
-		{TORASU_STD_PROP_DURATION, TORASU_STD_PROP_IMG_WIDTH, TORASU_STD_PROP_IMG_HEIGHT, TORASU_STD_PROP_IMG_RAITO}, 
+		{TORASU_STD_PROP_DURATION, TORASU_STD_PROP_IMG_WIDTH, TORASU_STD_PROP_IMG_HEIGHT, TORASU_STD_PROP_IMG_RAITO},
 		ei);
 
 	auto* dataDuration = torasu::tools::getPropertyValue<torasu::tstd::Dnum>(props, TORASU_STD_PROP_DURATION);
-	double videoDuration = dataDuration->getNum();
+	double videoDuration = dataDuration ? dataDuration->getNum() : 0;
 	auto* dataWidth = torasu::tools::getPropertyValue<torasu::tstd::Dnum>(props, TORASU_STD_PROP_IMG_WIDTH);
-	double videoWidth = dataWidth->getNum();
+	double videoWidth = dataWidth ? dataWidth->getNum() : 0;
 	auto* dataHeight = torasu::tools::getPropertyValue<torasu::tstd::Dnum>(props, TORASU_STD_PROP_IMG_HEIGHT);
-	double videoHeight = dataHeight->getNum();
+	double videoHeight = dataHeight ? dataHeight->getNum() : 0;
 	auto* dataRatio = torasu::tools::getPropertyValue<torasu::tstd::Dnum>(props, TORASU_STD_PROP_IMG_RAITO);
-	double videoRatio = dataRatio->getNum();
+	double videoRatio = dataRatio ? dataRatio->getNum() : 0;
 	delete props;
 	std::cout << "VID DUR " << videoDuration << " SIZE " << videoWidth << "x" << videoHeight << " (" << videoRatio << ")"<< std::endl;
 

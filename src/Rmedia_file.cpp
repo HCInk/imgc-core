@@ -75,8 +75,6 @@ torasu::RenderResult* Rmedia_file::render(torasu::RenderInstruction* ri) {
 	std::optional<std::string> videoKey;
 	torasu::tstd::Dbimg_FORMAT* videoFormat = NULL;
 	std::optional<std::string> audioKey;
-	std::set<std::string> propertiesToGet;
-	std::map<std::string, std::string> propertyMapping;
 
 	std::string currentPipeline;
 	for (torasu::ResultSegmentSettings* segmentSettings : *ri->getResultSettings()) {
@@ -94,10 +92,28 @@ torasu::RenderResult* Rmedia_file::render(torasu::RenderInstruction* ri) {
 
 		} else if (currentPipeline == TORASU_STD_PL_AUDIO) {
 			audioKey = segmentSettings->getKey();
-		} else if (torasu::tools::isPropertyPipelineKey(currentPipeline)) {
-			auto propertyName = torasu::tools::pipelineKeyToPropertyKey(currentPipeline);
-			propertyMapping[propertyName] = segmentSettings->getKey();
-			propertiesToGet.insert(propertyName);
+		} else if (torasu::isPipelineKeyPropertyKey(currentPipeline)) { // optional so properties get skipped if it is no property
+			if (currentPipeline == TORASU_PROPERTY(TORASU_STD_PROP_IMG_WIDTH)) {
+				std::pair<int32_t, int32_t> dims = decoder->getDimensions();
+				(*results)[segmentSettings->getKey()]
+					= new torasu::ResultSegment(torasu::ResultSegmentStatus_OK, new torasu::tstd::Dnum(dims.first), true);
+			} else if (currentPipeline == TORASU_PROPERTY(TORASU_STD_PROP_IMG_HEIGHT)) {
+				std::pair<int32_t, int32_t> dims = decoder->getDimensions();
+				(*results)[segmentSettings->getKey()]
+					= new torasu::ResultSegment(torasu::ResultSegmentStatus_OK, new torasu::tstd::Dnum(dims.second), true);
+			} else if (currentPipeline == TORASU_PROPERTY(TORASU_STD_PROP_IMG_RAITO)) {
+				std::pair<int32_t, int32_t> dims = decoder->getDimensions();
+				(*results)[segmentSettings->getKey()]
+					= new torasu::ResultSegment(torasu::ResultSegmentStatus_OK, new torasu::tstd::Dnum((double) dims.first / dims.second), true);
+			} else if (currentPipeline == TORASU_PROPERTY(TORASU_STD_PROP_DURATION)) {
+				double duration = decoder->getDuration();
+				(*results)[segmentSettings->getKey()]
+					= new torasu::ResultSegment(torasu::ResultSegmentStatus_OK, new torasu::tstd::Dnum(duration), true);
+			} else {
+				// Unsupported Property
+				(*results)[segmentSettings->getKey()]
+					= new torasu::ResultSegment(torasu::ResultSegmentStatus_INVALID_SEGMENT);
+			}
 		} else {
 			(*results)[segmentSettings->getKey()]
 				= new torasu::ResultSegment(torasu::ResultSegmentStatus_INVALID_SEGMENT);
@@ -105,14 +121,6 @@ torasu::RenderResult* Rmedia_file::render(torasu::RenderInstruction* ri) {
 	}
 
 	torasu::RenderContext* rctx = ri->getRenderContext();
-
-	if (propertiesToGet.size() > 0) {
-		torasu::RenderableProperties* props = getProperties(
-				torasu::PropertyInstruction(&propertiesToGet, rctx, ei)
-											  );
-		torasu::tools::transferPropertiesToResults(props, propertyMapping, &propertiesToGet, results);
-		delete props;
-	}
 
 	if (videoKey.has_value() || audioKey.has_value()) {
 
@@ -213,43 +221,5 @@ void Rmedia_file::setElement(std::string key, Element* elem) {
 	}
 }
 
-torasu::RenderableProperties* Rmedia_file::getProperties(torasu::PropertyInstruction pi) {
-	auto* props = new torasu::RenderableProperties();
-
-	{
-		bool getWidth = pi.checkPopProperty(TORASU_STD_PROP_IMG_WIDTH);
-		bool getHeight = pi.checkPopProperty(TORASU_STD_PROP_IMG_HEIGHT);
-		bool getRatio = pi.checkPopProperty(TORASU_STD_PROP_IMG_RAITO);
-
-		if (getWidth || getHeight || getRatio) {
-
-			std::pair<int32_t, int32_t> dims = decoder->getDimensions();
-
-			if (dims.first > 0) {
-
-				if (getWidth) {
-					(*props)[TORASU_STD_PROP_IMG_WIDTH] = new torasu::tstd::Dnum(dims.first);
-				}
-
-				if (getHeight) {
-					(*props)[TORASU_STD_PROP_IMG_HEIGHT] = new torasu::tstd::Dnum(dims.second);
-				}
-
-				if (getRatio) {
-					(*props)[TORASU_STD_PROP_IMG_RAITO] = new torasu::tstd::Dnum( (double) dims.first / dims.second );
-				}
-
-			}
-
-		}
-
-	}
-
-	if (pi.checkPopProperty(TORASU_STD_PROP_DURATION)) {
-		(*props)[TORASU_STD_PROP_DURATION] = new torasu::tstd::Dnum(decoder->getDuration());
-	}
-
-	return props;
-}
 
 }

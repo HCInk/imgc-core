@@ -6,7 +6,7 @@
 namespace imgc {
 
 Rgain::Rgain(Renderable* src, Renderable* gainVal)
-	: SimpleRenderable("IMGC::RGAIN", false, true, false),
+	: SimpleRenderable("IMGC::RGAIN", false, true),
 	  rSrc(src), rGainVal(gainVal) {}
 
 Rgain::~Rgain() {}

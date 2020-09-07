@@ -79,7 +79,7 @@ int64_t SeekFunc(void* ptr, int64_t pos, int whence) {
 namespace imgc {
 
 
-VideoLoader::VideoLoader(torasu::Renderable* source) : tools::SimpleRenderable("Rvideo_file", false, true, false) {
+VideoLoader::VideoLoader(torasu::Renderable* source) : tools::SimpleRenderable("Rvideo_file", false, true) {
 	this->source = source;
 	current_fp.loaded = false;
 
