@@ -11,7 +11,7 @@ class Dcropdata : public torasu::DataPackable {
 private:
 	const std::string ident = std::string("IMGC::DCROPDATA");
 
-		double offLeft, offRight, offTop, offBottom;
+	double offLeft, offRight, offTop, offBottom;
 
 public:
 	explicit Dcropdata(std::string jsonStripped);
