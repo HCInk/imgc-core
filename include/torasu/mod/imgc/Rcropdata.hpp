@@ -22,7 +22,7 @@ protected:
 	virtual torasu::ResultSegment* renderSegment(torasu::ResultSegmentSettings* resSettings, torasu::RenderInstruction* ri);
 
 public:
-	explicit Rcropdata(Dcropdata* val);
+	explicit Rcropdata(Dcropdata val);
 	virtual ~Rcropdata();
 
 	virtual torasu::DataResource* getData();

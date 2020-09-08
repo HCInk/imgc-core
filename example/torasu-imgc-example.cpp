@@ -25,6 +25,8 @@
 #include <torasu/mod/imgc/Rmedia_file.hpp>
 #include <torasu/mod/imgc/Ralign2d.hpp>
 #include <torasu/mod/imgc/Rgain.hpp>
+#include <torasu/mod/imgc/Dcropdata.hpp>
+#include <torasu/mod/imgc/Rcropdata.hpp>
 
 #include "example_tools.hpp"
 
@@ -349,6 +351,49 @@ void yetAnotherIMGCTest() {
 
 }
 
+void cropdataExample() {
+	
+	//
+	// Cropdata Example
+	//
+
+	std::cout << "//" << std::endl
+		 << "// Cropdata Example" << std::endl
+		 << "//" << std::endl;
+
+	// Creating "tree" to be rendered
+
+	imgc::Dcropdata cropdata(0.2, 0.1, 0.3, 0.4);
+
+	imgc::Rcropdata tree(cropdata);
+
+	// Creating the runner
+
+	torasu::tstd::EIcore_runner runner;
+
+	torasu::ExecutionInterface* ei = runner.createInterface();
+
+	// Creating instruction
+
+	torasu::tools::RenderInstructionBuilder rib;
+
+	auto handle = rib.addSegmentWithHandle<imgc::Dcropdata>(IMGC_PL_ALIGN, NULL);
+
+	// Running render based on instruction
+
+	torasu::RenderResult* rr = rib.runRender(&tree, NULL, ei);
+
+	// Finding results
+
+	auto result = handle.getFrom(rr);
+	std::cout << "CROPDATA : " << result.getResult()->getSerializedJson() << std::endl;
+
+	// Cleaning
+
+	delete rr;
+	delete ei;
+}
+
 }  // namespace imgc::examples
 
 int main(int argc, char** argv) {
@@ -358,7 +403,8 @@ int main(int argc, char** argv) {
 	// audioTest();
 	// videoTest();
 	// example_sdl::main(argc, argv);
-	examples::yetAnotherIMGCTest();
+	// examples::yetAnotherIMGCTest();
+	examples::cropdataExample();
 
 	return 0;
 }

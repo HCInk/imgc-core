@@ -15,18 +15,22 @@ Dcropdata::Dcropdata(double offLeft, double offRight, double offTop, double offB
 
 
 double Dcropdata::getOffLeft() {
+	ensureLoaded();
 	return offLeft;
 }
 
 double Dcropdata::getOffRight() {
+	ensureLoaded();
 	return offRight;
 }
 
 double Dcropdata::getOffTop() {
+	ensureLoaded();
 	return offTop;
 }
 
 double Dcropdata::getOffBottom() {
+	ensureLoaded();
 	return offBottom;
 }
 
@@ -41,7 +45,6 @@ void Dcropdata::load() {
 	offTop = json["t"];
 	offBottom = json["b"];
 }
-
 
 json Dcropdata::makeJson() {
 	json madeJson;
