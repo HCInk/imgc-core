@@ -1,5 +1,6 @@
 #include <iostream>
 #include <iomanip>
+#include <fstream>
 
 #include <lodepng.h>
 #include <torasu/torasu.hpp>
@@ -18,7 +19,6 @@
 #include <torasu/std/Rnum.hpp>
 
 #include <torasu/mod/imgc/Rimg_file.hpp>
-#include <torasu/mod/imgc/Rvideo_file.hpp>
 #include <torasu/mod/imgc/MediaDecoder.hpp>
 #include <torasu/mod/imgc/Rmedia_file.hpp>
 #include <torasu/mod/imgc/Ralign2d.hpp>
@@ -138,173 +138,6 @@ void netImageTest() {
 	delete ei;
 	delete runner;
 }
-
-void avTest() {
-	cout << "ello avTest()" << endl;
-
-	EIcore_runner* runner = new EIcore_runner();
-	ExecutionInterface* ei = runner->createInterface();
-
-	//Rlocal_file file("test-res/in.mp4");
-
-	Rnet_file file("https://cdn.discordapp.com/attachments/598323767202152458/666010465809465410/8807502_Bender_and_penguins.mp4");
-	imgc::VideoLoader tree(&file);
-
-	tools::RenderInstructionBuilder rib;
-
-	Dbimg_FORMAT format(1340, 1200);
-	//Dbimg_FORMAT format(1600, 812);
-
-	auto rf = format.asFormat();
-
-	auto handle = rib.addSegmentWithHandle<Dbimg>(TORASU_STD_PL_VIS, &rf);
-	std::chrono::steady_clock::time_point benchStep, benchEnd, benchBegin;
-	for (int i = 0; i < 100; i++) {
-
-		cout << "RENDER BEGIN" << endl;
-
-		benchBegin = std::chrono::steady_clock::now();
-		benchStep = std::chrono::steady_clock::now();
-
-		Dnum timeBuf((double)i/25);
-
-		RenderContext rctx;
-		rctx[TORASU_STD_CTX_TIME] = &timeBuf;
-
-		auto result = rib.runRender(&tree, &rctx, ei);
-
-		benchEnd = std::chrono::steady_clock::now();
-		std::cout << "  Render Time = " << std::chrono::duration_cast<std::chrono::milliseconds>(benchEnd - benchStep).count() << "[ms]" << std::endl;
-
-		benchStep = std::chrono::steady_clock::now();
-
-		auto castedRes = handle.getFrom(result);
-
-		ResultSegmentStatus rss = castedRes.getStatus();
-
-		cout << "STATUS " << rss << endl;
-
-		if (rss >= ResultSegmentStatus::ResultSegmentStatus_OK) {
-			// Dbimg* bimg = castedRes.getResult();
-			// int width = bimg->getWidth();
-			// int height = bimg->getHeight();
-
-			// stringstream out_name;
-			// out_name << "test-res/out";
-			// out_name << std::setfill('0') << std::setw(5) << i;
-			// out_name << ".png";
-
-			// uint8_t* imgData = bimg->getImageData();
-			// size_t imgSize = bimg->getHeight()*bimg->getWidth()*4;
-
-			// vector<uint8_t> lpngVec(imgSize);
-
-			// unsigned error = lodepng::encode(out_name.str(), imgData, width, height);
-			// cerr << "ENCODE STAT[" << i << "] " << error << endl;
-			//delete[] t;
-			//delete[] z;
-		}
-
-		benchEnd = std::chrono::steady_clock::now();
-		std::cout << "  Unpack Time = " << std::chrono::duration_cast<std::chrono::milliseconds>(benchEnd - benchStep).count() << "[ms]" << std::endl;
-
-		benchStep = std::chrono::steady_clock::now();
-
-		delete result;
-
-		benchEnd = std::chrono::steady_clock::now();
-		std::cout << "  Delete Time = " << std::chrono::duration_cast<std::chrono::milliseconds>(benchEnd - benchStep).count() << "[ms]" << std::endl;
-
-		std::cout << "Total Time = " << std::chrono::duration_cast<std::chrono::milliseconds>(benchEnd - benchBegin).count() << "[ms]" << std::endl;
-
-		cout << "RENDER FIN" << endl;
-	}
-
-	// tree.load(ei);
-	// tree.video_decode_example();
-	//tree.debugPackets();
-
-	delete ei;
-	delete runner;
-}
-
-
-void anotherIMGCTest() {
-
-	// Tree building
-
-	Rnet_file file("https://cdn.discordapp.com/attachments/598323767202152458/666010465809465410/8807502_Bender_and_penguins.mp4");
-	// Rnet_file file("https://cdn.discordapp.com/attachments/598323767202152458/666010465809465410/8807502_Bender_and_penguins.mp4");
-	// Rlocal_file file("/home/cedric/git/imgc/test-res/in.mp4");
-	imgc::VideoLoader tree(&file);
-
-	// Creating Engine
-
-	EIcore_runner* runner = new EIcore_runner();
-	ExecutionInterface* ei = runner->createInterface();
-
-	// Building Instruction
-
-	tools::RenderInstructionBuilder rib;
-	Dbimg_FORMAT format(1340, 1200);
-	auto rf = format.asFormat();
-	auto handle = rib.addSegmentWithHandle<Dbimg>(TORASU_STD_PL_VIS, &rf);
-
-	// Rendering Results
-
-	double frameTimes[] = {0.1, 2, 4, 2.5, 5.1};
-	int frameCount = sizeof(frameTimes) / sizeof(double);
-
-	cout << frameCount << " FRAMES TO RENDER!" << endl;
-
-	for (int i = 0; i < frameCount; i++) {
-
-		double frameTime = frameTimes[i];
-
-		cout << "===== FRAME " << i << " @ " << frameTime << " =====" << endl;
-
-		// Creating RenderContext
-		Dnum timeBuf(frameTime);
-		RenderContext rctx;
-		rctx[TORASU_STD_CTX_TIME] = &timeBuf;
-
-		// Render Result
-		auto result = rib.runRender(&tree, &rctx, ei);
-
-		// Evaluate Result
-
-		auto castedRes = handle.getFrom(result);
-		ResultSegmentStatus rss = castedRes.getStatus();
-
-		cout << "STATUS " << rss << endl;
-
-		if (rss >= ResultSegmentStatus::ResultSegmentStatus_OK) {
-			Dbimg* bimg = castedRes.getResult();
-			int width = bimg->getWidth();
-			int height = bimg->getHeight();
-
-			stringstream out_name;
-			out_name << "test-res/out";
-			out_name << std::setfill('0') << std::setw(5) << i;
-			out_name << ".png";
-
-			unsigned error = lodepng::encode(out_name.str(), bimg->getImageData(), width, height);
-			if (error) {
-				cerr << "ENCODE STAT[" << i << "] " << lodepng_error_text(error) << endl;
-			}
-		}
-
-		delete result;
-	}
-
-
-	// Cleanup
-
-	delete ei;
-	delete runner;
-
-}
-
 
 #include "example_tools.hpp"
 
