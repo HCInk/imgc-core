@@ -394,6 +394,64 @@ void cropdataExample() {
 	delete ei;
 }
 
+
+void cropExample() {
+	
+	//
+	// Crop Example
+	//
+
+	std::cout << "//" << std::endl
+		 << "// Crop Example" << std::endl
+		 << "//" << std::endl;
+
+	// Creating "tree" to be rendered
+
+	torasu::tstd::Rnet_file file("https://assets.gitlab-static.net/uploads/-/system/project/avatar/14033279/TorasuLogo2Color.png");
+	Rimg_file image(&file);
+
+	imgc::Rcropdata cropdata(imgc::Dcropdata(0.1, -0.3, 0.3, -0.3));
+
+	imgc::Ralign2d tree(&image, &cropdata);
+
+	// Creating the runner
+
+	torasu::tstd::EIcore_runner runner;
+
+	torasu::ExecutionInterface* ei = runner.createInterface();
+
+	// Creating instruction
+
+	torasu::tools::RenderInstructionBuilder rib;
+
+	torasu::tstd::Dbimg_FORMAT format(400, 400);
+	auto rf = format.asFormat();
+
+	auto handle = rib.addSegmentWithHandle<torasu::tstd::Dbimg>(TORASU_STD_PL_VIS, &rf);
+
+	// Running render based on instruction
+
+	torasu::RenderResult* rr = rib.runRender(&tree, NULL, ei);
+
+	// Finding results
+
+	auto result = handle.getFrom(rr);
+	std::cout << "RESULT STAT " << result.getStatus() << std::endl;
+	auto* bimg = result.getResult();
+	unsigned error = lodepng::encode("test-res/out.png", bimg->getImageData(), bimg->getWidth(), bimg->getHeight());
+	if (error) {
+		std::cerr << "ENCODE ERROR " << error << ": " << lodepng_error_text(error) << std::endl;
+	} else {
+		std::cout << "ENCODE OK" << std::endl;
+	}
+
+	// Cleaning
+
+	delete rr;
+	delete ei;
+
+}
+
 }  // namespace imgc::examples
 
 int main(int argc, char** argv) {
@@ -404,7 +462,8 @@ int main(int argc, char** argv) {
 	// videoTest();
 	// example_sdl::main(argc, argv);
 	// examples::yetAnotherIMGCTest();
-	examples::cropdataExample();
+	// examples::cropdataExample();
+	examples::cropExample();
 
 	return 0;
 }
