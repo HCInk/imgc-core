@@ -6,6 +6,8 @@
 #include <torasu/render_tools.hpp>
 
 #include <torasu/std/pipeline_names.hpp>
+#include <torasu/std/context_names.hpp>
+#include <torasu/std/Dnum.hpp>
 #include <torasu/std/Dbimg.hpp>
 
 #include <torasu/mod/imgc/pipeline_names.hpp>
@@ -89,7 +91,7 @@ void Ralign2d::calcAlign(double posX, double posY, double zoomFactor, bool autoR
 
 }
 
-void Ralign2d::calcAlign(Renderable* alignmentProvider, torasu::ExecutionInterface* ei,
+void Ralign2d::calcAlign(Renderable* alignmentProvider, torasu::ExecutionInterface* ei, torasu::RenderContext* rctx,
 				   uint32_t destWidth, uint32_t destHeight,
 				   Ralign2d_CROPDATA& outCropData) const {
 	
@@ -100,7 +102,7 @@ void Ralign2d::calcAlign(Renderable* alignmentProvider, torasu::ExecutionInterfa
 
 	// Running render based on instruction
 
-	torasu::RenderResult* rr = rib.runRender(alignmentProvider, NULL, ei);
+	torasu::RenderResult* rr = rib.runRender(alignmentProvider, rctx, ei);
 
 	// Finding results
 
@@ -203,18 +205,26 @@ torasu::ResultSegment* Ralign2d::renderSegment(torasu::ResultSegmentSettings* re
 		Ralign2d_CROPDATA cropData;
 
 		if (rndAlign != nullptr) {
-			calcAlign(rndAlign, ei, fmt->getWidth(), fmt->getHeight(), cropData);
+			calcAlign(rndAlign, ei, rctx, fmt->getWidth(), fmt->getHeight(), cropData);
 		} else {
 			calcAlign(posX, posY, zoomFactor, autoRatio, imageRatio,
 					fmt->getWidth(), fmt->getHeight(),
 					cropData);
 		}
 
+		// Format creation
+
 		torasu::tstd::Dbimg_FORMAT srcFmt(cropData.srcWidth, cropData.srcHeight);
 
 		auto fmtHandle = srcFmt.asFormat();
 
 		torasu::tools::RenderResultSegmentHandle<torasu::tstd::Dbimg> resHandle = rib.addSegmentWithHandle<torasu::tstd::Dbimg>(TORASU_STD_PL_VIS, &fmtHandle);
+
+		// Render-context modification
+
+		torasu::RenderContext modRctx(*rctx); // Create copy of the render context
+		torasu::tstd::Dnum ratio((double)cropData.srcWidth/cropData.srcHeight);
+		modRctx[TORASU_STD_CTX_IMG_RATIO] = &ratio;
 
 		// Sub-Renderings
 		auto srcRndId = rib.enqueueRender(rndSrc, rctx, ei);

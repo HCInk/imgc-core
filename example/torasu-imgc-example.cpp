@@ -24,6 +24,7 @@
 #include <torasu/mod/imgc/MediaDecoder.hpp>
 #include <torasu/mod/imgc/Rmedia_file.hpp>
 #include <torasu/mod/imgc/Ralign2d.hpp>
+#include <torasu/mod/imgc/Rauto_align2d.hpp>
 #include <torasu/mod/imgc/Rgain.hpp>
 #include <torasu/mod/imgc/Dcropdata.hpp>
 #include <torasu/mod/imgc/Rcropdata.hpp>
@@ -410,9 +411,9 @@ void cropExample() {
 	torasu::tstd::Rnet_file file("https://assets.gitlab-static.net/uploads/-/system/project/avatar/14033279/TorasuLogo2Color.png");
 	Rimg_file image(&file);
 
-	imgc::Rcropdata cropdata(imgc::Dcropdata(0.1, -0.3, 0.3, -0.3));
+	// imgc::Rcropdata cropdata(imgc::Dcropdata(0.1, -0.3, 0.3, -0.3));
 
-	imgc::Ralign2d tree(&image, &cropdata);
+	imgc::Rauto_align2d tree(&image, 0, 0, 1);
 
 	// Creating the runner
 
@@ -424,14 +425,21 @@ void cropExample() {
 
 	torasu::tools::RenderInstructionBuilder rib;
 
-	torasu::tstd::Dbimg_FORMAT format(400, 400);
+	torasu::tstd::Dbimg_FORMAT format(500, 500); // Works
+	// torasu::tstd::Dbimg_FORMAT format(500, 600); // Fails
 	auto rf = format.asFormat();
 
 	auto handle = rib.addSegmentWithHandle<torasu::tstd::Dbimg>(TORASU_STD_PL_VIS, &rf);
 
+	// Creating render-context
+
+	torasu::RenderContext rctx;
+	torasu::tstd::Dnum ratio((double) format.getWidth() / format.getHeight());
+	rctx[TORASU_STD_CTX_IMG_RATIO] = &ratio;
+
 	// Running render based on instruction
 
-	torasu::RenderResult* rr = rib.runRender(&tree, NULL, ei);
+	torasu::RenderResult* rr = rib.runRender(&tree, &rctx, ei);
 
 	// Finding results
 
