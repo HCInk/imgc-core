@@ -259,6 +259,7 @@ std::map<std::string, torasu::Element*> Ralign2d::getElements() {
 	std::map<std::string, torasu::Element*> elems;
 
 	elems["src"] = rndSrc;
+	elems["align"] = rndAlign;
 
 	return elems;
 }
@@ -275,6 +276,19 @@ void Ralign2d::setElement(std::string key, torasu::Element* elem) {
 			return;
 		} else {
 			throw std::invalid_argument("Element slot \"src\" only accepts Renderables!");
+		}
+
+	} else if (key.compare("align") == 0) {
+
+		if (elem == nullptr) {
+			// throw std::invalid_argument("Element slot \"align\" may not be empty!");
+			rndAlign = nullptr;
+			return;
+		} else if (torasu::Renderable* rnd = dynamic_cast<torasu::Renderable*>(elem)) {
+			rndAlign = rnd;
+			return;
+		} else {
+			throw std::invalid_argument("Element slot \"align\" only accepts Renderables!");
 		}
 
 	} else {
