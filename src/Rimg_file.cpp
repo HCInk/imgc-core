@@ -9,8 +9,10 @@
 #include <torasu/torasu.hpp>
 #include <torasu/render_tools.hpp>
 #include <torasu/std/pipeline_names.hpp>
+#include <torasu/std/property_names.hpp>
 #include <torasu/std/Dstring.hpp>
 #include <torasu/std/Dbimg.hpp>
+#include <torasu/std/Dnum.hpp>
 #include <torasu/std/Dfile.hpp>
 #include <torasu/mod/imgc/Scaler.hpp>
 
@@ -28,8 +30,46 @@ Rimg_file::Rimg_file(Renderable* file)
 
 Rimg_file::~Rimg_file() {}
 
+void Rimg_file::load(torasu::RenderContext* rctx, torasu::ExecutionInterface* ei) {
+
+	loadLock.lock();
+
+	if (!loaded) {
+
+		RenderResult* fileRenderResult = rib.runRender(rfile, rctx, ei);
+
+		auto fileRes = resHandle.getFrom(fileRenderResult);
+
+		if (fileRes.getStatus() < ResultSegmentStatus_OK) {
+			// Stop because of file-render-error
+			throw std::runtime_error("Failed to fetch source-file");
+		}
+
+		Dfile* file = fileRes.getResult();
+
+		uint32_t error = lodepng::decode(loadedImage, srcWidth, srcHeight, file->getFileData(), file->getFileSize());
+
+		delete fileRenderResult;
+
+		if (error) {
+			// Stop because file-decoding error
+			throw std::runtime_error(std::string("DECODE ERROR #") + std::to_string(error));
+		}
+
+		loaded = true;
+	}
+
+	loadLock.unlock();
+}
+
 ResultSegment* Rimg_file::renderSegment(ResultSegmentSettings* resSettings, RenderInstruction* ri) {
-	if (resSettings->getPipeline().compare(TORASU_STD_PL_VIS) == 0) {
+	
+	auto ei = ri->getExecutionInterface();
+	auto rctx = ri->getRenderContext();
+
+	std::string currentPipeline = resSettings->getPipeline();
+
+	if (currentPipeline == TORASU_STD_PL_VIS) {
 		auto format = resSettings->getResultFormatSettings();
 		if (format == NULL || format->getFormat().compare("STD::DBIMG") == 0) {
 			int32_t rWidth, rHeight;
@@ -47,39 +87,7 @@ ResultSegment* Rimg_file::renderSegment(ResultSegmentSettings* resSettings, Rend
 				cout << "RIMG RENDER " << rWidth << "x" << rHeight << endl;
 			}
 
-
-			auto ei = ri->getExecutionInterface();
-			auto rctx = ri->getRenderContext();
-
-			loadLock.lock();
-
-			if (!loaded) {
-
-				RenderResult* fileRenderResult = rib.runRender(rfile, rctx, ei);
-
-				auto fileRes = resHandle.getFrom(fileRenderResult);
-
-				if (fileRes.getStatus() < ResultSegmentStatus_OK) {
-					// Stop because of file-render-error
-					return new ResultSegment(ResultSegmentStatus_INTERNAL_ERROR);
-				}
-
-				Dfile* file = fileRes.getResult();
-
-				uint32_t error = lodepng::decode(loadedImage, srcWidth, srcHeight, file->getFileData(), file->getFileSize());
-
-				delete fileRenderResult;
-
-				cout << "DECODE STATUS " << error << endl;
-				if (error) {
-					// Stop because file-decoding error
-					return new ResultSegment(ResultSegmentStatus_INTERNAL_ERROR);
-				}
-
-				loaded = true;
-			}
-
-			loadLock.unlock();
+			load(rctx, ei);
 
 			if (rWidth == 0 || rHeight == 0) {
 				return new ResultSegment(ResultSegmentStatus_OK, new Dbimg(rWidth, rHeight), true);
@@ -101,6 +109,20 @@ ResultSegment* Rimg_file::renderSegment(ResultSegmentSettings* resSettings, Rend
 			return new ResultSegment(ResultSegmentStatus_INVALID_FORMAT);
 		}
 
+	} else if (torasu::isPipelineKeyPropertyKey(currentPipeline)) { // optional so properties get skipped if it is no property
+		if (currentPipeline == TORASU_PROPERTY(TORASU_STD_PROP_IMG_WIDTH)) {
+			load(rctx, ei);
+			return new torasu::ResultSegment(torasu::ResultSegmentStatus_OK, new torasu::tstd::Dnum(srcWidth), true);
+		} else if (currentPipeline == TORASU_PROPERTY(TORASU_STD_PROP_IMG_HEIGHT)) {
+			load(rctx, ei);
+			return new torasu::ResultSegment(torasu::ResultSegmentStatus_OK, new torasu::tstd::Dnum(srcHeight), true);
+		} else if (currentPipeline == TORASU_PROPERTY(TORASU_STD_PROP_IMG_RAITO)) {
+			load(rctx, ei);
+			return new torasu::ResultSegment(torasu::ResultSegmentStatus_OK, new torasu::tstd::Dnum((double) srcWidth / srcHeight), true);
+		} else {
+			// Unsupported Property
+			return new torasu::ResultSegment(torasu::ResultSegmentStatus_INVALID_SEGMENT);
+		}
 	} else {
 		return new ResultSegment(ResultSegmentStatus_INVALID_SEGMENT);
 	}
