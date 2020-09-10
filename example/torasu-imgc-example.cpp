@@ -382,7 +382,9 @@ void cropdataExample() {
 
 	// Running render based on instruction
 
-	torasu::RenderResult* rr = rib.runRender(&tree, NULL, ei);
+	torasu::RenderContext rctx;
+
+	torasu::RenderResult* rr = rib.runRender(&tree, &rctx, ei);
 
 	// Finding results
 
@@ -472,7 +474,7 @@ int main(int argc, char** argv) {
 	// videoTest();
 	// example_sdl::main(argc, argv);
 	// examples::yetAnotherIMGCTest();
-	// examples::cropdataExample();
+	examples::cropdataExample();
 	examples::cropExample();
 
 	return 0;
