@@ -36,8 +36,9 @@ imgc::Dcropdata* Rauto_align2d::calcAlign(double posX, double posY, double zoomF
 	// <1: Destination less wide then source 
 	// =1: Same ratio
 	// >1: Destination more wide then source
+	// (How wide is the destination to the source)
 	double difRatio = destRatio / srcRatio;
-	// The same, just inverse
+	// The same, just inverse (How wide is the source relative to the destination)
 	double invDifRatio = srcRatio / destRatio;
 
 	if (difRatio == 1) {
@@ -50,16 +51,16 @@ imgc::Dcropdata* Rauto_align2d::calcAlign(double posX, double posY, double zoomF
 
 		if (difRatio > 1) { // Destination more wide
 
-			containHM = difRatio-1;
+			containHM = -(invDifRatio-1);
 			containVM = 0;
 			coverHM = 0;
-			coverVM = invDifRatio-1;
+			coverVM = -(difRatio-1);
 
 		} else { // Destination more high
 
 			containHM = 0;
-			containVM = invDifRatio-1;
-			coverHM = difRatio-1;
+			containVM = -(difRatio-1);
+			coverHM = -(invDifRatio-1);
 			coverVM = 0;
 
 		}

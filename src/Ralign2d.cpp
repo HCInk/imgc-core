@@ -1,6 +1,7 @@
 #include "../include/torasu/mod/imgc/Ralign2d.hpp"
 
 #include <chrono>
+#include <cmath>
 #include <stdexcept>
 
 #include <torasu/render_tools.hpp>
@@ -91,10 +92,12 @@ void Ralign2d::calcAlign(double posX, double posY, double zoomFactor, bool autoR
 
 }
 
+#define ROUND_PRECISION 40000
+
 void Ralign2d::calcAlign(Renderable* alignmentProvider, torasu::ExecutionInterface* ei, torasu::RenderContext* rctx,
 				   uint32_t destWidth, uint32_t destHeight,
 				   Ralign2d_CROPDATA& outCropData) const {
-	
+
 	// Creating instruction to get alignment
 
 	torasu::tools::RenderInstructionBuilder rib;
@@ -114,13 +117,13 @@ void Ralign2d::calcAlign(Renderable* alignmentProvider, torasu::ExecutionInterfa
 
 	imgc::Dcropdata* cropdata = result.getResult();
 
-	outCropData.srcWidth = destWidth * (1-( cropdata->getOffLeft() + cropdata->getOffRight() ));
-	outCropData.srcHeight = destHeight * (1-( cropdata->getOffTop() + cropdata->getOffBottom() ));
+	outCropData.offLeft = std::round ( ((double) destWidth * cropdata->getOffLeft() )*ROUND_PRECISION )/ROUND_PRECISION;
+	outCropData.offRight = std::round( ((double) destWidth * cropdata->getOffRight() )*ROUND_PRECISION )/ROUND_PRECISION;
+	outCropData.offTop = std::round( ((double) destHeight * cropdata->getOffTop() )*ROUND_PRECISION )/ROUND_PRECISION;
+	outCropData.offBottom = std::round( ((double) destHeight * cropdata->getOffBottom() )*ROUND_PRECISION )/ROUND_PRECISION;
 
-	outCropData.offLeft = destWidth * cropdata->getOffLeft();
-	outCropData.offRight = destWidth * cropdata->getOffRight();
-	outCropData.offTop = destHeight * cropdata->getOffTop();
-	outCropData.offBottom = destHeight * cropdata->getOffBottom();
+	outCropData.srcWidth = destWidth - (outCropData.offLeft + outCropData.offRight);
+	outCropData.srcHeight = destHeight - (outCropData.offTop + outCropData.offBottom);
 
 	delete rr;
 }

@@ -408,12 +408,13 @@ void cropExample() {
 
 	// Creating "tree" to be rendered
 
-	torasu::tstd::Rnet_file file("https://assets.gitlab-static.net/uploads/-/system/project/avatar/14033279/TorasuLogo2Color.png");
+	torasu::tstd::Rnet_file file("https://gitlab.com/HCInk/torasu/torasu-docs/-/raw/master/logo/TorasuLogo2Color.png");
+	// torasu::tstd::Rnet_file file("https://gitlab.com/HCInk/torasu/torasu-docs/-/raw/master/logo/TorasuLogo2TextBannerColor.png");
 	Rimg_file image(&file);
 
 	// imgc::Rcropdata cropdata(imgc::Dcropdata(0.1, -0.3, 0.3, -0.3));
 
-	imgc::Rauto_align2d tree(&image, 0, 0, 1);
+	imgc::Rauto_align2d tree(&image, 0, 0, 0);
 
 	// Creating the runner
 
@@ -425,8 +426,9 @@ void cropExample() {
 
 	torasu::tools::RenderInstructionBuilder rib;
 
-	torasu::tstd::Dbimg_FORMAT format(500, 500); // Works
-	// torasu::tstd::Dbimg_FORMAT format(500, 600); // Fails
+	// torasu::tstd::Dbimg_FORMAT format(500, 500); // Works
+	// torasu::tstd::Dbimg_FORMAT format(500, 600); // Now Works
+	torasu::tstd::Dbimg_FORMAT format(600, 500); // Now Works
 	auto rf = format.asFormat();
 
 	auto handle = rib.addSegmentWithHandle<torasu::tstd::Dbimg>(TORASU_STD_PL_VIS, &rf);
