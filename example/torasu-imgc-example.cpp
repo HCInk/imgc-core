@@ -28,6 +28,7 @@
 #include <torasu/mod/imgc/Rgain.hpp>
 #include <torasu/mod/imgc/Dcropdata.hpp>
 #include <torasu/mod/imgc/Rcropdata.hpp>
+#include <torasu/mod/imgc/Rcropdata_combined.hpp>
 
 #include "example_tools.hpp"
 
@@ -364,9 +365,16 @@ void cropdataExample() {
 
 	// Creating "tree" to be rendered
 
-	imgc::Dcropdata cropdata(0.2, 0.1, 0.3, 0.4);
+	// imgc::Dcropdata cropdata(0.2, 0.1, 0.3, 0.4);
 
-	imgc::Rcropdata tree(cropdata);
+	// imgc::Rcropdata tree(cropdata);
+
+	torasu::tstd::Rnum left(0.2);
+	torasu::tstd::Rnum right(0.1);
+	torasu::tstd::Rnum top(0.3);
+	torasu::tstd::Rnum bottom(0.4);
+
+	imgc::Rcropdata_combined tree(&left, &right, &top, &bottom);
 
 	// Creating the runner
 
