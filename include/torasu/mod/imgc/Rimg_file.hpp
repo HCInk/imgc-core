@@ -27,6 +27,9 @@ private:
 	std::vector<uint8_t> loadedImage;
 	uint32_t srcWidth, srcHeight;
 
+private:
+	void load(torasu::RenderContext* rctx, torasu::ExecutionInterface* ei);
+
 protected:
 	torasu::ResultSegment* renderSegment(torasu::ResultSegmentSettings* resSettings, torasu::RenderInstruction* ri);
 

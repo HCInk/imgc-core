@@ -11,22 +11,16 @@ namespace imgc {
 class Ralign2d : public torasu::tools::SimpleRenderable {
 private:
 	Renderable* rndSrc;
-
-	double posX;
-	double posY;
-	double zoomFactor;
-	double imageRatio;
-	bool autoRatio;
-
+	Renderable* rndAlign;
 
 	struct Ralign2d_CROPDATA {
 		uint32_t srcWidth, srcHeight;
 		int32_t offLeft, offRight, offTop, offBottom;
 	};
 
-	void calcAlign(double posX, double posY, double zoomFactor, bool autoRatio, double imageRatio,
+	void calcAlign(Renderable* alignmentProvider, torasu::ExecutionInterface* ei, torasu::RenderContext* rctx,
 				   uint32_t destWidth, uint32_t destHeight,
-				   Ralign2d_CROPDATA& outCropData) const;
+				   Ralign2d_CROPDATA* outCropData) const;
 
 	void align(torasu::tstd::Dbimg* srcImg, torasu::tstd::Dbimg* destImg, Ralign2d_CROPDATA* cropData) const;
 
@@ -35,6 +29,7 @@ protected:
 
 public:
 	Ralign2d(Renderable* rndSrc, double posX, double posY, double zoomFactor, double alignRatio);
+	Ralign2d(Renderable* rndSrc, Renderable* rndAlign);
 	~Ralign2d();
 
 	std::map<std::string, Element*> getElements() override;

@@ -3,6 +3,7 @@
 #include <fstream>
 
 #include <lodepng.h>
+
 #include <torasu/torasu.hpp>
 #include <torasu/render_tools.hpp>
 #include <torasu/std/pipeline_names.hpp>
@@ -18,12 +19,18 @@
 #include <torasu/std/Rmultiply.hpp>
 #include <torasu/std/Rnum.hpp>
 
+#include <torasu/mod/imgc/pipeline_names.hpp>
 #include <torasu/mod/imgc/Rimg_file.hpp>
 #include <torasu/mod/imgc/MediaDecoder.hpp>
 #include <torasu/mod/imgc/Rmedia_file.hpp>
 #include <torasu/mod/imgc/Ralign2d.hpp>
+#include <torasu/mod/imgc/Rauto_align2d.hpp>
 #include <torasu/mod/imgc/Rgain.hpp>
+#include <torasu/mod/imgc/Dcropdata.hpp>
+#include <torasu/mod/imgc/Rcropdata.hpp>
+#include <torasu/mod/imgc/Rcropdata_combined.hpp>
 
+#include "example_tools.hpp"
 
 #ifdef IMGC_SDL_EXAMPLE
 // Local header for sdl_example
@@ -32,10 +39,9 @@ int main(int argc, char** argv);
 } // namespace imgc::example_sdl
 #endif
 
-using namespace std;
-using namespace torasu;
-using namespace torasu::tstd;
 using namespace imgc;
+
+namespace imgc::examples {
 
 inline const char* printCode(u_int8_t value, const char** codeSet) {
 
@@ -53,24 +59,24 @@ inline const char* printCode(u_int8_t value, const char** codeSet) {
 }
 
 void netImageTest() {
-	Rnet_file file("https://assets.gitlab-static.net/uploads/-/system/project/avatar/14033279/TorasuLogo2Color.png");
+	torasu::tstd::Rnet_file file("https://assets.gitlab-static.net/uploads/-/system/project/avatar/14033279/TorasuLogo2Color.png");
 
 	Rimg_file tree(&file);
 
 
-	EIcore_runner* runner = new EIcore_runner();
+	auto* runner = new torasu::tstd::EIcore_runner();
 
-	ExecutionInterface* ei = runner->createInterface();
+	torasu::ExecutionInterface* ei = runner->createInterface();
 
-	tools::RenderInstructionBuilder rib;
+	torasu::tools::RenderInstructionBuilder rib;
 
-	Dbimg_FORMAT format(400, 400);
+	torasu::tstd::Dbimg_FORMAT format(400, 400);
 
 	auto rf = format.asFormat();
 
-	auto handle = rib.addSegmentWithHandle<Dbimg>(TORASU_STD_PL_VIS, &rf);
+	auto handle = rib.addSegmentWithHandle<torasu::tstd::Dbimg>(TORASU_STD_PL_VIS, &rf);
 
-	cout << "RENDER BEGIN" << endl;
+	std::cout << "RENDER BEGIN" << std::endl;
 	/*for (int i = 0; i < 120; i++) {
 		std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 		auto result = rib.runRender(&tree, NULL, ei);
@@ -86,16 +92,16 @@ void netImageTest() {
 
 	std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 	std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
-	cout << "RENDER FIN" << endl;
+	std::cout << "RENDER FIN" << std::endl;
 
 	auto castedRes = handle.getFrom(result);
 
-	ResultSegmentStatus rss = castedRes.getStatus();
+	torasu::ResultSegmentStatus rss = castedRes.getStatus();
 
-	cout << "STATUS " << rss << endl;
+	std::cout << "STATUS " << rss << std::endl;
 
-	if (rss >= ResultSegmentStatus::ResultSegmentStatus_OK) {
-		Dbimg* bimg = castedRes.getResult();
+	if (rss >= torasu::ResultSegmentStatus::ResultSegmentStatus_OK) {
+		torasu::tstd::Dbimg* bimg = castedRes.getResult();
 
 
 		int width = bimg->getWidth();
@@ -127,7 +133,7 @@ void netImageTest() {
 
 		unsigned error = lodepng::encode("test-res/out.png", bimg->getImageData(), width, height);
 
-		cout << "ENCODE STAT " << error;
+		std::cout << "ENCODE STAT " << error << std::endl;
 	}
 
 
@@ -139,7 +145,6 @@ void netImageTest() {
 	delete runner;
 }
 
-#include "example_tools.hpp"
 
 void writeFrames(torasu::tstd::Dbimg_sequence* sequence, std::string base_path) {
 	extools::TaskPool saver(10);
@@ -147,7 +152,7 @@ void writeFrames(torasu::tstd::Dbimg_sequence* sequence, std::string base_path) 
 	int i = 0;
 	for (auto& frame : frames) {
 		std::string path = base_path + "file-" + std::to_string(i + 1) + ".png";
-		Dbimg* image = frame.second;
+		torasu::tstd::Dbimg* image = frame.second;
 		saver.enqueue([path, image]() {
 			unsigned error = lodepng::encode(path,
 											 image->getImageData(), image->getWidth(), image->getHeight());
@@ -223,13 +228,13 @@ void yetAnotherIMGCTest() {
 
 	// Tree building
 
-	Rnet_file file("https://cdn.discordapp.com/attachments/598323767202152458/666010465809465410/8807502_Bender_and_penguins.mp4");
-	Rnet_file file2("https://assets.gitlab-static.net/uploads/-/system/project/avatar/14033279/TorasuLogo2Color.png");
+	torasu::tstd::Rnet_file file("https://cdn.discordapp.com/attachments/598323767202152458/666010465809465410/8807502_Bender_and_penguins.mp4");
+	torasu::tstd::Rnet_file file2("https://assets.gitlab-static.net/uploads/-/system/project/avatar/14033279/TorasuLogo2Color.png");
 	// Rlocal_file file("/home/cedric/git/imgc/test-res/in.mp4");
 
 	imgc::Rmedia_file video(&file);
 	imgc::Rimg_file image(&file2);
-	imgc::Ralign2d align(&image, 0, 0, 1, 1);
+	imgc::Rauto_align2d align(&image, 0, 0, 1);
 	torasu::tstd::Rnum gainVal(10);
 
 	torasu::tstd::Rmultiply mul(&video, &align);
@@ -237,14 +242,14 @@ void yetAnotherIMGCTest() {
 
 	// Creating Engine
 
-	EIcore_runner* runner = new EIcore_runner();
-	ExecutionInterface* ei = runner->createInterface();
+	torasu::tstd::EIcore_runner* runner = new torasu::tstd::EIcore_runner();
+	torasu::ExecutionInterface* ei = runner->createInterface();
 
 	// Some Properties
 
 	torasu::RenderableProperties* props = torasu::tools::getProperties(&video,
-		{TORASU_STD_PROP_DURATION, TORASU_STD_PROP_IMG_WIDTH, TORASU_STD_PROP_IMG_HEIGHT, TORASU_STD_PROP_IMG_RAITO},
-		ei);
+	{TORASU_STD_PROP_DURATION, TORASU_STD_PROP_IMG_WIDTH, TORASU_STD_PROP_IMG_HEIGHT, TORASU_STD_PROP_IMG_RAITO},
+	ei);
 
 	auto* dataDuration = torasu::tools::getPropertyValue<torasu::tstd::Dnum>(props, TORASU_STD_PROP_DURATION);
 	double videoDuration = dataDuration ? dataDuration->getNum() : 0;
@@ -259,11 +264,11 @@ void yetAnotherIMGCTest() {
 
 	// Building Instruction
 
-	tools::RenderInstructionBuilder rib;
+	torasu::tools::RenderInstructionBuilder rib;
 	// Dbimg_FORMAT format(1340, 1200);
-	Dbimg_FORMAT format(1340, 1200);
+	torasu::tstd::Dbimg_FORMAT format(1340, 1200);
 	auto rf = format.asFormat();
-	auto handle = rib.addSegmentWithHandle<Dbimg>(TORASU_STD_PL_VIS, &rf);
+	auto handle = rib.addSegmentWithHandle<torasu::tstd::Dbimg>(TORASU_STD_PL_VIS, &rf);
 
 	// Rendering Results
 
@@ -280,19 +285,19 @@ void yetAnotherIMGCTest() {
 
 	extools::TaskPool saver(10);
 
-	cout << frameCount << " FRAMES TO RENDER!" << endl;
+	std::cout << frameCount << " FRAMES TO RENDER!" << std::endl;
 
 	for (int i = 0; i < frameCount; i++) {
 
 		double frameTime = frameTimes[i];
 
-		cout << "===== FRAME " << i << " @ " << frameTime << " =====" << endl;
+		std::cout << "===== FRAME " << i << " @ " << frameTime << " =====" << std::endl;
 
 		auto benchBegin = std::chrono::steady_clock::now();
 
 		// Creating RenderContext
-		Dnum timeBuf(frameTime);
-		RenderContext rctx;
+		torasu::tstd::Dnum timeBuf(frameTime);
+		torasu::RenderContext rctx;
 		rctx[TORASU_STD_CTX_TIME] = &timeBuf;
 
 		// Render Result
@@ -301,18 +306,18 @@ void yetAnotherIMGCTest() {
 		// Evaluate Result
 
 		auto castedRes = handle.getFrom(result);
-		ResultSegmentStatus rss = castedRes.getStatus();
+		torasu::ResultSegmentStatus rss = castedRes.getStatus();
 
 
 		auto benchEnd = std::chrono::steady_clock::now();
 		std::cout << "  Render Time = " << std::chrono::duration_cast<std::chrono::milliseconds>(benchEnd - benchBegin).count() << "[ms]" << std::endl;
 
-		cout << "STATUS " << rss << endl;
+		std::cout << "STATUS " << rss << std::endl;
 
-		if (rss >= ResultSegmentStatus::ResultSegmentStatus_OK) {
-			Dbimg* bimg = castedRes.getResult();
+		if (rss >= torasu::ResultSegmentStatus::ResultSegmentStatus_OK) {
+			torasu::tstd::Dbimg* bimg = castedRes.getResult();
 
-			stringstream out_name;
+			std::stringstream out_name;
 			out_name << "test-res/out";
 			out_name << std::setfill('0') << std::setw(5) << i;
 			out_name << ".png";
@@ -327,7 +332,7 @@ void yetAnotherIMGCTest() {
 			saver.enqueue([result, bimg, name]() {
 				unsigned error = lodepng::encode(name, bimg->getImageData(), bimg->getWidth(), bimg->getHeight());
 				if (error) {
-					cerr << "ENCODE STAT[" << name << "] " << lodepng_error_text(error) << endl;
+					std::cerr << "ENCODE STAT[" << name << "] " << lodepng_error_text(error) << std::endl;
 				}
 
 				delete result;
@@ -348,6 +353,126 @@ void yetAnotherIMGCTest() {
 
 }
 
+void cropdataExample() {
+	
+	//
+	// Cropdata Example
+	//
+
+	std::cout << "//" << std::endl
+		 << "// Cropdata Example" << std::endl
+		 << "//" << std::endl;
+
+	// Creating "tree" to be rendered
+
+	// imgc::Dcropdata cropdata(0.2, 0.1, 0.3, 0.4);
+
+	// imgc::Rcropdata tree(cropdata);
+
+	torasu::tstd::Rnum left(0.2);
+	torasu::tstd::Rnum right(0.1);
+	torasu::tstd::Rnum top(0.3);
+	torasu::tstd::Rnum bottom(0.4);
+
+	imgc::Rcropdata_combined tree(&left, &right, &top, &bottom);
+
+	// Creating the runner
+
+	torasu::tstd::EIcore_runner runner;
+
+	torasu::ExecutionInterface* ei = runner.createInterface();
+
+	// Creating instruction
+
+	torasu::tools::RenderInstructionBuilder rib;
+
+	auto handle = rib.addSegmentWithHandle<imgc::Dcropdata>(IMGC_PL_ALIGN, NULL);
+
+	// Running render based on instruction
+
+	torasu::RenderContext rctx;
+
+	torasu::RenderResult* rr = rib.runRender(&tree, &rctx, ei);
+
+	// Finding results
+
+	auto result = handle.getFrom(rr);
+	std::cout << "CROPDATA : " << result.getResult()->getSerializedJson() << std::endl;
+
+	// Cleaning
+
+	delete rr;
+	delete ei;
+}
+
+
+void cropExample() {
+	
+	//
+	// Crop Example
+	//
+
+	std::cout << "//" << std::endl
+		 << "// Crop Example" << std::endl
+		 << "//" << std::endl;
+
+	// Creating "tree" to be rendered
+
+	torasu::tstd::Rnet_file file("https://gitlab.com/HCInk/torasu/torasu-docs/-/raw/master/logo/TorasuLogo2Color.png");
+	// torasu::tstd::Rnet_file file("https://gitlab.com/HCInk/torasu/torasu-docs/-/raw/master/logo/TorasuLogo2TextBannerColor.png");
+	Rimg_file image(&file);
+
+	// imgc::Rcropdata cropdata(imgc::Dcropdata(0.1, -0.3, 0.3, -0.3));
+
+	imgc::Rauto_align2d tree(&image, 0, 0, 0);
+
+	// Creating the runner
+
+	torasu::tstd::EIcore_runner runner;
+
+	torasu::ExecutionInterface* ei = runner.createInterface();
+
+	// Creating instruction
+
+	torasu::tools::RenderInstructionBuilder rib;
+
+	// torasu::tstd::Dbimg_FORMAT format(500, 500); // Works
+	// torasu::tstd::Dbimg_FORMAT format(500, 600); // Now Works
+	torasu::tstd::Dbimg_FORMAT format(600, 500); // Now Works
+	auto rf = format.asFormat();
+
+	auto handle = rib.addSegmentWithHandle<torasu::tstd::Dbimg>(TORASU_STD_PL_VIS, &rf);
+
+	// Creating render-context
+
+	torasu::RenderContext rctx;
+	torasu::tstd::Dnum ratio((double) format.getWidth() / format.getHeight());
+	rctx[TORASU_STD_CTX_IMG_RATIO] = &ratio;
+
+	// Running render based on instruction
+
+	torasu::RenderResult* rr = rib.runRender(&tree, &rctx, ei);
+
+	// Finding results
+
+	auto result = handle.getFrom(rr);
+	std::cout << "RESULT STAT " << result.getStatus() << std::endl;
+	auto* bimg = result.getResult();
+	unsigned error = lodepng::encode("test-res/out.png", bimg->getImageData(), bimg->getWidth(), bimg->getHeight());
+	if (error) {
+		std::cerr << "ENCODE ERROR " << error << ": " << lodepng_error_text(error) << std::endl;
+	} else {
+		std::cout << "ENCODE OK" << std::endl;
+	}
+
+	// Cleaning
+
+	delete rr;
+	delete ei;
+
+}
+
+}  // namespace imgc::examples
 
 int main(int argc, char** argv) {
 	//netImageTest();
@@ -356,7 +481,9 @@ int main(int argc, char** argv) {
 	// audioTest();
 	// videoTest();
 	// example_sdl::main(argc, argv);
-	yetAnotherIMGCTest();
+	// examples::yetAnotherIMGCTest();
+	examples::cropdataExample();
+	examples::cropExample();
 
 	return 0;
 }

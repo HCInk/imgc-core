@@ -1,82 +1,62 @@
 #include "../include/torasu/mod/imgc/Ralign2d.hpp"
 
 #include <chrono>
+#include <cmath>
+#include <stdexcept>
 
 #include <torasu/render_tools.hpp>
 
 #include <torasu/std/pipeline_names.hpp>
+#include <torasu/std/context_names.hpp>
+#include <torasu/std/Dnum.hpp>
 #include <torasu/std/Dbimg.hpp>
+
+#include <torasu/mod/imgc/pipeline_names.hpp>
+#include <torasu/mod/imgc/Dcropdata.hpp>
 
 namespace imgc {
 
-Ralign2d::Ralign2d(Renderable* rndSrc, double posX, double posY, double zoomFactor, double imageRatio)
+Ralign2d::Ralign2d(Renderable* rndSrc, Renderable* rndAlign)
 	: torasu::tools::SimpleRenderable("IMGC::RALIGN2D", false, true),
 	  rndSrc(rndSrc),
-	  posX(posX),
-	  posY(posY),
-	  zoomFactor(zoomFactor),
-	  imageRatio(imageRatio),
-	  autoRatio(false) {}
+	  rndAlign(rndAlign) {}
 
 Ralign2d::~Ralign2d() {}
 
-void Ralign2d::calcAlign(double posX, double posY, double zoomFactor, bool autoRatio, double imageRatio,
-						 uint32_t destWidth, uint32_t destHeight,
-						 Ralign2d_CROPDATA& outCropdata) const {
+#define ROUND_PRECISION 40000
 
-	posX = 0.5 + posX / 2;
-	posY = 0.5 + posY / 2;
+void Ralign2d::calcAlign(Renderable* alignmentProvider, torasu::ExecutionInterface* ei, torasu::RenderContext* rctx,
+				   uint32_t destWidth, uint32_t destHeight,
+				   Ralign2d_CROPDATA* outCropData) const {
 
-	double ratio;
-	if (autoRatio) {
-		// TODO Ralign2d - AutoRatio
-		ratio = 1;
-	} else {
-		ratio = imageRatio;
+	// Creating instruction to get alignment
+
+	torasu::tools::RenderInstructionBuilder rib;
+	auto handle = rib.addSegmentWithHandle<imgc::Dcropdata>(IMGC_PL_ALIGN, NULL);
+
+	// Running render based on instruction
+
+	torasu::RenderResult* rr = rib.runRender(alignmentProvider, rctx, ei);
+
+	// Finding results
+
+	auto result = handle.getFrom(rr);
+	
+	if (result.getResult() == nullptr) {
+		throw std::runtime_error("Alignment calculation failed!");
 	}
 
-	double destRatio = (double) destWidth/destHeight;
+	imgc::Dcropdata* cropdata = result.getResult();
 
-	if (destRatio == ratio) {
-		outCropdata.srcWidth = destWidth;
-		outCropdata.srcHeight = destHeight;
-		outCropdata.offLeft = 0;
-		outCropdata.offRight = 0;
-		outCropdata.offTop = 0;
-		outCropdata.offBottom = 0;
-	} else {
-		uint32_t containWidth, containHeight,
-				 coverWidth, coverHeight;
-		if (destRatio > ratio) { // Destination more wide
+	outCropData->offLeft = std::round ( ((double) destWidth * cropdata->getOffLeft() )*ROUND_PRECISION )/ROUND_PRECISION;
+	outCropData->offRight = std::round( ((double) destWidth * cropdata->getOffRight() )*ROUND_PRECISION )/ROUND_PRECISION;
+	outCropData->offTop = std::round( ((double) destHeight * cropdata->getOffTop() )*ROUND_PRECISION )/ROUND_PRECISION;
+	outCropData->offBottom = std::round( ((double) destHeight * cropdata->getOffBottom() )*ROUND_PRECISION )/ROUND_PRECISION;
 
-			containWidth = destHeight*ratio;
-			containHeight = destHeight;
-			coverWidth = destWidth;
-			coverHeight = destWidth/ratio;
+	outCropData->srcWidth = destWidth - (outCropData->offLeft + outCropData->offRight);
+	outCropData->srcHeight = destHeight - (outCropData->offTop + outCropData->offBottom);
 
-		} else { // Destination more high
-
-			containWidth = destWidth;
-			containHeight = destWidth/ratio;
-			coverWidth = destHeight*ratio;
-			coverHeight = destHeight;
-
-		}
-
-		outCropdata.srcWidth = containWidth + (coverWidth-containWidth)*zoomFactor;
-		outCropdata.srcHeight = containHeight + (coverHeight-containHeight)*zoomFactor;
-
-		outCropdata.offLeft = destWidth-outCropdata.srcWidth;
-		outCropdata.offTop = destHeight-outCropdata.srcHeight;
-
-		outCropdata.offRight = outCropdata.offLeft*(1-posX);
-		outCropdata.offBottom = outCropdata.offTop*(1-posY);
-
-		outCropdata.offLeft -= outCropdata.offRight;
-		outCropdata.offTop -= outCropdata.offBottom;
-
-	}
-
+	delete rr;
 }
 
 
@@ -140,6 +120,7 @@ void Ralign2d::align(torasu::tstd::Dbimg* srcImg, torasu::tstd::Dbimg* destImg, 
 
 }
 
+
 torasu::ResultSegment* Ralign2d::renderSegment(torasu::ResultSegmentSettings* resSettings, torasu::RenderInstruction* ri) {
 
 	if (resSettings->getPipeline().compare(TORASU_STD_PL_VIS) == 0) {
@@ -150,13 +131,16 @@ torasu::ResultSegment* Ralign2d::renderSegment(torasu::ResultSegmentSettings* re
 			return new torasu::ResultSegment(torasu::ResultSegmentStatus_INVALID_FORMAT);
 		}
 
+		auto ei = ri->getExecutionInterface();
+		auto rctx = ri->getRenderContext();
+
 		torasu::tools::RenderInstructionBuilder rib;
 
 		Ralign2d_CROPDATA cropData;
 
-		calcAlign(posX, posY, zoomFactor, autoRatio, imageRatio,
-				  fmt->getWidth(), fmt->getHeight(),
-				  cropData);
+		calcAlign(rndAlign, ei, rctx, fmt->getWidth(), fmt->getHeight(), &cropData);
+
+		// Format creation
 
 		torasu::tstd::Dbimg_FORMAT srcFmt(cropData.srcWidth, cropData.srcHeight);
 
@@ -164,10 +148,13 @@ torasu::ResultSegment* Ralign2d::renderSegment(torasu::ResultSegmentSettings* re
 
 		torasu::tools::RenderResultSegmentHandle<torasu::tstd::Dbimg> resHandle = rib.addSegmentWithHandle<torasu::tstd::Dbimg>(TORASU_STD_PL_VIS, &fmtHandle);
 
-		// Sub-Renderings
-		auto ei = ri->getExecutionInterface();
-		auto rctx = ri->getRenderContext();
+		// Render-context modification
 
+		torasu::RenderContext modRctx(*rctx); // Create copy of the render context
+		torasu::tstd::Dnum ratio((double)cropData.srcWidth/cropData.srcHeight);
+		modRctx[TORASU_STD_CTX_IMG_RATIO] = &ratio;
+
+		// Sub-Renderings
 		auto srcRndId = rib.enqueueRender(rndSrc, rctx, ei);
 
 		torasu::RenderResult* srcRes = ei->fetchRenderResult(srcRndId);
@@ -210,31 +197,16 @@ std::map<std::string, torasu::Element*> Ralign2d::getElements() {
 	std::map<std::string, torasu::Element*> elems;
 
 	elems["src"] = rndSrc;
+	elems["align"] = rndAlign;
 
 	return elems;
 }
 
 void Ralign2d::setElement(std::string key, torasu::Element* elem) {
 
-	if (key.compare("src") == 0) {
-
-		if (elem == NULL) {
-			throw std::invalid_argument("Element slot \"src\" may not be empty!");
-		}
-		if (torasu::Renderable* rnd = dynamic_cast<torasu::Renderable*>(elem)) {
-			rndSrc = rnd;
-			return;
-		} else {
-			throw std::invalid_argument("Element slot \"src\" only accepts Renderables!");
-		}
-
-	} else {
-		std::ostringstream errMsg;
-		errMsg << "The element slot \""
-			   << key
-			   << "\" does not exist!";
-		throw std::invalid_argument(errMsg.str());
-	}
+	if (torasu::tools::trySetRenderableSlot("key", &rndSrc, false, key, elem)) return;
+	if (torasu::tools::trySetRenderableSlot("align", &rndAlign, false, key, elem)) return;
+	throw torasu::tools::makeExceptSlotDoesntExist(key);
 
 }
 
