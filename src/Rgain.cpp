@@ -103,39 +103,9 @@ std::map<std::string, torasu::Element*> Rgain::getElements() {
 }
 
 void Rgain::setElement(std::string key, Element* elem) {
-
-	if (key == "src") {
-
-		if (elem == NULL) {
-			throw std::invalid_argument("Element slot \"src\" may not be empty!");
-		}
-		if (Renderable* rnd = dynamic_cast<Renderable*>(elem)) {
-			rSrc = rnd;
-			return;
-		} else {
-			throw std::invalid_argument("Element slot \"src\" only accepts Renderables!");
-		}
-
-	} else if (key == "val") {
-
-		if (elem == NULL) {
-			throw std::invalid_argument("Element slot \"val\" may not be empty!");
-		}
-		if (Renderable* rnd = dynamic_cast<Renderable*>(elem)) {
-			rGainVal = rnd;
-			return;
-		} else {
-			throw std::invalid_argument("Element slot \"val\" only accepts Renderables!");
-		}
-
-	} else {
-		std::ostringstream errMsg;
-		errMsg << "The element slot \""
-			   << key
-			   << "\" does not exist!";
-		throw std::invalid_argument(errMsg.str());
-	}
-
+	if (torasu::tools::trySetRenderableSlot("src", &rSrc, false, key, elem)) return;
+	if (torasu::tools::trySetRenderableSlot("val", &rGainVal, false, key, elem)) return;
+	throw torasu::tools::makeExceptSlotDoesntExist(key);
 }
 
 } // namespace imgc

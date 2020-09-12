@@ -135,18 +135,8 @@ std::map<std::string, Element*> Rimg_file::getElements() {
 }
 
 void Rimg_file::setElement(std::string key, Element* elem) {
-	if (key.compare("f") != 0) {
-		throw invalid_argument("Invalid slot-key! Only slot-key \"f\" allowed");
-	}
-	if (elem == NULL) {
-		throw invalid_argument("Element for slot \"f\" may not be NULL!");
-	}
-
-	if (Renderable* rnd = dynamic_cast<Renderable*>(elem)) {
-		this->rfile = rnd;
-	} else {
-		throw invalid_argument("Only \"Renderable\" for slot \"f\" allowed");
-	}
+	if (torasu::tools::trySetRenderableSlot("f", &rfile, false, key, elem)) return;
+	throw torasu::tools::makeExceptSlotDoesntExist(key);
 }
 
 }

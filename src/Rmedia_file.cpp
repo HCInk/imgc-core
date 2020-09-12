@@ -200,25 +200,8 @@ std::map<std::string, torasu::Element*> Rmedia_file::getElements() {
 }
 
 void Rmedia_file::setElement(std::string key, Element* elem) {
-	if (key == "src") {
-
-		if (elem == NULL) {
-			throw std::invalid_argument("Element slot \"src\" may not be empty!");
-		}
-		if (torasu::Renderable* rnd = dynamic_cast<torasu::Renderable*>(elem)) {
-			srcRnd = rnd;
-			return;
-		} else {
-			throw std::invalid_argument("Element slot \"src\" only accepts Renderables!");
-		}
-
-	} else {
-		std::ostringstream errMsg;
-		errMsg << "The element slot \""
-			   << key
-			   << "\" does not exist!";
-		throw std::invalid_argument(errMsg.str());
-	}
+	if (torasu::tools::trySetRenderableSlot("src", &srcRnd, false, key, elem)) return;
+	throw torasu::tools::makeExceptSlotDoesntExist(key);
 }
 
 

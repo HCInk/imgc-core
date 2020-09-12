@@ -134,27 +134,8 @@ std::map<std::string, torasu::Element*> Rauto_align2d::getElements() {
 }
 
 void Rauto_align2d::setElement(std::string key, torasu::Element* elem) {
-
-	if (key.compare("src") == 0) {
-
-		if (elem == NULL) {
-			throw std::invalid_argument("Element slot \"src\" may not be empty!");
-		}
-		if (torasu::Renderable* rnd = dynamic_cast<torasu::Renderable*>(elem)) {
-			rndSrc = rnd;
-			internalAlign->setElement("src", rnd);
-			return;
-		} else {
-			throw std::invalid_argument("Element slot \"src\" only accepts Renderables!");
-		}
-
-	} else {
-		std::ostringstream errMsg;
-		errMsg << "The element slot \""
-			   << key
-			   << "\" does not exist!";
-		throw std::invalid_argument(errMsg.str());
-	}
+	if (torasu::tools::trySetRenderableSlot("src", &rndSrc, false, key, elem)) return;
+	throw torasu::tools::makeExceptSlotDoesntExist(key);
 }
 
 } // namespace imgc
