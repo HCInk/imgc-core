@@ -8,7 +8,7 @@
 
 namespace imgc {
 
-Rcropdata::Rcropdata(Dcropdata val) : SimpleRenderable("STD::RCROPDATA", true, false), val(new Dcropdata(val)) {}
+Rcropdata::Rcropdata(Dcropdata val) : SimpleRenderable("IMGC::RCROPDATA", true, false), val(new Dcropdata(val)) {}
 
 Rcropdata::~Rcropdata() {
 	delete val;
