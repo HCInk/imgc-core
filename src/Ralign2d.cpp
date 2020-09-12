@@ -204,7 +204,7 @@ std::map<std::string, torasu::Element*> Ralign2d::getElements() {
 
 void Ralign2d::setElement(std::string key, torasu::Element* elem) {
 
-	if (torasu::tools::trySetRenderableSlot("key", &rndSrc, false, key, elem)) return;
+	if (torasu::tools::trySetRenderableSlot("src", &rndSrc, false, key, elem)) return;
 	if (torasu::tools::trySetRenderableSlot("align", &rndAlign, false, key, elem)) return;
 	throw torasu::tools::makeExceptSlotDoesntExist(key);
 
