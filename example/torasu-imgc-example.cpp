@@ -234,7 +234,7 @@ void yetAnotherIMGCTest() {
 
 	imgc::Rmedia_file video(&file);
 	imgc::Rimg_file image(&file2);
-	imgc::Ralign2d align(&image, 0, 0, 1, 1);
+	imgc::Rauto_align2d align(&image, 0, 0, 1);
 	torasu::tstd::Rnum gainVal(10);
 
 	torasu::tstd::Rmultiply mul(&video, &align);

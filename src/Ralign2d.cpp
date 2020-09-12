@@ -16,16 +16,6 @@
 
 namespace imgc {
 
-Ralign2d::Ralign2d(Renderable* rndSrc, double posX, double posY, double zoomFactor, double imageRatio)
-	: torasu::tools::SimpleRenderable("IMGC::RALIGN2D", false, true),
-	  rndSrc(rndSrc),
-	  rndAlign(nullptr),
-	  posX(posX),
-	  posY(posY),
-	  zoomFactor(zoomFactor),
-	  imageRatio(imageRatio),
-	  autoRatio(false) {}
-
 Ralign2d::Ralign2d(Renderable* rndSrc, Renderable* rndAlign)
 	: torasu::tools::SimpleRenderable("IMGC::RALIGN2D", false, true),
 	  rndSrc(rndSrc),
@@ -33,70 +23,11 @@ Ralign2d::Ralign2d(Renderable* rndSrc, Renderable* rndAlign)
 
 Ralign2d::~Ralign2d() {}
 
-void Ralign2d::calcAlign(double posX, double posY, double zoomFactor, bool autoRatio, double imageRatio,
-						 uint32_t destWidth, uint32_t destHeight,
-						 Ralign2d_CROPDATA& outCropdata) const {
-
-	posX = 0.5 + posX / 2;
-	posY = 0.5 + posY / 2;
-
-	double ratio;
-	if (autoRatio) {
-		// TODO Ralign2d - AutoRatio
-		ratio = 1;
-	} else {
-		ratio = imageRatio;
-	}
-
-	double destRatio = (double) destWidth/destHeight;
-
-	if (destRatio == ratio) {
-		outCropdata.srcWidth = destWidth;
-		outCropdata.srcHeight = destHeight;
-		outCropdata.offLeft = 0;
-		outCropdata.offRight = 0;
-		outCropdata.offTop = 0;
-		outCropdata.offBottom = 0;
-	} else {
-		uint32_t containWidth, containHeight,
-				 coverWidth, coverHeight;
-		if (destRatio > ratio) { // Destination more wide
-
-			containWidth = destHeight*ratio;
-			containHeight = destHeight;
-			coverWidth = destWidth;
-			coverHeight = destWidth/ratio;
-
-		} else { // Destination more high
-
-			containWidth = destWidth;
-			containHeight = destWidth/ratio;
-			coverWidth = destHeight*ratio;
-			coverHeight = destHeight;
-
-		}
-
-		outCropdata.srcWidth = containWidth + (coverWidth-containWidth)*zoomFactor;
-		outCropdata.srcHeight = containHeight + (coverHeight-containHeight)*zoomFactor;
-
-		outCropdata.offLeft = destWidth-outCropdata.srcWidth;
-		outCropdata.offTop = destHeight-outCropdata.srcHeight;
-
-		outCropdata.offRight = outCropdata.offLeft*(1-posX);
-		outCropdata.offBottom = outCropdata.offTop*(1-posY);
-
-		outCropdata.offLeft -= outCropdata.offRight;
-		outCropdata.offTop -= outCropdata.offBottom;
-
-	}
-
-}
-
 #define ROUND_PRECISION 40000
 
 void Ralign2d::calcAlign(Renderable* alignmentProvider, torasu::ExecutionInterface* ei, torasu::RenderContext* rctx,
 				   uint32_t destWidth, uint32_t destHeight,
-				   Ralign2d_CROPDATA& outCropData) const {
+				   Ralign2d_CROPDATA* outCropData) const {
 
 	// Creating instruction to get alignment
 
@@ -117,13 +48,13 @@ void Ralign2d::calcAlign(Renderable* alignmentProvider, torasu::ExecutionInterfa
 
 	imgc::Dcropdata* cropdata = result.getResult();
 
-	outCropData.offLeft = std::round ( ((double) destWidth * cropdata->getOffLeft() )*ROUND_PRECISION )/ROUND_PRECISION;
-	outCropData.offRight = std::round( ((double) destWidth * cropdata->getOffRight() )*ROUND_PRECISION )/ROUND_PRECISION;
-	outCropData.offTop = std::round( ((double) destHeight * cropdata->getOffTop() )*ROUND_PRECISION )/ROUND_PRECISION;
-	outCropData.offBottom = std::round( ((double) destHeight * cropdata->getOffBottom() )*ROUND_PRECISION )/ROUND_PRECISION;
+	outCropData->offLeft = std::round ( ((double) destWidth * cropdata->getOffLeft() )*ROUND_PRECISION )/ROUND_PRECISION;
+	outCropData->offRight = std::round( ((double) destWidth * cropdata->getOffRight() )*ROUND_PRECISION )/ROUND_PRECISION;
+	outCropData->offTop = std::round( ((double) destHeight * cropdata->getOffTop() )*ROUND_PRECISION )/ROUND_PRECISION;
+	outCropData->offBottom = std::round( ((double) destHeight * cropdata->getOffBottom() )*ROUND_PRECISION )/ROUND_PRECISION;
 
-	outCropData.srcWidth = destWidth - (outCropData.offLeft + outCropData.offRight);
-	outCropData.srcHeight = destHeight - (outCropData.offTop + outCropData.offBottom);
+	outCropData->srcWidth = destWidth - (outCropData->offLeft + outCropData->offRight);
+	outCropData->srcHeight = destHeight - (outCropData->offTop + outCropData->offBottom);
 
 	delete rr;
 }
@@ -207,13 +138,7 @@ torasu::ResultSegment* Ralign2d::renderSegment(torasu::ResultSegmentSettings* re
 
 		Ralign2d_CROPDATA cropData;
 
-		if (rndAlign != nullptr) {
-			calcAlign(rndAlign, ei, rctx, fmt->getWidth(), fmt->getHeight(), cropData);
-		} else {
-			calcAlign(posX, posY, zoomFactor, autoRatio, imageRatio,
-					fmt->getWidth(), fmt->getHeight(),
-					cropData);
-		}
+		calcAlign(rndAlign, ei, rctx, fmt->getWidth(), fmt->getHeight(), &cropData);
 
 		// Format creation
 
@@ -279,38 +204,9 @@ std::map<std::string, torasu::Element*> Ralign2d::getElements() {
 
 void Ralign2d::setElement(std::string key, torasu::Element* elem) {
 
-	if (key.compare("src") == 0) {
-
-		if (elem == NULL) {
-			throw std::invalid_argument("Element slot \"src\" may not be empty!");
-		}
-		if (torasu::Renderable* rnd = dynamic_cast<torasu::Renderable*>(elem)) {
-			rndSrc = rnd;
-			return;
-		} else {
-			throw std::invalid_argument("Element slot \"src\" only accepts Renderables!");
-		}
-
-	} else if (key.compare("align") == 0) {
-
-		if (elem == nullptr) {
-			// throw std::invalid_argument("Element slot \"align\" may not be empty!");
-			rndAlign = nullptr;
-			return;
-		} else if (torasu::Renderable* rnd = dynamic_cast<torasu::Renderable*>(elem)) {
-			rndAlign = rnd;
-			return;
-		} else {
-			throw std::invalid_argument("Element slot \"align\" only accepts Renderables!");
-		}
-
-	} else {
-		std::ostringstream errMsg;
-		errMsg << "The element slot \""
-			   << key
-			   << "\" does not exist!";
-		throw std::invalid_argument(errMsg.str());
-	}
+	if (torasu::tools::trySetRenderableSlot("key", &rndSrc, false, key, elem)) return;
+	if (torasu::tools::trySetRenderableSlot("align", &rndAlign, false, key, elem)) return;
+	throw torasu::tools::makeExceptSlotDoesntExist(key);
 
 }
 

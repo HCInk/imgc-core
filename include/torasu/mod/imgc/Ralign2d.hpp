@@ -13,25 +13,14 @@ private:
 	Renderable* rndSrc;
 	Renderable* rndAlign;
 
-	double posX;
-	double posY;
-	double zoomFactor;
-	double imageRatio;
-	bool autoRatio;
-
-
 	struct Ralign2d_CROPDATA {
 		uint32_t srcWidth, srcHeight;
 		int32_t offLeft, offRight, offTop, offBottom;
 	};
 
-	void calcAlign(double posX, double posY, double zoomFactor, bool autoRatio, double imageRatio,
-				   uint32_t destWidth, uint32_t destHeight,
-				   Ralign2d_CROPDATA& outCropData) const;
-
 	void calcAlign(Renderable* alignmentProvider, torasu::ExecutionInterface* ei, torasu::RenderContext* rctx,
 				   uint32_t destWidth, uint32_t destHeight,
-				   Ralign2d_CROPDATA& outCropData) const;
+				   Ralign2d_CROPDATA* outCropData) const;
 
 	void align(torasu::tstd::Dbimg* srcImg, torasu::tstd::Dbimg* destImg, Ralign2d_CROPDATA* cropData) const;
 
