@@ -1,6 +1,8 @@
 #include "../include/torasu/mod/imgc/Dcropdata.hpp"
 
-using json = nlohmann::json;
+#include <torasu/json.hpp>
+
+using json = torasu::json;
 
 namespace imgc {
 
