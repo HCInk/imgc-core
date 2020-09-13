@@ -28,7 +28,6 @@ protected:
 	torasu::ResultSegment* renderSegment(torasu::ResultSegmentSettings* resSettings, torasu::RenderInstruction* ri) override;
 
 public:
-	Ralign2d(Renderable* rndSrc, double posX, double posY, double zoomFactor, double alignRatio);
 	Ralign2d(Renderable* rndSrc, Renderable* rndAlign);
 	~Ralign2d();
 
