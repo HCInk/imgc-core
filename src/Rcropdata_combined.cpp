@@ -48,6 +48,11 @@ torasu::ResultSegment* Rcropdata_combined::renderSegment(torasu::ResultSegmentSe
 		double tVal = fetchedT != nullptr ? fetchedT->getNum() : 0;
 		double bVal = fetchedB != nullptr ? fetchedB->getNum() : 0;
 
+		delete resL;
+		delete resR;
+		delete resT;
+		delete resB;
+
 		auto* result = new imgc::Dcropdata(lVal, rVal, tVal, bVal);
 		
 		return new torasu::ResultSegment(torasu::ResultSegmentStatus_OK, result, false);
