@@ -48,8 +48,9 @@ void Rmedia_file::load(torasu::ExecutionInterface* ei) {
 	torasu::tools::RenderInstructionBuilder rib;
 
 	auto handle = rib.addSegmentWithHandle<torasu::tstd::Dfile>(TORASU_STD_PL_FILE, NULL);
-
-	srcRendRes = rib.runRender(srcRnd, NULL, ei);
+	
+	torasu::RenderContext rctx;
+	srcRendRes = rib.runRender(srcRnd, &rctx, ei);
 
 	auto castedResultSeg = handle.getFrom(srcRendRes);
 
