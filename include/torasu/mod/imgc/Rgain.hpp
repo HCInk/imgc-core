@@ -7,7 +7,7 @@
 #include <torasu/std/pipeline_names.hpp>
 
 namespace imgc {
-	
+
 class Rgain : public torasu::tools::SimpleRenderable {
 private:
 	const std::string visPipeline = std::string(TORASU_STD_PL_VIS);
@@ -17,14 +17,14 @@ private:
 	torasu::Renderable* rGainVal;
 
 protected:
-	torasu::ResultSegment* renderSegment(torasu::ResultSegmentSettings* resSettings, torasu::RenderInstruction* ri);
+	torasu::ResultSegment* renderSegment(torasu::ResultSegmentSettings* resSettings, torasu::RenderInstruction* ri) override;
 
 public:
 	Rgain(Renderable* src, Renderable* gainVal);
 	~Rgain();
 
-	virtual std::map<std::string, Element*> getElements();
-	virtual void setElement(std::string key, Element* elem);
+	torasu::ElementMap getElements() override;
+	void setElement(std::string key, Element* elem) override;
 };
 
 } // namespace imgc

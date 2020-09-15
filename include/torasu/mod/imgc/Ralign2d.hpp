@@ -31,7 +31,7 @@ public:
 	Ralign2d(Renderable* rndSrc, Renderable* rndAlign);
 	~Ralign2d();
 
-	std::map<std::string, Element*> getElements() override;
+	torasu::ElementMap getElements() override;
 	void setElement(std::string key, Element* elem) override;
 };
 

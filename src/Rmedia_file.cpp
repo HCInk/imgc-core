@@ -2,6 +2,7 @@
 
 #include <sstream>
 #include <optional>
+#include <iostream>
 
 #include <torasu/render_tools.hpp>
 #include <torasu/std/pipeline_names.hpp>
@@ -48,7 +49,7 @@ void Rmedia_file::load(torasu::ExecutionInterface* ei) {
 	torasu::tools::RenderInstructionBuilder rib;
 
 	auto handle = rib.addSegmentWithHandle<torasu::tstd::Dfile>(TORASU_STD_PL_FILE, NULL);
-	
+
 	torasu::RenderContext rctx;
 	srcRendRes = rib.runRender(srcRnd, &rctx, ei);
 
@@ -192,8 +193,8 @@ torasu::RenderResult* Rmedia_file::render(torasu::RenderInstruction* ri) {
 
 }
 
-std::map<std::string, torasu::Element*> Rmedia_file::getElements() {
-	std::map<std::string, torasu::Element*> ret;
+torasu::ElementMap Rmedia_file::getElements() {
+	torasu::ElementMap ret;
 
 	if (srcRnd != NULL) ret["src"] = srcRnd;
 

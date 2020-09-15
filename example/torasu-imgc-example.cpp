@@ -17,6 +17,7 @@
 #include <torasu/std/Rlocal_file.hpp>
 #include <torasu/std/Rnet_file.hpp>
 #include <torasu/std/Rmultiply.hpp>
+#include <torasu/std/Rproperty.hpp>
 #include <torasu/std/Rnum.hpp>
 
 #include <torasu/mod/imgc/pipeline_names.hpp>
@@ -354,14 +355,14 @@ void yetAnotherIMGCTest() {
 }
 
 void cropdataExample() {
-	
+
 	//
 	// Cropdata Example
 	//
 
 	std::cout << "//" << std::endl
-		 << "// Cropdata Example" << std::endl
-		 << "//" << std::endl;
+			  << "// Cropdata Example" << std::endl
+			  << "//" << std::endl;
 
 	// Creating "tree" to be rendered
 
@@ -369,12 +370,17 @@ void cropdataExample() {
 
 	// imgc::Rcropdata tree(cropdata);
 
+	torasu::tstd::Rnet_file file("https://gitlab.com/HCInk/torasu/torasu-docs/-/raw/master/logo/TorasuLogo2TextBannerColor.png");
+	imgc::Rimg_file image(&file);
+
+	torasu::tstd::Rproperty ratio(&image, TORASU_STD_PROP_IMG_RAITO, TORASU_STD_PL_NUM);
 	torasu::tstd::Rnum left(0.2);
+	torasu::tstd::Rmultiply calcLeft(&left, &ratio);
 	torasu::tstd::Rnum right(0.1);
 	torasu::tstd::Rnum top(0.3);
 	torasu::tstd::Rnum bottom(0.4);
 
-	imgc::Rcropdata_combined tree(&left, &right, &top, &bottom);
+	imgc::Rcropdata_combined tree(&calcLeft, &right, &top, &bottom);
 
 	// Creating the runner
 
@@ -407,14 +413,14 @@ void cropdataExample() {
 
 
 void cropExample() {
-	
+
 	//
 	// Crop Example
 	//
 
 	std::cout << "//" << std::endl
-		 << "// Crop Example" << std::endl
-		 << "//" << std::endl;
+			  << "// Crop Example" << std::endl
+			  << "//" << std::endl;
 
 	// Creating "tree" to be rendered
 

@@ -14,13 +14,13 @@ private:
 	Renderable* bottomRnd;
 
 protected:
-	virtual torasu::ResultSegment* renderSegment(torasu::ResultSegmentSettings* resSettings, torasu::RenderInstruction* ri);
+	torasu::ResultSegment* renderSegment(torasu::ResultSegmentSettings* resSettings, torasu::RenderInstruction* ri) override;
 
 public:
 	Rcropdata_combined(Renderable* left, Renderable* right, Renderable* top, Renderable* bottom);
-	virtual ~Rcropdata_combined();
+	~Rcropdata_combined();
 
-	std::map<std::string, Element*> getElements() override;
+	torasu::ElementMap getElements() override;
 	void setElement(std::string key, Element* elem) override;
 };
 

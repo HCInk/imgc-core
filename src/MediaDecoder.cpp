@@ -187,7 +187,7 @@ std::pair<int32_t, int32_t> MediaDecoder::getDimensions() {
 	if (stream == nullptr) {
 		return std::pair<int32_t, int32_t>(-1, -1);
 	}
-	return std::pair<int32_t, int32_t>(stream->ctx->width, stream->ctx->height); 
+	return std::pair<int32_t, int32_t>(stream->ctx->width, stream->ctx->height);
 }
 
 double MediaDecoder::getDuration() {

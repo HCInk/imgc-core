@@ -11,12 +11,12 @@
 
 namespace imgc {
 
-Rcropdata_combined::Rcropdata_combined(Renderable* left, Renderable* right, Renderable* top, Renderable* bottom) 
+Rcropdata_combined::Rcropdata_combined(Renderable* left, Renderable* right, Renderable* top, Renderable* bottom)
 	: SimpleRenderable("IMGC::RCROPDATA_COMBINED", false, true),
-		leftRnd(left), rightRnd(right), topRnd(top), bottomRnd(bottom)  {}
+	  leftRnd(left), rightRnd(right), topRnd(top), bottomRnd(bottom)  {}
 
 
-Rcropdata_combined::~Rcropdata_combined() {} 
+Rcropdata_combined::~Rcropdata_combined() {}
 
 torasu::ResultSegment* Rcropdata_combined::renderSegment(torasu::ResultSegmentSettings* resSettings, torasu::RenderInstruction* ri) {
 	std::string pipeline = resSettings->getPipeline();
@@ -42,7 +42,7 @@ torasu::ResultSegment* Rcropdata_combined::renderSegment(torasu::ResultSegmentSe
 		auto fetchedR = resHandle.getFrom(resR).getResult();
 		auto fetchedT = resHandle.getFrom(resT).getResult();
 		auto fetchedB = resHandle.getFrom(resB).getResult();
-		
+
 		double lVal = fetchedL != nullptr ? fetchedL->getNum() : 0;
 		double rVal = fetchedR != nullptr ? fetchedR->getNum() : 0;
 		double tVal = fetchedT != nullptr ? fetchedT->getNum() : 0;
@@ -54,7 +54,7 @@ torasu::ResultSegment* Rcropdata_combined::renderSegment(torasu::ResultSegmentSe
 		delete resB;
 
 		auto* result = new imgc::Dcropdata(lVal, rVal, tVal, bVal);
-		
+
 		return new torasu::ResultSegment(torasu::ResultSegmentStatus_OK, result, false);
 	} else {
 		return new torasu::ResultSegment(torasu::ResultSegmentStatus_INVALID_SEGMENT);
@@ -62,8 +62,8 @@ torasu::ResultSegment* Rcropdata_combined::renderSegment(torasu::ResultSegmentSe
 }
 
 
-std::map<std::string, torasu::Element*> Rcropdata_combined::getElements() {
-	std::map<std::string, torasu::Element*> elems;
+torasu::ElementMap Rcropdata_combined::getElements() {
+	torasu::ElementMap elems;
 
 	elems["l"] = leftRnd;
 	elems["r"] = rightRnd;

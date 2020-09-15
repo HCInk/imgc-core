@@ -95,8 +95,8 @@ torasu::ResultSegment* Rgain::renderSegment(torasu::ResultSegmentSettings* resSe
 
 }
 
-std::map<std::string, torasu::Element*> Rgain::getElements() {
-	std::map<std::string, Element*> elems;
+torasu::ElementMap Rgain::getElements() {
+	torasu::ElementMap elems;
 	elems["src"] = rSrc;
 	elems["val"] = rGainVal;
 	return elems;

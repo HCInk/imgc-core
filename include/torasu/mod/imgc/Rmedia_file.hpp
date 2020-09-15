@@ -30,7 +30,7 @@ public:
 
 	torasu::RenderResult* render(torasu::RenderInstruction* ri) override;
 
-	std::map<std::string, torasu::Element*> getElements() override;
+	torasu::ElementMap getElements() override;
 	void setElement(std::string key, torasu::Element* elem) override;
 
 };

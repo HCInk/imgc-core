@@ -63,7 +63,7 @@ void Rimg_file::load(torasu::RenderContext* rctx, torasu::ExecutionInterface* ei
 }
 
 ResultSegment* Rimg_file::renderSegment(ResultSegmentSettings* resSettings, RenderInstruction* ri) {
-	
+
 	auto ei = ri->getExecutionInterface();
 	auto rctx = ri->getRenderContext();
 
@@ -128,8 +128,8 @@ ResultSegment* Rimg_file::renderSegment(ResultSegmentSettings* resSettings, Rend
 	}
 }
 
-std::map<std::string, Element*> Rimg_file::getElements() {
-	std::map<std::string, Element*> elems;
+torasu::ElementMap Rimg_file::getElements() {
+	torasu::ElementMap elems;
 	elems["f"] = rfile;
 	return elems;
 }

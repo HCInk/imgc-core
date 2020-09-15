@@ -3,6 +3,7 @@
 #include <chrono>
 #include <cmath>
 #include <stdexcept>
+#include <iostream>
 
 #include <torasu/render_tools.hpp>
 
@@ -26,8 +27,8 @@ Ralign2d::~Ralign2d() {}
 #define ROUND_PRECISION 40000
 
 void Ralign2d::calcAlign(Renderable* alignmentProvider, torasu::ExecutionInterface* ei, torasu::RenderContext* rctx,
-				   uint32_t destWidth, uint32_t destHeight,
-				   Ralign2d_CROPDATA* outCropData) const {
+						 uint32_t destWidth, uint32_t destHeight,
+						 Ralign2d_CROPDATA* outCropData) const {
 
 	// Creating instruction to get alignment
 
@@ -41,7 +42,7 @@ void Ralign2d::calcAlign(Renderable* alignmentProvider, torasu::ExecutionInterfa
 	// Finding results
 
 	auto result = handle.getFrom(rr);
-	
+
 	if (result.getResult() == nullptr) {
 		throw std::runtime_error("Alignment calculation failed!");
 	}
@@ -193,8 +194,8 @@ torasu::ResultSegment* Ralign2d::renderSegment(torasu::ResultSegmentSettings* re
 
 }
 
-std::map<std::string, torasu::Element*> Ralign2d::getElements() {
-	std::map<std::string, torasu::Element*> elems;
+torasu::ElementMap Ralign2d::getElements() {
+	torasu::ElementMap elems;
 
 	elems["src"] = rndSrc;
 	elems["align"] = rndAlign;

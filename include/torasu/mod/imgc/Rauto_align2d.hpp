@@ -15,7 +15,7 @@ private:
 	double posX, posY, zoomFactor, ratio;
 
 	imgc::Dcropdata* calcAlign(double posX, double posY, double zoomFactor, double srcRatio,
-						 double destRatio) const;
+							   double destRatio) const;
 
 protected:
 	torasu::ResultSegment* renderSegment(torasu::ResultSegmentSettings* resSettings, torasu::RenderInstruction* ri) override;
@@ -25,7 +25,7 @@ public:
 	Rauto_align2d(Renderable* rndSrc, double posX, double posY, double zoomFactor, double ratio = 0);
 	~Rauto_align2d();
 
-	std::map<std::string, Element*> getElements() override;
+	torasu::ElementMap getElements() override;
 	void setElement(std::string key, Element* elem) override;
 
 };

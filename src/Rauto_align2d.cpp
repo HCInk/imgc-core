@@ -16,8 +16,8 @@
 namespace imgc {
 
 Rauto_align2d::Rauto_align2d(Renderable* rndSrc, double posX, double posY, double zoomFactor, double ratio)
-	: SimpleRenderable("IMGC::RAUTO_ALIGN2D", true, false), 
-	rndSrc(rndSrc), posX(posX), posY(posY), zoomFactor(zoomFactor), ratio(ratio) {
+	: SimpleRenderable("IMGC::RAUTO_ALIGN2D", true, false),
+	  rndSrc(rndSrc), posX(posX), posY(posY), zoomFactor(zoomFactor), ratio(ratio) {
 
 	internalAlign = new Ralign2d(rndSrc, this);
 }
@@ -28,12 +28,12 @@ Rauto_align2d::~Rauto_align2d() {
 
 
 imgc::Dcropdata* Rauto_align2d::calcAlign(double posX, double posY, double zoomFactor, double srcRatio,
-						 double destRatio) const {
+		double destRatio) const {
 
 	posX = 0.5 + posX / 2;
 	posY = 0.5 + posY / 2;
 
-	// <1: Destination less wide then source 
+	// <1: Destination less wide then source
 	// =1: Same ratio
 	// >1: Destination more wide then source
 	// (How wide is the destination to the source)
@@ -47,7 +47,7 @@ imgc::Dcropdata* Rauto_align2d::calcAlign(double posX, double posY, double zoomF
 
 		// Margins Horizontal/Vertical
 		double containHM, containVM,
-				 coverHM, coverVM;
+			   coverHM, coverVM;
 
 		if (difRatio > 1) { // Destination more wide
 
@@ -70,11 +70,11 @@ imgc::Dcropdata* Rauto_align2d::calcAlign(double posX, double posY, double zoomF
 		// Vertival Margin
 		double vm = coverVM*zoomFactor + containVM*(1-zoomFactor);
 
-		return new imgc::Dcropdata(hm*posX,     // Left 
-									hm*(1-posX),// Right
-									vm*posY,    // Top
-									vm*(1-posY) // Bottom
-									);
+		return new imgc::Dcropdata(hm*posX,     // Left
+								   hm*(1-posX),// Right
+								   vm*posY,    // Top
+								   vm*(1-posY) // Bottom
+								  );
 
 	}
 
@@ -113,10 +113,10 @@ torasu::ResultSegment* Rauto_align2d::renderSegment(torasu::ResultSegmentSetting
 		torasu::RenderResult* rr = rib.runRender(internalAlign, rctx, ei);
 
 		auto res = handle.getFrom(rr);
-		
+
 		auto* rs = res.canFreeResult() ?
-					new torasu::ResultSegment(res.getStatus(), res.ejectResult(), true) :
-					new torasu::ResultSegment(res.getStatus(), res.getResult(), false);
+				   new torasu::ResultSegment(res.getStatus(), res.ejectResult(), true) :
+				   new torasu::ResultSegment(res.getStatus(), res.getResult(), false);
 
 		delete rr;
 
@@ -125,8 +125,8 @@ torasu::ResultSegment* Rauto_align2d::renderSegment(torasu::ResultSegmentSetting
 
 }
 
-std::map<std::string, torasu::Element*> Rauto_align2d::getElements() {
-	std::map<std::string, torasu::Element*> elems;
+torasu::ElementMap Rauto_align2d::getElements() {
+	torasu::ElementMap elems;
 
 	elems["src"] = rndSrc;
 

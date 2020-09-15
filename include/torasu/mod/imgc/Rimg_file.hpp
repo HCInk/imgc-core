@@ -31,14 +31,14 @@ private:
 	void load(torasu::RenderContext* rctx, torasu::ExecutionInterface* ei);
 
 protected:
-	torasu::ResultSegment* renderSegment(torasu::ResultSegmentSettings* resSettings, torasu::RenderInstruction* ri);
+	torasu::ResultSegment* renderSegment(torasu::ResultSegmentSettings* resSettings, torasu::RenderInstruction* ri) override;
 
 public:
 	explicit Rimg_file(Renderable* file);
 	~Rimg_file();
 
-	virtual std::map<std::string, Element*> getElements();
-	virtual void setElement(std::string key, Element* elem);
+	torasu::ElementMap getElements() override;
+	void setElement(std::string key, Element* elem) override;
 };
 
 } // namespace imgc

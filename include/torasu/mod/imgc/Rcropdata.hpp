@@ -19,14 +19,14 @@ private:
 	Dcropdata* val;
 
 protected:
-	virtual torasu::ResultSegment* renderSegment(torasu::ResultSegmentSettings* resSettings, torasu::RenderInstruction* ri);
+	torasu::ResultSegment* renderSegment(torasu::ResultSegmentSettings* resSettings, torasu::RenderInstruction* ri) override;
 
 public:
 	explicit Rcropdata(Dcropdata val);
-	virtual ~Rcropdata();
+	~Rcropdata();
 
-	virtual torasu::DataResource* getData();
-	virtual void setData(torasu::DataResource* data);
+	torasu::DataResource* getData() override;
+	void setData(torasu::DataResource* data) override;
 };
 
 } // namespace imgc

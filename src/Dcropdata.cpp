@@ -6,13 +6,13 @@ using json = torasu::json;
 
 namespace imgc {
 
-Dcropdata::Dcropdata(std::string jsonStripped) 
+Dcropdata::Dcropdata(std::string jsonStripped)
 	: DataPackable(jsonStripped) {}
 
-Dcropdata::Dcropdata(nlohmann::json jsonParsed) 
+Dcropdata::Dcropdata(nlohmann::json jsonParsed)
 	: DataPackable(jsonParsed) {}
 
-Dcropdata::Dcropdata(double offLeft, double offRight, double offTop, double offBottom) 
+Dcropdata::Dcropdata(double offLeft, double offRight, double offTop, double offBottom)
 	: offLeft(offLeft), offRight(offRight), offTop(offTop), offBottom(offBottom) {}
 
 
