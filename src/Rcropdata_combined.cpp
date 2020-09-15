@@ -53,9 +53,7 @@ torasu::ResultSegment* Rcropdata_combined::renderSegment(torasu::ResultSegmentSe
 		delete resT;
 		delete resB;
 
-		auto* result = new imgc::Dcropdata(lVal, rVal, tVal, bVal);
-
-		return new torasu::ResultSegment(torasu::ResultSegmentStatus_OK, result, false);
+		return new torasu::ResultSegment(torasu::ResultSegmentStatus_OK, new imgc::Dcropdata(lVal, rVal, tVal, bVal), true);
 	} else {
 		return new torasu::ResultSegment(torasu::ResultSegmentStatus_INVALID_SEGMENT);
 	}
