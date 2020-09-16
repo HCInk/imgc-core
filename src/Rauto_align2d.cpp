@@ -91,6 +91,7 @@ torasu::ResultSegment* Rauto_align2d::renderSegment(torasu::ResultSegmentSetting
 			torasu::RenderableProperties* props = torasu::tools::getProperties(rndSrc, {TORASU_STD_PROP_IMG_RAITO}, ei);
 			auto* dataRatio = torasu::tools::getPropertyValue<torasu::tstd::Dnum>(props, TORASU_STD_PROP_IMG_RAITO);
 			ratio = dataRatio ? dataRatio->getNum() : 1;
+			delete dataRatio; // XXX For now until props handles the property-deletion
 			delete props;
 		} else {
 			ratio = this->ratio;
