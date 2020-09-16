@@ -86,8 +86,7 @@ torasu::RenderResult* Rmedia_file::render(torasu::RenderInstruction* ri) {
 			auto fmtSettings = segmentSettings->getResultFormatSettings();
 
 			if (fmtSettings != NULL) {
-				if (!( fmtSettings->getFormat() == "STD::DBIMG" &&
-						(videoFormat = dynamic_cast<torasu::tstd::Dbimg_FORMAT*>(fmtSettings->getData())) )) {
+				if (!( videoFormat = dynamic_cast<torasu::tstd::Dbimg_FORMAT*>(fmtSettings) )) {
 					(*results)[videoKey.value()] = new torasu::ResultSegment(torasu::ResultSegmentStatus_INVALID_FORMAT);
 				}
 			}

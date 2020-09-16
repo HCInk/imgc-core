@@ -70,44 +70,39 @@ ResultSegment* Rimg_file::renderSegment(ResultSegmentSettings* resSettings, Rend
 	std::string currentPipeline = resSettings->getPipeline();
 
 	if (currentPipeline == TORASU_STD_PL_VIS) {
-		auto format = resSettings->getResultFormatSettings();
-		if (format == NULL || format->getFormat().compare("STD::DBIMG") == 0) {
-			int32_t rWidth, rHeight;
-			if (format == NULL) {
-				rWidth = -1;
-				rHeight = -1;
-			} else {
-				DataResource* fmtData = format->getData();
-				Dbimg_FORMAT* bimgFormat;
-				if (!(bimgFormat = dynamic_cast<Dbimg_FORMAT*>(fmtData))) {
-					return new ResultSegment(ResultSegmentStatus_INVALID_FORMAT);
-				}
+		auto* format = resSettings->getResultFormatSettings();
+		int32_t rWidth, rHeight;
+		if (format == NULL) {
+			rWidth = -1;
+			rHeight = -1;
+		} else {
+			if (auto* bimgFormat = dynamic_cast<Dbimg_FORMAT*>(format)) {
 				rWidth = bimgFormat->getWidth();
 				rHeight = bimgFormat->getHeight();
 				cout << "RIMG RENDER " << rWidth << "x" << rHeight << endl;
+			} else {
+				return new ResultSegment(ResultSegmentStatus_INVALID_FORMAT);
 			}
-
-			load(rctx, ei);
-
-			if (rWidth == 0 || rHeight == 0) {
-				return new ResultSegment(ResultSegmentStatus_OK, new Dbimg(rWidth, rHeight), true);
-			}
-
-			if (rWidth < 0) {
-				rWidth = srcWidth;
-				rHeight = srcHeight;
-			}
-
-
-			Dbimg_FORMAT fmt(rWidth, rHeight);
-
-			Dbimg* resultImage = scaler::scaleImg(loadedImage.data(), srcWidth, srcHeight, &fmt, true);
-
-			return new ResultSegment(ResultSegmentStatus_OK, resultImage, true);
-
-		} else {
-			return new ResultSegment(ResultSegmentStatus_INVALID_FORMAT);
 		}
+
+		load(rctx, ei);
+
+		if (rWidth == 0 || rHeight == 0) {
+			return new ResultSegment(ResultSegmentStatus_OK, new Dbimg(rWidth, rHeight), true);
+		}
+
+		if (rWidth < 0) {
+			rWidth = srcWidth;
+			rHeight = srcHeight;
+		}
+
+
+		Dbimg_FORMAT fmt(rWidth, rHeight);
+
+		Dbimg* resultImage = scaler::scaleImg(loadedImage.data(), srcWidth, srcHeight, &fmt, true);
+
+		return new ResultSegment(ResultSegmentStatus_OK, resultImage, true);
+
 
 	} else if (torasu::isPipelineKeyPropertyKey(currentPipeline)) { // optional so properties get skipped if it is no property
 		if (currentPipeline == TORASU_PROPERTY(TORASU_STD_PROP_IMG_WIDTH)) {

@@ -18,12 +18,7 @@ torasu::ResultSegment* Rgain::renderSegment(torasu::ResultSegmentSettings* resSe
 
 	auto* format = resSettings->getResultFormatSettings();
 	uint32_t rWidth, rHeight;
-	if (format->getFormat() == "STD::DBIMG") {
-		torasu::DataResource* fmtData = format->getData();
-		torasu::tstd::Dbimg_FORMAT* bimgFormat;
-		if (!(bimgFormat = dynamic_cast<torasu::tstd::Dbimg_FORMAT*>(fmtData))) {
-			return new torasu::ResultSegment(torasu::ResultSegmentStatus_INVALID_FORMAT);
-		}
+	if (auto* bimgFormat = dynamic_cast<torasu::tstd::Dbimg_FORMAT*>(format)) {
 		rWidth = bimgFormat->getWidth();
 		rHeight = bimgFormat->getHeight();
 	} else {

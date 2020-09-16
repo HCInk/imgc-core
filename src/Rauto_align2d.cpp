@@ -97,7 +97,7 @@ torasu::ResultSegment* Rauto_align2d::renderSegment(torasu::ResultSegmentSetting
 		}
 
 		auto foundDestRatio = rctx->find(TORASU_STD_CTX_IMG_RATIO);
-		double destRatio = foundDestRatio != rctx->end() ? static_cast<torasu::tstd::Dnum*>(foundDestRatio->second)->getNum() : 0;
+		double destRatio = foundDestRatio != rctx->end() ? dynamic_cast<torasu::tstd::Dnum*>(foundDestRatio->second)->getNum() : 0;
 
 		auto* cropdata = calcAlign(this->posX, this->posY, this->zoomFactor, ratio, destRatio);
 

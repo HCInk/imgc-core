@@ -73,9 +73,7 @@ void netImageTest() {
 
 	torasu::tstd::Dbimg_FORMAT format(400, 400);
 
-	auto rf = format.asFormat();
-
-	auto handle = rib.addSegmentWithHandle<torasu::tstd::Dbimg>(TORASU_STD_PL_VIS, &rf);
+	auto handle = rib.addSegmentWithHandle<torasu::tstd::Dbimg>(TORASU_STD_PL_VIS, &format);
 
 	std::cout << "RENDER BEGIN" << std::endl;
 	/*for (int i = 0; i < 120; i++) {
@@ -268,8 +266,7 @@ void yetAnotherIMGCTest() {
 	torasu::tools::RenderInstructionBuilder rib;
 	// Dbimg_FORMAT format(1340, 1200);
 	torasu::tstd::Dbimg_FORMAT format(1340, 1200);
-	auto rf = format.asFormat();
-	auto handle = rib.addSegmentWithHandle<torasu::tstd::Dbimg>(TORASU_STD_PL_VIS, &rf);
+	auto handle = rib.addSegmentWithHandle<torasu::tstd::Dbimg>(TORASU_STD_PL_VIS, &format);
 
 	// Rendering Results
 
@@ -445,9 +442,8 @@ void cropExample() {
 	// torasu::tstd::Dbimg_FORMAT format(500, 500); // Works
 	// torasu::tstd::Dbimg_FORMAT format(500, 600); // Now Works
 	torasu::tstd::Dbimg_FORMAT format(600, 500); // Now Works
-	auto rf = format.asFormat();
 
-	auto handle = rib.addSegmentWithHandle<torasu::tstd::Dbimg>(TORASU_STD_PL_VIS, &rf);
+	auto handle = rib.addSegmentWithHandle<torasu::tstd::Dbimg>(TORASU_STD_PL_VIS, &format);
 
 	// Creating render-context
 

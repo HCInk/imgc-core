@@ -127,8 +127,7 @@ torasu::ResultSegment* Ralign2d::renderSegment(torasu::ResultSegmentSettings* re
 	if (resSettings->getPipeline().compare(TORASU_STD_PL_VIS) == 0) {
 		torasu::tstd::Dbimg_FORMAT* fmt;
 		if ( !( resSettings->getResultFormatSettings() != NULL
-				&& resSettings->getResultFormatSettings()->getFormat() == "STD::DBIMG"
-				&& (fmt = dynamic_cast<torasu::tstd::Dbimg_FORMAT*>(resSettings->getResultFormatSettings()->getData())) )) {
+				&& (fmt = dynamic_cast<torasu::tstd::Dbimg_FORMAT*>(resSettings->getResultFormatSettings())) )) {
 			return new torasu::ResultSegment(torasu::ResultSegmentStatus_INVALID_FORMAT);
 		}
 
@@ -145,9 +144,7 @@ torasu::ResultSegment* Ralign2d::renderSegment(torasu::ResultSegmentSettings* re
 
 		torasu::tstd::Dbimg_FORMAT srcFmt(cropData.srcWidth, cropData.srcHeight);
 
-		auto fmtHandle = srcFmt.asFormat();
-
-		torasu::tools::RenderResultSegmentHandle<torasu::tstd::Dbimg> resHandle = rib.addSegmentWithHandle<torasu::tstd::Dbimg>(TORASU_STD_PL_VIS, &fmtHandle);
+		torasu::tools::RenderResultSegmentHandle<torasu::tstd::Dbimg> resHandle = rib.addSegmentWithHandle<torasu::tstd::Dbimg>(TORASU_STD_PL_VIS, &srcFmt);
 
 		// Render-context modification
 
