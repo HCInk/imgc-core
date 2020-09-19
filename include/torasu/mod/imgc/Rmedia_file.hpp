@@ -15,7 +15,8 @@ class MediaDecoder;
 
 class Rmedia_file :  public torasu::Renderable,
 	public torasu::tools::NamedIdentElement,
-	public torasu::tools::SimpleDataElement {
+	public torasu::tools::SimpleDataElement,
+	public torasu::tools::ReadylessElement {
 private:
 	torasu::Renderable* srcRnd;
 	torasu::RenderResult* srcRendRes = NULL;
