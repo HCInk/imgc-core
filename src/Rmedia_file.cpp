@@ -34,6 +34,8 @@ Rmedia_file::~Rmedia_file() {
 
 void Rmedia_file::load(torasu::ExecutionInterface* ei) {
 
+	ei->lock();
+
 	if (decoder != NULL) return;
 
 	if (srcRnd == NULL) throw std::logic_error("Source renderable set loaded yet!");
@@ -65,6 +67,7 @@ void Rmedia_file::load(torasu::ExecutionInterface* ei) {
 
 	decoder = new MediaDecoder(srcFile->getFileData(), srcFile->getFileSize());
 
+	ei->unlock();
 }
 
 
@@ -148,12 +151,16 @@ torasu::RenderResult* Rmedia_file::render(torasu::RenderInstruction* ri) {
 		torasu::tstd::Dbimg_sequence* vidBuff = NULL;
 		torasu::tstd::Daudio_buffer* audBuff = NULL;
 
+		ei->lock();
+
 		decoder->getSegment((SegmentRequest) {
 			.start = time,
 			.end = time+duration,
 			.videoBuffer = videoKey.has_value() ? &vidBuff : NULL,
 			.audioBuffer = audioKey.has_value() ? &audBuff : NULL
 		});
+
+		ei->unlock();
 
 		if (videoKey.has_value()) {
 			auto& frames = vidBuff->getFrames();
