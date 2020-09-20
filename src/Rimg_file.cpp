@@ -32,7 +32,7 @@ Rimg_file::~Rimg_file() {}
 
 void Rimg_file::load(torasu::RenderContext* rctx, torasu::ExecutionInterface* ei) {
 
-	loadLock.lock();
+	ei->lock();
 
 	if (!loaded) {
 
@@ -59,7 +59,7 @@ void Rimg_file::load(torasu::RenderContext* rctx, torasu::ExecutionInterface* ei
 		loaded = true;
 	}
 
-	loadLock.unlock();
+	ei->unlock();
 }
 
 ResultSegment* Rimg_file::renderSegment(ResultSegmentSettings* resSettings, RenderInstruction* ri) {
