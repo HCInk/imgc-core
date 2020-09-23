@@ -36,7 +36,10 @@ void Rmedia_file::load(torasu::ExecutionInterface* ei) {
 
 	ei->lock();
 
-	if (decoder != NULL) return;
+	if (decoder != NULL) {
+		ei->unlock();
+		return;
+	}
 
 	if (srcRnd == NULL) throw std::logic_error("Source renderable set loaded yet!");
 
