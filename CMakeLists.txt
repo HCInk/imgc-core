@@ -15,6 +15,7 @@ set(IMGC_SRC
 		${CMAKE_CURRENT_LIST_DIR}/thirdparty/lodepng/lodepng.cpp
 		${CMAKE_CURRENT_LIST_DIR}/src/Rimg_file.cpp
         ${CMAKE_CURRENT_LIST_DIR}/src/MediaDecoder.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/src/MediaEncoder.cpp
         ${CMAKE_CURRENT_LIST_DIR}/src/Scaler.cpp
         ${CMAKE_CURRENT_LIST_DIR}/src/Rmedia_file.cpp
 		${CMAKE_CURRENT_LIST_DIR}/src/Ralign2d.cpp
