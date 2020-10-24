@@ -15,17 +15,17 @@ extern "C" {
 #include <libavutil/frame.h>
 }
 
+#include <torasu/std/Dfile.hpp>
 #include <torasu/std/Dbimg.hpp>
 #include <torasu/std/Daudio_buffer.hpp>
 
 namespace imgc {
 
-template<class O> class MediaEncoder {
+class MediaEncoder {
 public:
 	class FrameRequest {
-	private:
-		FrameRequest() {}
 	protected:
+		FrameRequest() {}
 		virtual ~FrameRequest() {}
 	};
 
@@ -68,14 +68,21 @@ public:
 		inline void setResult(torasu::tstd::Daudio_buffer* result) {this->result = result;}
 	};
 
-private:
+	struct EncodeRequest {
+
+	};
+
 	typedef std::function<int(FrameRequest*)> FrameCallbackFunc;
-	FrameCallbackFunc frameCallbackFunc;
+
+private:
+	FrameCallbackFunc frameCallbackFunc;	
 
 public:
 	MediaEncoder(FrameCallbackFunc frameCallbackFunc) 
 		: frameCallbackFunc(frameCallbackFunc) {}
 	~MediaEncoder() {}
+
+	torasu::tstd::Dfile* encode(EncodeRequest request);
 };
 
 } // namespace imgc
