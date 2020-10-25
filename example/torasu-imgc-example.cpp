@@ -23,6 +23,7 @@
 #include <torasu/mod/imgc/pipeline_names.hpp>
 #include <torasu/mod/imgc/Rimg_file.hpp>
 #include <torasu/mod/imgc/MediaDecoder.hpp>
+#include <torasu/mod/imgc/MediaEncoder.hpp>
 #include <torasu/mod/imgc/Rmedia_file.hpp>
 #include <torasu/mod/imgc/Ralign2d.hpp>
 #include <torasu/mod/imgc/Rauto_align2d.hpp>
@@ -484,8 +485,17 @@ int main(int argc, char** argv) {
 	// videoTest();
 	// example_sdl::main(argc, argv);
 	// examples::yetAnotherIMGCTest();
-	examples::cropdataExample();
-	examples::cropExample();
+	// examples::cropdataExample();
+	// examples::cropExample();
+
+	imgc::MediaEncoder enc([](imgc::MediaEncoder::FrameRequest* fr) {
+		std::cout << "Frame Callback!" << std::endl;
+		return 0;
+	});
+
+	enc.encode((imgc::MediaEncoder::EncodeRequest) {
+		
+	});
 
 	return 0;
 }
