@@ -36,36 +36,52 @@ public:
 		torasu::tstd::Dbimg_FORMAT* format;
 
 	protected:
-		VideoFrameRequest(double time, torasu::tstd::Dbimg_FORMAT* format) 
+		VideoFrameRequest(double time, torasu::tstd::Dbimg_FORMAT* format)
 			: time(time), format(format) {}
 		~VideoFrameRequest() {}
 
-		inline torasu::tstd::Dbimg* getResult() {return result;}
-	
-	public:
-		inline double getTime() {return time;}
+		inline torasu::tstd::Dbimg* getResult() {
+			return result;
+		}
 
-		inline void setResult(torasu::tstd::Dbimg* result) {this->result = result;}
-		inline torasu::tstd::Dbimg_FORMAT* getFormat() {return format;}
+	public:
+		inline double getTime() {
+			return time;
+		}
+
+		inline void setResult(torasu::tstd::Dbimg* result) {
+			this->result = result;
+		}
+		inline torasu::tstd::Dbimg_FORMAT* getFormat() {
+			return format;
+		}
 	};
 
 	class AudioFrameRequest : FrameRequest {
 	private:
 		double start, duration;
 		torasu::tstd::Daudio_buffer* result;
-	
+
 	protected:
-		AudioFrameRequest(double start, double duration) 
+		AudioFrameRequest(double start, double duration)
 			: start(start), duration(duration) {}
 		~AudioFrameRequest() {}
 
-		inline torasu::tstd::Daudio_buffer* getResult() {return result;}
-	
-	public:
-		inline double getStart() {return start;}
-		inline double getDuration() {return duration;}
+		inline torasu::tstd::Daudio_buffer* getResult() {
+			return result;
+		}
 
-		inline void setResult(torasu::tstd::Daudio_buffer* result) {this->result = result;}
+	public:
+		inline double getStart() {
+			return start;
+		}
+		inline double getDuration() {
+			return duration;
+		}
+
+		inline void setResult(torasu::tstd::Daudio_buffer* result) {
+			this->result = result;
+		}
 	};
 
 	struct EncodeRequest {
@@ -75,10 +91,10 @@ public:
 	typedef std::function<int(FrameRequest*)> FrameCallbackFunc;
 
 private:
-	FrameCallbackFunc frameCallbackFunc;	
+	FrameCallbackFunc frameCallbackFunc;
 
 public:
-	MediaEncoder(FrameCallbackFunc frameCallbackFunc) 
+	MediaEncoder(FrameCallbackFunc frameCallbackFunc)
 		: frameCallbackFunc(frameCallbackFunc) {}
 	~MediaEncoder() {}
 
