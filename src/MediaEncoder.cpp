@@ -112,6 +112,9 @@ public:
 		if (queuedPacket != nullptr) {
 			av_packet_free(&queuedPacket);
 		}
+		if (frame != nullptr) {
+			av_frame_free(&frame);
+		}
 	}
 
 	inline void init(AVCodecID codecId, AVFormatContext* formatCtx) {
@@ -159,8 +162,42 @@ public:
 		}
 
 		frame_size = ctx->frame_size;
+		
+		initFrame();
 
 		state = OPEN;
+
+	}
+
+	inline void initFrame() {
+		frame = av_frame_alloc();
+
+		if (ctx->codec_type == AVMEDIA_TYPE_VIDEO) {
+			frame->format = ctx->pix_fmt;
+			frame->width = ctx->width;
+			frame->height = ctx->height;
+		} else if (ctx->codec_type == AVMEDIA_TYPE_AUDIO) {
+			frame->format = ctx->sample_fmt;
+			frame->nb_samples = frame_size;
+			frame->channel_layout = ctx->channel_layout;
+		} else {
+			state = ERROR;
+			throw std::runtime_error("Can configure frame for codec-type: " + std::to_string(ctx->codec_type));
+		}
+
+		int callStat;
+
+		callStat = av_frame_get_buffer(frame, 0);
+		if (callStat != 0) {
+			state = ERROR;
+			throw std::runtime_error("Error while creating buffer for frame: " + avErrStr(callStat));
+		}
+
+		callStat = av_frame_make_writable(frame);
+		if (callStat < 0) {
+			state = ERROR;
+			throw std::runtime_error("Error while making frame writable: " + avErrStr(callStat));
+		}
 
 	}
 };
@@ -331,38 +368,6 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
 	// Encoding
 	//
 
-	// Video Dummy
-
-	AVFrame* workingFrame = av_frame_alloc();
-
-	workingFrame->format = AV_PIX_FMT_YUV420P;
-	workingFrame->width = width;
-	workingFrame->height = height;
-
-	callStat = av_frame_get_buffer(workingFrame, 0);
-	if (callStat != 0)
-		throw std::runtime_error("Error while creating buffer for frame: " + avErrStr(callStat));
-
-	callStat = av_frame_make_writable(workingFrame);
-	if (callStat < 0)
-		throw std::runtime_error("Error while making frame writable: " + avErrStr(callStat));
-
-	// Audio Dummy
-
-	AVFrame* audioDummyFrame = av_frame_alloc();
-
-	audioDummyFrame->format = AV_SAMPLE_FMT_FLTP;
-	audioDummyFrame->nb_samples = audioFrameSize;
-	audioDummyFrame->channel_layout = AV_CH_LAYOUT_STEREO;
-
-	callStat = av_frame_get_buffer(audioDummyFrame, 0);
-	if (callStat != 0)
-		throw std::runtime_error("Error while creating buffer for audio-frame: " + avErrStr(callStat));
-
-	callStat = av_frame_make_writable(audioDummyFrame);
-	if (callStat < 0)
-		throw std::runtime_error("Error while making audio-frame writable: " + avErrStr(callStat));
-
 	// Encoding loop
 
 	for (;;) {
@@ -402,15 +407,15 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
 		if (translatedPh < 10) {
 			if (stream.ctx->codec_type == AVMEDIA_TYPE_VIDEO) {
 				// std::cout << " T_VID@" << translatedPh << std::endl;
-				workingFrame->pts = stream.playhead;
-				fill_yuv_image(workingFrame, stream.playhead, width, height);
-				frame = workingFrame;
+				frame = stream.frame;
+				frame->pts = stream.playhead;
+				fill_yuv_image(frame, stream.playhead, width, height);
 				stream.playhead++;
 			} else if (stream.ctx->codec_type == AVMEDIA_TYPE_AUDIO) {
 				// std::cout << " T_AUD@" << translatedPh << std::endl;
-				audioDummyFrame->pts = stream.playhead;
-				fill_fltp_audio(audioDummyFrame, stream.playhead);
-				frame = audioDummyFrame;
+				frame = stream.frame;
+				frame->pts = stream.playhead;
+				fill_fltp_audio(frame, stream.playhead);
 				stream.playhead += stream.frame_size;
 			}
 		}
@@ -474,9 +479,6 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
 	//
 	// Cleanup
 	//
-
-	av_frame_free(&workingFrame);
-	av_frame_free(&audioDummyFrame);
 
 	avformat_free_context(formatCtx);
 	avio_context_free(&avioCtx);
