@@ -16,11 +16,6 @@ struct IOOpaque {
 	std::ofstream* ofstream;
 };
 
-int ReadFunc(void* opaque, uint8_t* buf, int buf_size) {
-	std::cerr << "Unsupported ReadOp!" << std::endl;
-	return 0;
-}
-
 int WriteFunc(void* opaque, uint8_t* buf, int buf_size) {
 	// std::cout << "WriteOp..." << std::endl;
 	((IOOpaque*) opaque)->ofstream->write(const_cast<const char*>(reinterpret_cast<char*>(buf)), buf_size);
@@ -42,18 +37,17 @@ int64_t SeekFunc(void* opaque, int64_t offset, int whence) {
 		break;
 	case SEEK_END:
 		std::cerr << "SeekOp END unsupported!" << std::endl;
-		// stream->end();
-		break;
+		return AVERROR_INVALIDDATA;
 	case AVSEEK_SIZE:
-
-		std::cerr << "SeekOp END unsupported!" << std::endl;
-		// return reader->size;
-		break;
+		std::cerr << "SeekOp AVSEEK_SIZE unsupported!" << std::endl;
+		return AVERROR_INVALIDDATA;
 	default:
+		std::cerr << "Unkown SeekOp!" << std::endl;
+		return AVERROR_INVALIDDATA;
 		break;
 	}
 
-	// Return the new position:
+	// Return the (new) position:
 	return stream->tellp();
 
 }
@@ -276,7 +270,7 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
 		&myfile
 	};
 
-	AVIOContext* avioCtx = avio_alloc_context(alloc_buf, 32 * 1024, true, &opaque, ReadFunc, WriteFunc, SeekFunc);
+	AVIOContext* avioCtx = avio_alloc_context(alloc_buf, 32 * 1024, true, &opaque, nullptr, WriteFunc, SeekFunc);
 
 	if (!avioCtx) {
 		av_free(alloc_buf);
