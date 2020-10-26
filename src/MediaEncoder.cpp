@@ -474,6 +474,7 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
 
 
 	av_frame_free(&workingFrame);
+	av_frame_free(&audioDummyFrame);
 
 	avformat_free_context(formatCtx);
 	avio_context_free(&avioCtx);
