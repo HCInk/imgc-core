@@ -60,30 +60,32 @@ int64_t SeekFunc(void* opaque, int64_t offset, int whence) {
 
 class StreamContainer {
 public:
-
+	// Status
 	enum State {
-		CREATED,
-		INITIALIZED,
-		OPEN,
-		FLUSHING,
-		FLUSHED,
-		CLOSED,
-		ERROR
-	};
-
-public:
-	State state = CREATED;
+		CREATED,     // Has just been created, no initialisations have been done
+		INITIALIZED, // Stream has been initialsed, but not yet configured/opened for encoding
+		OPEN,        // Stream is now open for encoding
+		FLUSHING,    // Stream is currently flushing thier codecs
+		FLUSHED,     // Stream has been been flushed and is now done with encoding
+		CLOSED,      // Stream has been closed
+		ERROR        // An error occurrend and the stream is now in a bad state
+	} state = CREATED;
+	
+	// Contexts
 	AVCodec* codec = nullptr;
 	AVCodecContext* ctx = nullptr;
 	AVCodecParameters* params = nullptr;
 	AVStream* stream = nullptr;
+
+	// Data
 	AVRational time_base = {0, -1};
 	int64_t playhead = 0;
 	int frame_size = 0;
 
-
+	// Working-Data
 	bool hasQueuedPacket = false;
 	AVPacket* queuedPacket = nullptr;
+	AVFrame* frame = nullptr;
 
 	StreamContainer() {}
 
@@ -115,8 +117,7 @@ public:
 	inline void init(AVCodecID codecId, AVFormatContext* formatCtx) {
 
 		if (state != CREATED) {
-			state = ERROR;
-			throw std::logic_error("StreamContainer seems to have been initialized twice!");
+			throw std::logic_error("Can only be initialze in CREATED-state!");
 		}
 
 		codec = avcodec_find_encoder(codecId);
@@ -138,6 +139,10 @@ public:
 	}
 
 	inline void open() {
+
+		if (state != INITIALIZED) {
+			throw std::logic_error("Can only be open in INITIALIZED-state!");
+		}
 
 		std::cout << " OPEN STREAM " << this << std::endl;
 
@@ -366,20 +371,25 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
 		{
 			int64_t minDts = INT64_MAX;
 			for (auto& current : streams) {
+				// Skip streams, which are already done
 				if (current.state == StreamContainer::FLUSHED) {
 					continue;
 				}
+				// Directly process streams which dont have a packet yet
 				if (!current.hasQueuedPacket) {
 					selectedStream = &current;
 					std::cout << " DIRECT INIT QUEUE PACK" << std::endl;
 					break;
 				}
+				// If all streams already have a packet, then pick the stream which the lowest dts in the queue
 				if (minDts > current.queuedPacket->dts) {
 					selectedStream = &current;
 					minDts = current.queuedPacket->dts;
 				}
 			}
 		}
+
+		// No Streams returned: All streams are done.
 		if (selectedStream == nullptr) {
 			std::cout << "Enocding finished." << std::endl;
 			break;
@@ -391,13 +401,13 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
 		AVFrame* frame = nullptr;
 		if (translatedPh < 10) {
 			if (stream.ctx->codec_type == AVMEDIA_TYPE_VIDEO) {
-				std::cout << " T_VID@" << translatedPh << std::endl;
+				// std::cout << " T_VID@" << translatedPh << std::endl;
 				workingFrame->pts = stream.playhead;
 				fill_yuv_image(workingFrame, stream.playhead, width, height);
 				frame = workingFrame;
 				stream.playhead++;
 			} else if (stream.ctx->codec_type == AVMEDIA_TYPE_AUDIO) {
-				std::cout << " T_AUD@" << translatedPh << std::endl;
+				// std::cout << " T_AUD@" << translatedPh << std::endl;
 				audioDummyFrame->pts = stream.playhead;
 				fill_fltp_audio(audioDummyFrame, stream.playhead);
 				frame = audioDummyFrame;
@@ -406,7 +416,7 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
 		}
 
 		if (stream.hasQueuedPacket) {
-			std::cout << " WRITE PACK " << stream.queuedPacket->dts << " P-ST " << stream.queuedPacket->stream_index << " I-ST " << stream.stream->index << std::endl;
+			// std::cout << " WRITE PACK " << stream.queuedPacket->dts << " P-ST " << stream.queuedPacket->stream_index << " I-ST " << stream.stream->index << std::endl;
 			callStat = av_write_frame(formatCtx, stream.queuedPacket);
 			if (callStat != 0)
 				throw std::runtime_error("Error while writing frame to format: " + avErrStr(callStat));
@@ -464,7 +474,6 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
 	//
 	// Cleanup
 	//
-
 
 	av_frame_free(&workingFrame);
 	av_frame_free(&audioDummyFrame);
