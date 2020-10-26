@@ -7,28 +7,6 @@
 
 namespace {
 
-
-/* Prepare a dummy image. */
-static void fill_yuv_image(AVFrame* pict, int frame_index,
-						   int width, int height) {
-	int x, y, i;
-
-	i = frame_index;
-
-	/* Y */
-	for (y = 0; y < height; y++)
-		for (x = 0; x < width; x++)
-			pict->data[0][y * pict->linesize[0] + x] = x + y + i * 3;
-
-	/* Cb and Cr */
-	for (y = 0; y < height / 2; y++) {
-		for (x = 0; x < width / 2; x++) {
-			pict->data[1][y * pict->linesize[1] + x] = 128 + y + i * 2;
-			pict->data[2][y * pict->linesize[2] + x] = 64 + x + i * 5;
-		}
-	}
-}
-
 /* Prepare a dummy audio. */
 static void fill_fltp_audio(AVFrame* frame, int playhead) {
 	int samples = frame->nb_samples;
@@ -120,6 +98,7 @@ public:
 	bool hasQueuedPacket = false;
 	AVPacket* queuedPacket = nullptr;
 	AVFrame* frame = nullptr;
+	SwsContext* swsCtx = nullptr;
 
 	StreamContainer() {}
 
@@ -239,12 +218,40 @@ public:
 		if (state != OPEN) {
 			throw std::logic_error("Can only write frame in OPEN-state!");
 		}
+
+		double start = (double) playhead*time_base.num/time_base.den;
 		
 		switch (ctx->codec_type) {
 		case AVMEDIA_TYPE_VIDEO:
+		{
+			int width = frame->width;
+			int height = frame->height;
+			if (!swsCtx) {
+				swsCtx = sws_getContext(width, height, AV_PIX_FMT_RGB0,
+											width, height, ctx->pix_fmt,
+											SWS_FAST_BILINEAR, nullptr, nullptr, nullptr);
+				if (!swsCtx)
+					throw std::runtime_error("Failed to create sws_scaler_ctx!");
+			}
 
-			fill_yuv_image(frame, playhead, frame->width, frame->height);
+			torasu::tstd::Dbimg_FORMAT bimgFmt(width, height);
+			imgc::MediaEncoder::VideoFrameRequest req(start, &bimgFmt);
+
+			int callbackStat = callback(&req);
+
+			if (callbackStat != 0) {
+				std::cerr << "Frame callback exited with non-zero return code (" << callbackStat << ")!" << std::endl;
+			} else {
+				torasu::tstd::Dbimg* bimg = req.getResult();
+
+				uint8_t* dst[4] = {bimg->getImageData(), nullptr, nullptr, nullptr};
+				int dest_linesize[4] = {width * 4, 0, 0, 0};
+				sws_scale(swsCtx, dst, dest_linesize, 0, frame->height, 
+					frame->data, frame->linesize);
+			}
+
 			return 1;
+		}
 
 		case AVMEDIA_TYPE_AUDIO:
 

@@ -24,18 +24,27 @@ namespace imgc {
 class MediaEncoder {
 public:
 	class FrameRequest {
+	private:
+		std::function<void()> freeCallback;
 	protected:
 		FrameRequest() {}
-		virtual ~FrameRequest() {}
+		virtual ~FrameRequest() {
+			freeCallback();
+		}
+	public:
+		inline void setFree(std::function<void()> freeCallback) {
+			this->freeCallback = freeCallback;
+		}
 	};
 
-	class VideoFrameRequest : FrameRequest {
+	class VideoFrameRequest : public FrameRequest {
 	private:
 		double time;
 		torasu::tstd::Dbimg* result;
 		torasu::tstd::Dbimg_FORMAT* format;
 
-	protected:
+	// protected:
+	public:
 		VideoFrameRequest(double time, torasu::tstd::Dbimg_FORMAT* format)
 			: time(time), format(format) {}
 		~VideoFrameRequest() {}
@@ -57,12 +66,13 @@ public:
 		}
 	};
 
-	class AudioFrameRequest : FrameRequest {
+	class AudioFrameRequest : public FrameRequest {
 	private:
 		double start, duration;
 		torasu::tstd::Daudio_buffer* result;
 
-	protected:
+	// protected:
+	public:
 		AudioFrameRequest(double start, double duration)
 			: start(start), duration(duration) {}
 		~AudioFrameRequest() {}

@@ -475,6 +475,29 @@ void cropExample() {
 
 }
 
+torasu::tstd::Dbimg* makeBimg(double time, torasu::tstd::Dbimg_FORMAT* format) {
+	auto* bimg = new torasu::tstd::Dbimg(*format);
+	uint32_t width = format->getWidth();
+	uint32_t height = format->getHeight();
+	uint8_t* data = bimg->getImageData();
+
+	for (uint32_t y = 0; y < height; y++) {
+		uint8_t val = (sin(time*4+((double)y)/100)*0.5+0.5)*0xFF;
+		for (uint32_t x = 0; x < width; x++) {
+			*data = x;
+			data++;
+			*data = y;
+			data++;
+			*data = val;
+			data++;
+			*data = 0xFF;
+			data++;
+		}
+	}
+
+	return bimg;
+}
+
 }  // namespace imgc::examples
 
 int main(int argc, char** argv) {
@@ -490,7 +513,15 @@ int main(int argc, char** argv) {
 
 	imgc::MediaEncoder enc([](imgc::MediaEncoder::FrameRequest* fr) {
 		std::cout << "Frame Callback!" << std::endl;
-		return 0;
+		if (auto* videoFr = dynamic_cast<imgc::MediaEncoder::VideoFrameRequest*>(fr)) {
+			auto* bimg = imgc::examples::makeBimg(videoFr->getTime(), videoFr->getFormat());
+			videoFr->setResult(bimg);
+			videoFr->setFree([bimg]() {
+				delete bimg;
+			});
+			return 0;
+		}
+		return -3;
 	});
 
 	enc.encode((imgc::MediaEncoder::EncodeRequest) {
