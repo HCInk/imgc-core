@@ -2,6 +2,8 @@
 
 #include <iostream>
 #include <fstream>
+#include <cmath>
+#include <list>
 
 namespace {
 
@@ -75,17 +77,23 @@ public:
 	AVCodecContext* ctx = nullptr;
 	AVCodecParameters* params = nullptr;
 	AVStream* stream = nullptr;
-	AVRational time_base = {0, 0};
+	AVRational time_base = {0, -1};
+	int64_t playhead = 0;
+	int frame_size = 0;
+
+	
+	bool hasQueuedPacket = false;
+	AVPacket* queuedPacket = nullptr;
 
 	StreamContainer() {}
 
-	StreamContainer(const StreamContainer&) {
-		if (state != CREATED)
+	StreamContainer(const StreamContainer& src) {
+		if (src.state != CREATED)
 			throw std::logic_error("Copying of an initalized StreamContainer is not supported!");
 	}
 
-	StreamContainer& operator=( const StreamContainer&) {
-		if (state != CREATED)
+	StreamContainer& operator=( const StreamContainer& src) {
+		if (src.state != CREATED)
 			throw std::logic_error("Copying of an initalized StreamContainer is not supported!");
 	}
 
@@ -95,8 +103,12 @@ public:
 	}
 
 	~StreamContainer() {
+		std::cout << " FREE STREAM " << this << std::endl;
 		if (stream != nullptr) {
 			avcodec_free_context(&stream->codec);
+		}
+		if (queuedPacket != nullptr) {
+			av_packet_free(&queuedPacket);
 		}
 	}
 
@@ -111,26 +123,37 @@ public:
 		stream = avformat_new_stream(formatCtx, codec);
 		if (!stream) {
 			state = ERROR;
-			throw std::runtime_error("Cannot create video stream!");
+			throw std::runtime_error("Cannot create stream!");
 		}
 		ctx = stream->codec;
 		params = stream->codecpar;
+		avcodec_parameters_from_context(params, ctx);
 
+		queuedPacket = av_packet_alloc();
+		if (!queuedPacket) {
+			state = ERROR;
+			throw std::runtime_error("Cannot create stream-packet!");
+		}
 		state = INITIALIZED;
 	}
 
 	inline void open() {
 
+		std::cout << " OPEN STREAM " << this << std::endl;
+
 		stream->time_base = time_base;
 		ctx->time_base = time_base;
+		params->frame_size = frame_size;
 
-		avcodec_parameters_to_context(ctx, stream->codecpar);
+		avcodec_parameters_to_context(ctx, params);
 
 		int openStat = avcodec_open2(ctx, codec, 0);
 		if (openStat != 0) {
 			state = ERROR;
 			throw std::runtime_error("Failed to open codec: " + avErrStr(openStat));
 		}
+
+		frame_size = ctx->frame_size;
 
 		state = OPEN;
 
@@ -159,6 +182,27 @@ static void fill_yuv_image(AVFrame* pict, int frame_index,
 			pict->data[1][y * pict->linesize[1] + x] = 128 + y + i * 2;
 			pict->data[2][y * pict->linesize[2] + x] = 64 + x + i * 5;
 		}
+	}
+}
+/* Prepare a dummy audio. */
+static void fill_fltp_audio(AVFrame* frame, int playhead) {
+	int samples = frame->nb_samples;
+	// std::cout << "SAMPLES: " << samples << std::endl;
+	for (int i = 0; i < samples; i++) {
+		float sampleNo = playhead+i;
+		float freq = sin(sampleNo / 44100 / 1)*1000+1000 + 100;
+
+		// std::cout << "FREQ: " << freq << std::endl;
+		float val = sin(sampleNo * freq / 44100)*2;
+
+		// std::cout << " S: " << val << std::endl;
+		uint32_t d = *(reinterpret_cast<uint32_t*>(&val));
+		for (int c = 0; c < 2; c++) {
+			for (int b = 0; b < 4; b++) {
+				frame->data[c][i*4+b] = d >> b*8 & 0xFF;
+			}
+		}
+
 	}
 }
 
@@ -234,26 +278,51 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
 	// Stream Setup
 	//
 
-	std::vector<StreamContainer> streams;
+	std::list<StreamContainer> streams;
 
-	auto& vidStream = streams.emplace_back();
-	vidStream.init(oformat.video_codec, formatCtx);
+	// Video Stream
+	{
+		auto& vidStream = streams.emplace_back();
+		vidStream.init(oformat.video_codec, formatCtx);
 
-	AVCodecParameters* videoCodecParams = vidStream.params;
-	// avcodec_parameters_from_context(videoStream->codecpar, videoStream->codec);
-	vidStream.time_base = {1, 25};
-	videoCodecParams->codec_id = oformat.video_codec;
-	videoCodecParams->codec_type = AVMEDIA_TYPE_VIDEO;
-	videoCodecParams->width = width;
-	videoCodecParams->height = height;
-	videoCodecParams->format = AV_PIX_FMT_YUV420P;
-	videoCodecParams->bit_rate = 4000 * 1000;
+		AVCodecParameters* codecParams = vidStream.params;
+		vidStream.time_base = {1, 25};
+		codecParams->width = width;
+		codecParams->height = height;
+		codecParams->format = AV_PIX_FMT_YUV420P;
+		codecParams->bit_rate = 4000 * 1000;
 
-	vidStream.open();
+		vidStream.open();
+	}
+
+	// Audio Stream
+	// StreamContainer audStream;
+	size_t audioFrameSize = 0;
+ 	{
+		auto& audStream = streams.emplace_back();
+		audStream.init(oformat.audio_codec, formatCtx);
+
+		AVCodecParameters* codecParams = audStream.params;
+		audStream.time_base = {1, 44100};
+		audStream.frame_size = 44100/25;
+		codecParams->format = AV_SAMPLE_FMT_FLTP;
+		codecParams->sample_rate = 44100;
+		codecParams->channel_layout = AV_CH_LAYOUT_STEREO;
+
+		audStream.open();
+
+		audioFrameSize = audStream.frame_size;
+	}
+
+	for (auto& current : streams) {
+		std::cout << " STR " << &current << std::endl;
+	}
+
+	// Writing Header
 
 	int callStat;
 
-	callStat = avformat_write_header(formatCtx, nullptr);
+	callStat = avformat_write_header(formatCtx, 0);
 	if (callStat < 0) {
 		throw std::runtime_error("Failed to write header (" + std::to_string(callStat) + ")!");
 	}
@@ -263,9 +332,8 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
 	// Encoding
 	//
 
-	// Preparations
+	// Video Dummy
 
-	AVPacket* avPacket = av_packet_alloc();
 	AVFrame* workingFrame = av_frame_alloc();
 
 	workingFrame->format = AV_PIX_FMT_YUV420P;
@@ -280,26 +348,80 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
 	if (callStat < 0)
 		throw std::runtime_error("Error while making frame writable: " + avErrStr(callStat));
 
+	// Audio Dummy
+
+	AVFrame* audioDummyFrame = av_frame_alloc();
+
+	audioDummyFrame->format = AV_SAMPLE_FMT_FLTP;
+	audioDummyFrame->nb_samples = audioFrameSize;
+	audioDummyFrame->channel_layout = AV_CH_LAYOUT_STEREO;
+
+	callStat = av_frame_get_buffer(audioDummyFrame, 0);
+	if (callStat != 0)
+		throw std::runtime_error("Error while creating buffer for audio-frame: " + avErrStr(callStat));
+
+	callStat = av_frame_make_writable(audioDummyFrame);
+	if (callStat < 0)
+		throw std::runtime_error("Error while making audio-frame writable: " + avErrStr(callStat));
+
 	// Encoding loop
 
 	int framecount = 0;
-	bool flushing = false;
 	for (;;) {
-		auto& stream = vidStream;
+		
+		StreamContainer* selectedStream = nullptr;
+		{
+			int64_t minDts = INT64_MAX;
+			for (auto& current : streams) {
+				if (current.state == StreamContainer::FLUSHED) {
+					continue;
+				}
+				if (!current.hasQueuedPacket) {
+					selectedStream = &current;
+					std::cout << " DIRECT INIT QUEUE PACK" << std::endl;
+					break;
+				}
+				if (minDts > current.queuedPacket->dts) {
+					selectedStream = &current;
+					minDts = current.queuedPacket->dts;
+				}
+			}
+		}
+		if (selectedStream == nullptr) {
+			std::cout << "Enocding finished." << std::endl;
+			break;
+		}
+		StreamContainer& stream = *selectedStream;
+		
+		double translatedPh = ((double)stream.playhead)*stream.time_base.num/stream.time_base.den;
+
 		AVFrame* frame = nullptr;
-		if (stream.ctx->codec_type == AVMEDIA_TYPE_VIDEO) {
-			if (framecount < 1000) {
-				workingFrame->pts = framecount;
-				workingFrame->key_frame = framecount % 5 == 0;
-				fill_yuv_image(workingFrame, framecount, width, height);
+		if (translatedPh < 10) {
+			if (stream.ctx->codec_type == AVMEDIA_TYPE_VIDEO) {
+				std::cout << " T_VID@" << translatedPh << std::endl;
+				workingFrame->pts = stream.playhead;
+				fill_yuv_image(workingFrame, stream.playhead, width, height);
 				frame = workingFrame;
-				framecount++;
-			} else {
-				frame = nullptr;
+				stream.playhead++;
+			} else if (stream.ctx->codec_type == AVMEDIA_TYPE_AUDIO) {
+				std::cout << " T_AUD@" << translatedPh << std::endl;
+				audioDummyFrame->pts = stream.playhead;
+				fill_fltp_audio(audioDummyFrame, stream.playhead);
+				frame = audioDummyFrame;
+				stream.playhead += stream.frame_size;
 			}
 		}
 
-		if (stream.state != StreamContainer::FLUSHING) {
+		if (stream.hasQueuedPacket) {
+			std::cout << " WRITE PACK " << stream.queuedPacket->dts << " P-ST " << stream.queuedPacket->stream_index << " I-ST " << stream.stream->index << std::endl;
+			callStat = av_write_frame(formatCtx, stream.queuedPacket);
+			if (callStat != 0)
+				throw std::runtime_error("Error while writing frame to format: " + avErrStr(callStat));
+			av_packet_unref(stream.queuedPacket);
+			stream.hasQueuedPacket = false;
+		}
+
+		if (stream.state == StreamContainer::OPEN) {
 			if (frame != nullptr) {
 				
 				callStat = avcodec_send_frame(stream.ctx, frame);
@@ -317,30 +439,27 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
 
 			} else {
 				stream.state = StreamContainer::FLUSHING;
-				callStat = avcodec_send_frame(vidStream.ctx, nullptr);
+				callStat = avcodec_send_frame(stream.ctx, nullptr);
 				if (callStat != 0)
 					throw std::runtime_error("Error while sending flush-frame to codec: " + avErrStr(callStat));
 			}
 
 		}
 
-		callStat = avcodec_receive_packet(vidStream.ctx, avPacket);
+		callStat = avcodec_receive_packet(stream.ctx, stream.queuedPacket);
 		if (callStat != 0) {
 			if (callStat == AVERROR(EAGAIN)) {
 				std::cout << "codec-recieve: EGAIN" << std::endl;
 			} else if (callStat == AVERROR_EOF) {
 				std::cout << "codec-recieve: EOF" << std::endl;
 				stream.state = StreamContainer::FLUSHED;
-				break;
 			} else {
 				throw std::runtime_error("Error while recieving packet from codec: " + avErrStr(callStat));
 			}
 		} else {
-			av_packet_rescale_ts(avPacket, vidStream.time_base, vidStream.stream->time_base);
-			callStat = av_write_frame(formatCtx, avPacket);
-			av_packet_unref(avPacket);
-			if (callStat != 0)
-				throw std::runtime_error("Error while writing frame to format: " + avErrStr(callStat));
+			av_packet_rescale_ts(stream.queuedPacket, stream.time_base, stream.stream->time_base);
+			stream.queuedPacket->stream_index = stream.stream->index;
+			stream.hasQueuedPacket = true;
 		}
 
 	}
@@ -355,7 +474,6 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
 
 
 	av_frame_free(&workingFrame);
-	av_packet_free(&avPacket);
 
 	avformat_free_context(formatCtx);
 	avio_context_free(&avioCtx);
