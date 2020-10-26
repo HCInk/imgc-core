@@ -510,7 +510,7 @@ torasu::tstd::Daudio_buffer* makeAudioSeq(double time, double duration, torasu::
 	for (int i = 0; i < samples; i++) {
 		float sampleNo = playhead+i;
 		float freq = sin(sampleNo / 44100 / 1)*1000+1000 + 100;
-		float val = sin(sampleNo * freq / 44100)*2;
+		float val = sin(sampleNo * freq / 44100)/2;
 
 		uint32_t d = *(reinterpret_cast<uint32_t*>(&val));
 		for (int c = 0; c < 2; c++) {
