@@ -349,7 +349,6 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
 	}
 
 	// Audio Stream
-	size_t audioFrameSize = 0;
 	{
 		auto& audStream = streams.emplace_back();
 		audStream.init(oformat.audio_codec, formatCtx);
@@ -362,8 +361,6 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
 		codecParams->channel_layout = AV_CH_LAYOUT_STEREO;
 
 		audStream.open();
-
-		audioFrameSize = audStream.frame_size;
 	}
 
 	for (auto& current : streams) {
