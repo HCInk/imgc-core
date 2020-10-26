@@ -12,6 +12,7 @@
 #include <torasu/std/EIcore_runner.hpp>
 #include <torasu/std/Dstring.hpp>
 #include <torasu/std/Dbimg.hpp>
+#include <torasu/std/Daudio_buffer.hpp>
 #include <torasu/std/Dnum.hpp>
 #include <torasu/std/Dfile.hpp>
 #include <torasu/std/Rlocal_file.hpp>
@@ -498,6 +499,30 @@ torasu::tstd::Dbimg* makeBimg(double time, torasu::tstd::Dbimg_FORMAT* format) {
 	return bimg;
 }
 
+torasu::tstd::Daudio_buffer* makeAudioSeq(double time, double duration, torasu::tstd::Daudio_buffer_FORMAT* format) {
+	auto sampleRate = format->getBitrate();
+	int samples = sampleRate*duration;
+	auto* audBuff = new torasu::tstd::Daudio_buffer(2, sampleRate, torasu::tstd::Daudio_buffer_CHFMT::FLOAT32, 4, 4*samples);
+	
+	auto* channels = audBuff->getChannels();
+
+	int playhead = round(time*sampleRate);
+	for (int i = 0; i < samples; i++) {
+		float sampleNo = playhead+i;
+		float freq = sin(sampleNo / 44100 / 1)*1000+1000 + 100;
+		float val = sin(sampleNo * freq / 44100)*2;
+
+		uint32_t d = *(reinterpret_cast<uint32_t*>(&val));
+		for (int c = 0; c < 2; c++) {
+			for (int b = 0; b < 4; b++) {
+				channels[c].data[i*4+b] = d >> b*8 & 0xFF;
+			}
+		}
+
+	}
+	return audBuff;
+}
+
 }  // namespace imgc::examples
 
 int main(int argc, char** argv) {
@@ -518,6 +543,13 @@ int main(int argc, char** argv) {
 			videoFr->setResult(bimg);
 			videoFr->setFree([bimg]() {
 				delete bimg;
+			});
+			return 0;
+		} else if (auto* audioFr = dynamic_cast<imgc::MediaEncoder::AudioFrameRequest*>(fr)) {
+			auto* audioSeq = imgc::examples::makeAudioSeq(audioFr->getStart(), audioFr->getDuration(), audioFr->getFormat());
+			audioFr->setResult(audioSeq);
+			audioFr->setFree([audioSeq]() {
+				delete audioSeq;
 			});
 			return 0;
 		}

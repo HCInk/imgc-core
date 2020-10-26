@@ -7,24 +7,6 @@
 
 namespace {
 
-/* Prepare a dummy audio. */
-static void fill_fltp_audio(AVFrame* frame, int playhead) {
-	int samples = frame->nb_samples;
-	for (int i = 0; i < samples; i++) {
-		float sampleNo = playhead+i;
-		float freq = sin(sampleNo / 44100 / 1)*1000+1000 + 100;
-		float val = sin(sampleNo * freq / 44100)*2;
-
-		uint32_t d = *(reinterpret_cast<uint32_t*>(&val));
-		for (int c = 0; c < 2; c++) {
-			for (int b = 0; b < 4; b++) {
-				frame->data[c][i*4+b] = d >> b*8 & 0xFF;
-			}
-		}
-
-	}
-}
-
 inline std::string avErrStr(int errNum) {
 	char error[AV_ERROR_MAX_STRING_SIZE];
 	return std::string(av_make_error_string(error, AV_ERROR_MAX_STRING_SIZE, errNum));
@@ -192,6 +174,7 @@ public:
 		} else if (ctx->codec_type == AVMEDIA_TYPE_AUDIO) {
 			frame->format = ctx->sample_fmt;
 			frame->nb_samples = frame_size;
+			frame->sample_rate = ctx->sample_rate;
 			frame->channel_layout = ctx->channel_layout;
 		} else {
 			state = ERROR;
@@ -254,9 +237,27 @@ public:
 		}
 
 		case AVMEDIA_TYPE_AUDIO:
+		{	
 
-			fill_fltp_audio(frame, playhead);
+			torasu::tstd::Daudio_buffer_FORMAT fmt(frame->sample_rate, torasu::tstd::Daudio_buffer_CHFMT::FLOAT32);
+			imgc::MediaEncoder::AudioFrameRequest req(start, (double) frame_size/frame->sample_rate, &fmt);
+			int callbackStat = callback(&req);
+
+			if (callbackStat != 0) {
+				std::cerr << "Frame callback exited with non-zero return code (" << callbackStat << ")!" << std::endl;
+			} else {
+				torasu::tstd::Daudio_buffer* audioSeq = req.getResult();
+				
+				size_t chCount = audioSeq->getChannelCount();
+				auto* channels = audioSeq->getChannels();
+				for (size_t ci = 0; ci < chCount; ci++) {
+					uint8_t* data = channels[ci].data;
+					std::copy(data, data+channels[ci].dataSize, frame->data[ci]);
+				}
+			}
+
 			return frame_size;
+		}
 
 		default:
 			throw std::runtime_error("Can't write frame for codec-type: " + std::to_string(ctx->codec_type));

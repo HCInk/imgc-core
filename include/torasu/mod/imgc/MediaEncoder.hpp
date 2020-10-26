@@ -70,11 +70,12 @@ public:
 	private:
 		double start, duration;
 		torasu::tstd::Daudio_buffer* result;
+		torasu::tstd::Daudio_buffer_FORMAT* format;
 
 	// protected:
 	public:
-		AudioFrameRequest(double start, double duration)
-			: start(start), duration(duration) {}
+		AudioFrameRequest(double start, double duration, torasu::tstd::Daudio_buffer_FORMAT* format)
+			: start(start), duration(duration), format(format) {}
 		~AudioFrameRequest() {}
 
 		inline torasu::tstd::Daudio_buffer* getResult() {
@@ -87,6 +88,10 @@ public:
 		}
 		inline double getDuration() {
 			return duration;
+		}
+
+		inline torasu::tstd::Daudio_buffer_FORMAT* getFormat() {
+			return format;
 		}
 
 		inline void setResult(torasu::tstd::Daudio_buffer* result) {
