@@ -197,12 +197,13 @@ public:
 
 	}
 
-	inline int64_t writeFrame(imgc::MediaEncoder::FrameCallbackFunc callback) {
+	inline int64_t writeFrame(imgc::MediaEncoder::FrameCallbackFunc callback, double offset, double maxDuration) {
 		if (state != OPEN) {
 			throw std::logic_error("Can only write frame in OPEN-state!");
 		}
 
-		double start = (double) playhead*time_base.num/time_base.den;
+		// Timestamp to be requested via callback
+		double reqTs = (double) playhead*time_base.num/time_base.den + offset;
 		
 		switch (ctx->codec_type) {
 		case AVMEDIA_TYPE_VIDEO:
@@ -218,7 +219,7 @@ public:
 			}
 
 			torasu::tstd::Dbimg_FORMAT bimgFmt(width, height);
-			imgc::MediaEncoder::VideoFrameRequest req(start, &bimgFmt);
+			imgc::MediaEncoder::VideoFrameRequest req(reqTs, &bimgFmt);
 
 			int callbackStat = callback(&req);
 
@@ -238,9 +239,14 @@ public:
 
 		case AVMEDIA_TYPE_AUDIO:
 		{	
-
+			bool crop = frame_size > maxDuration*frame->sample_rate;
+			if (crop) {
+				frame->nb_samples = maxDuration*frame->sample_rate;
+			} else {
+				frame->nb_samples = frame_size;
+			}
 			torasu::tstd::Daudio_buffer_FORMAT fmt(frame->sample_rate, torasu::tstd::Daudio_buffer_CHFMT::FLOAT32);
-			imgc::MediaEncoder::AudioFrameRequest req(start, (double) frame_size/frame->sample_rate, &fmt);
+			imgc::MediaEncoder::AudioFrameRequest req(reqTs, (double) frame->nb_samples/frame->sample_rate, &fmt);
 			int callbackStat = callback(&req);
 
 			if (callbackStat != 0) {
@@ -253,6 +259,9 @@ public:
 				for (size_t ci = 0; ci < chCount; ci++) {
 					uint8_t* data = channels[ci].data;
 					std::copy(data, data+channels[ci].dataSize, frame->data[ci]);
+					if (crop) {
+						std::fill(data+frame->nb_samples, data+frame_size, 0x00);
+					}
 				}
 			}
 
@@ -285,6 +294,12 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
 	std::string format_name = "mp4";
 	int width = 1920;
 	int height = 1080;
+	int framerate = 25;
+	int samplerate = 44100;
+	double begin = 0;
+	double end = 10;
+
+	double duration = end-begin;
 
 	//
 	// Create Context
@@ -347,7 +362,7 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
 		vidStream.init(oformat.video_codec, formatCtx);
 
 		AVCodecParameters* codecParams = vidStream.params;
-		vidStream.time_base = {1, 25};
+		vidStream.time_base = {1, framerate};
 		codecParams->width = width;
 		codecParams->height = height;
 		codecParams->format = AV_PIX_FMT_YUV420P;
@@ -362,10 +377,10 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
 		audStream.init(oformat.audio_codec, formatCtx);
 
 		AVCodecParameters* codecParams = audStream.params;
-		audStream.time_base = {1, 44100};
-		audStream.frame_size = 44100/25;
+		audStream.time_base = {1, samplerate};
+		audStream.frame_size = samplerate/framerate;
 		codecParams->format = AV_SAMPLE_FMT_FLTP;
-		codecParams->sample_rate = 44100;
+		codecParams->sample_rate = samplerate;
 		codecParams->channel_layout = AV_CH_LAYOUT_STEREO;
 
 		audStream.open();
@@ -425,8 +440,9 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
 		double translatedPh = ((double)stream.playhead)*stream.time_base.num/stream.time_base.den;
 
 		AVFrame* frame = nullptr;
-		if (translatedPh < 10) {
-			auto written = stream.writeFrame(frameCallbackFunc);
+		double duationLeft = duration - translatedPh;
+		if (duationLeft > 0) {
+			auto written = stream.writeFrame(frameCallbackFunc, begin, duationLeft);
 			frame = stream.frame;
 			frame->pts = stream.playhead;
 			stream.playhead += written;
