@@ -1,8 +1,9 @@
 #include "../include/torasu/mod/imgc/MediaEncoder.hpp"
 
+#include <math.h>
+
 #include <iostream>
 #include <fstream>
-#include <cmath>
 #include <list>
 
 namespace {
@@ -12,13 +13,87 @@ inline std::string avErrStr(int errNum) {
 	return std::string(av_make_error_string(error, AV_ERROR_MAX_STRING_SIZE, errNum));
 }
 
+class FileBuilder {
+private:
+	size_t size = 0;
+	std::map<size_t, std::pair<uint8_t*, size_t>, std::less<size_t>> buffers;
+
+public:
+	size_t pos = 0;
+
+	~FileBuilder() {
+		for (auto& buff : buffers) {
+			delete[] buff.second.first;
+		}
+	}
+
+	inline void write(uint8_t* data, size_t dataSize) {
+		if (size == pos) {
+			uint8_t* newBuf = new uint8_t[dataSize];
+			std::copy(data, data+dataSize, newBuf);
+			buffers.insert( std::pair<size_t, std::pair<uint8_t*, size_t>>(pos, std::pair<uint8_t*, size_t>(newBuf, dataSize)));
+			size += dataSize;
+			std::cout << " F:: APPEND " << dataSize << " @ " << pos << " (new size " << size << ")" << std::endl;  
+			pos = size;
+		} else {
+			auto found = buffers.upper_bound(pos);
+			found--;
+			while (dataSize > 0) {
+				if (found != buffers.end()) {
+					std::cout << " F:: FOUND EXISTING @" << found->first << " (" << found->second.second << ") "
+						"- SEARCHED " << pos << " (" << dataSize << " pending)" << std::endl;
+					uint8_t* buffer = found->second.first;
+					size_t bufferOffset = pos - found->first;
+					size_t bufferLeft = found->second.second-bufferOffset;
+					size_t toWrite = std::min(dataSize, bufferLeft);
+					std::cout << " F:: .. WRITE O" << bufferOffset << " W" << toWrite << " (" << bufferLeft << ")" << std::endl;
+
+					std::copy(data, data+toWrite, buffer+bufferOffset);
+					
+					data += toWrite;
+					dataSize -= toWrite;
+					pos += toWrite;
+					found++;
+
+				} else {
+					write(data, dataSize);
+					dataSize = 0;
+				}
+			}
+		}
+	}
+
+	inline torasu::tstd::Dfile* compile() {
+		auto* file = new torasu::tstd::Dfile(size);
+		
+		auto* data = file->getFileData();
+
+		for (auto& buff : buffers) {
+			std::copy(buff.second.first, buff.second.first+buff.second.second, data+buff.first);
+		}
+
+		return file;
+	}
+
+
+	inline void printMap() {
+		for (auto& buffer : buffers) {
+			std::cout << " -> " << buffer.first << " (size " << buffer.second.second << ")" << std::endl;
+		}
+	}
+
+};
+
 struct IOOpaque {
-	std::ofstream* ofstream;
+	// std::ofstream* ofstream;
+	FileBuilder fb;
 };
 
 int WriteFunc(void* opaque, uint8_t* buf, int buf_size) {
 	// std::cout << "WriteOp..." << std::endl;
-	((IOOpaque*) opaque)->ofstream->write(const_cast<const char*>(reinterpret_cast<char*>(buf)), buf_size);
+
+	// ((IOOpaque*) opaque)->ofstream->write(const_cast<const char*>(reinterpret_cast<char*>(buf)), buf_size);
+	((IOOpaque*) opaque)->fb.write(buf, buf_size);
 	return 0;
 }
 
@@ -26,14 +101,16 @@ int64_t SeekFunc(void* opaque, int64_t offset, int whence) {
 	std::cout << "SeekOp O " << offset << " W " << whence << std::endl;
 
 	auto* ioop = reinterpret_cast<IOOpaque*>(opaque);
-	std::ofstream* stream = ioop->ofstream;
+	// std::ofstream* stream = ioop->ofstream;
+	auto& fb = ioop->fb;
 	switch (whence) {
 	case SEEK_SET:
-		stream->seekp(offset);
+		// stream->seekp(offset);
+		fb.pos = offset;
 		break;
 	case SEEK_CUR:
-		std::cerr << "SeekOp CUR unsupported!" << std::endl;
-		stream->seekp(stream->tellp()+offset);
+		// stream->seekp(stream->tellp()+offset);
+		fb.pos += offset;
 		break;
 	case SEEK_END:
 		std::cerr << "SeekOp END unsupported!" << std::endl;
@@ -48,7 +125,8 @@ int64_t SeekFunc(void* opaque, int64_t offset, int whence) {
 	}
 
 	// Return the (new) position:
-	return stream->tellp();
+	// return stream->tellp();
+	return fb.pos;
 
 }
 
@@ -280,12 +358,38 @@ public:
 namespace imgc {
 
 torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
+	/*
+	FileBuilder fb;
+	{
+		uint8_t a[] = {1, 30, 10};
+		fb.write(a, 3);
+	}
+	fb.printMap();
 
-	//
-	// Debugging
-	//
+	{
+		fb.pos = 1;
+		uint8_t a[] = {2, 6, 40};
+		fb.write(a, 3);
+	}
+	fb.printMap();
 
-	std::ofstream myfile("test.mp4");
+	{
+		uint8_t a[] = {2, 6, 40};
+		fb.write(a, 3);
+	}
+	fb.printMap();
+
+	{
+		auto* file = fb.compile();
+		uint8_t* data = file->getFileData();
+		size_t size = file->getFileSize();
+
+
+		for (size_t i = 0; i < size; i++) {
+			std::cout << " - " << (int)data[i] << std::endl;
+		}
+	}*/
+
 
 	//
 	// Settings
@@ -311,9 +415,7 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
 		throw std::runtime_error("Failed allocating formatCtx!");
 	}
 
-	IOOpaque opaque = {
-		&myfile
-	};
+	IOOpaque opaque;
 
 	AVIOContext* avioCtx = avio_alloc_context(alloc_buf, 32 * 1024, true, &opaque, nullptr, WriteFunc, SeekFunc);
 
@@ -512,10 +614,7 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
 	avio_context_free(&avioCtx);
 	av_free(alloc_buf);
 
-
-	myfile.close();
-
-	return nullptr;
+	return opaque.fb.compile();
 }
 
 } // namespace imgc

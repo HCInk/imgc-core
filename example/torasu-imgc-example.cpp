@@ -537,7 +537,6 @@ int main(int argc, char** argv) {
 	// examples::cropExample();
 
 	imgc::MediaEncoder enc([](imgc::MediaEncoder::FrameRequest* fr) {
-		std::cout << "Frame Callback!" << std::endl;
 		if (auto* videoFr = dynamic_cast<imgc::MediaEncoder::VideoFrameRequest*>(fr)) {
 			auto* bimg = imgc::examples::makeBimg(videoFr->getTime(), videoFr->getFormat());
 			videoFr->setResult(bimg);
@@ -556,9 +555,20 @@ int main(int argc, char** argv) {
 		return -3;
 	});
 
-	enc.encode((imgc::MediaEncoder::EncodeRequest) {
+	auto* file = enc.encode((imgc::MediaEncoder::EncodeRequest) {
 
 	});
+
+	std::cout << "Saving..." << std::endl;
+	std::ofstream sysFile("test.mp4");
+
+	sysFile.write(const_cast<const char*>(reinterpret_cast<char*>(file->getFileData())), file->getFileSize());
+
+	sysFile.close();
+
+	std::cout << "Saved." << std::endl;
+
+	delete file;
 
 	return 0;
 }
