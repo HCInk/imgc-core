@@ -176,7 +176,7 @@ public:
 			frame->channel_layout = ctx->channel_layout;
 		} else {
 			state = ERROR;
-			throw std::runtime_error("Can configure frame for codec-type: " + std::to_string(ctx->codec_type));
+			throw std::runtime_error("Can't configure frame for codec-type: " + std::to_string(ctx->codec_type));
 		}
 
 		int callStat;
