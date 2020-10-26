@@ -7,6 +7,46 @@
 
 namespace {
 
+
+/* Prepare a dummy image. */
+static void fill_yuv_image(AVFrame* pict, int frame_index,
+						   int width, int height) {
+	int x, y, i;
+
+	i = frame_index;
+
+	/* Y */
+	for (y = 0; y < height; y++)
+		for (x = 0; x < width; x++)
+			pict->data[0][y * pict->linesize[0] + x] = x + y + i * 3;
+
+	/* Cb and Cr */
+	for (y = 0; y < height / 2; y++) {
+		for (x = 0; x < width / 2; x++) {
+			pict->data[1][y * pict->linesize[1] + x] = 128 + y + i * 2;
+			pict->data[2][y * pict->linesize[2] + x] = 64 + x + i * 5;
+		}
+	}
+}
+
+/* Prepare a dummy audio. */
+static void fill_fltp_audio(AVFrame* frame, int playhead) {
+	int samples = frame->nb_samples;
+	for (int i = 0; i < samples; i++) {
+		float sampleNo = playhead+i;
+		float freq = sin(sampleNo / 44100 / 1)*1000+1000 + 100;
+		float val = sin(sampleNo * freq / 44100)*2;
+
+		uint32_t d = *(reinterpret_cast<uint32_t*>(&val));
+		for (int c = 0; c < 2; c++) {
+			for (int b = 0; b < 4; b++) {
+				frame->data[c][i*4+b] = d >> b*8 & 0xFF;
+			}
+		}
+
+	}
+}
+
 inline std::string avErrStr(int errNum) {
 	char error[AV_ERROR_MAX_STRING_SIZE];
 	return std::string(av_make_error_string(error, AV_ERROR_MAX_STRING_SIZE, errNum));
@@ -194,51 +234,33 @@ public:
 		}
 
 	}
+
+	inline int64_t writeFrame(imgc::MediaEncoder::FrameCallbackFunc callback) {
+		if (state != OPEN) {
+			throw std::logic_error("Can only write frame in OPEN-state!");
+		}
+		
+		switch (ctx->codec_type) {
+		case AVMEDIA_TYPE_VIDEO:
+
+			fill_yuv_image(frame, playhead, frame->width, frame->height);
+			return 1;
+
+		case AVMEDIA_TYPE_AUDIO:
+
+			fill_fltp_audio(frame, playhead);
+			return frame_size;
+
+		default:
+			throw std::runtime_error("Can't write frame for codec-type: " + std::to_string(ctx->codec_type));
+		}
+	}
+
 };
 
 } // namespace
 
 namespace imgc {
-
-/* Prepare a dummy image. */
-static void fill_yuv_image(AVFrame* pict, int frame_index,
-						   int width, int height) {
-	int x, y, i;
-
-	i = frame_index;
-
-	/* Y */
-	for (y = 0; y < height; y++)
-		for (x = 0; x < width; x++)
-			pict->data[0][y * pict->linesize[0] + x] = x + y + i * 3;
-
-	/* Cb and Cr */
-	for (y = 0; y < height / 2; y++) {
-		for (x = 0; x < width / 2; x++) {
-			pict->data[1][y * pict->linesize[1] + x] = 128 + y + i * 2;
-			pict->data[2][y * pict->linesize[2] + x] = 64 + x + i * 5;
-		}
-	}
-}
-
-/* Prepare a dummy audio. */
-static void fill_fltp_audio(AVFrame* frame, int playhead) {
-	int samples = frame->nb_samples;
-	for (int i = 0; i < samples; i++) {
-		float sampleNo = playhead+i;
-		float freq = sin(sampleNo / 44100 / 1)*1000+1000 + 100;
-		float val = sin(sampleNo * freq / 44100)*2;
-
-		uint32_t d = *(reinterpret_cast<uint32_t*>(&val));
-		for (int c = 0; c < 2; c++) {
-			for (int b = 0; b < 4; b++) {
-				frame->data[c][i*4+b] = d >> b*8 & 0xFF;
-			}
-		}
-
-	}
-}
-
 
 torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
 
@@ -399,19 +421,10 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
 
 		AVFrame* frame = nullptr;
 		if (translatedPh < 10) {
-			if (stream.ctx->codec_type == AVMEDIA_TYPE_VIDEO) {
-				// std::cout << " T_VID@" << translatedPh << std::endl;
-				frame = stream.frame;
-				frame->pts = stream.playhead;
-				fill_yuv_image(frame, stream.playhead, width, height);
-				stream.playhead++;
-			} else if (stream.ctx->codec_type == AVMEDIA_TYPE_AUDIO) {
-				// std::cout << " T_AUD@" << translatedPh << std::endl;
-				frame = stream.frame;
-				frame->pts = stream.playhead;
-				fill_fltp_audio(frame, stream.playhead);
-				stream.playhead += stream.frame_size;
-			}
+			auto written = stream.writeFrame(frameCallbackFunc);
+			frame = stream.frame;
+			frame->pts = stream.playhead;
+			stream.playhead += written;
 		}
 
 		if (stream.hasQueuedPacket) {
