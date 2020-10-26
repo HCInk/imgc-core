@@ -81,7 +81,7 @@ public:
 	int64_t playhead = 0;
 	int frame_size = 0;
 
-	
+
 	bool hasQueuedPacket = false;
 	AVPacket* queuedPacket = nullptr;
 
@@ -184,18 +184,15 @@ static void fill_yuv_image(AVFrame* pict, int frame_index,
 		}
 	}
 }
+
 /* Prepare a dummy audio. */
 static void fill_fltp_audio(AVFrame* frame, int playhead) {
 	int samples = frame->nb_samples;
-	// std::cout << "SAMPLES: " << samples << std::endl;
 	for (int i = 0; i < samples; i++) {
 		float sampleNo = playhead+i;
 		float freq = sin(sampleNo / 44100 / 1)*1000+1000 + 100;
-
-		// std::cout << "FREQ: " << freq << std::endl;
 		float val = sin(sampleNo * freq / 44100)*2;
 
-		// std::cout << " S: " << val << std::endl;
 		uint32_t d = *(reinterpret_cast<uint32_t*>(&val));
 		for (int c = 0; c < 2; c++) {
 			for (int b = 0; b < 4; b++) {
@@ -264,8 +261,6 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
 		}
 	}
 
-	// oformat.audio_codec = AVCodecID::AV_CODEC_ID_NONE;
-
 	std::cout << "FMT SELECTED:" << std::endl
 			  << "	name: " << oformat.name << std::endl
 			  << "	video_codec: " << avcodec_get_name(oformat.video_codec) << std::endl
@@ -296,9 +291,8 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
 	}
 
 	// Audio Stream
-	// StreamContainer audStream;
 	size_t audioFrameSize = 0;
- 	{
+	{
 		auto& audStream = streams.emplace_back();
 		audStream.init(oformat.audio_codec, formatCtx);
 
@@ -366,9 +360,8 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
 
 	// Encoding loop
 
-	int framecount = 0;
 	for (;;) {
-		
+
 		StreamContainer* selectedStream = nullptr;
 		{
 			int64_t minDts = INT64_MAX;
@@ -392,7 +385,7 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
 			break;
 		}
 		StreamContainer& stream = *selectedStream;
-		
+
 		double translatedPh = ((double)stream.playhead)*stream.time_base.num/stream.time_base.den;
 
 		AVFrame* frame = nullptr;
@@ -423,7 +416,7 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
 
 		if (stream.state == StreamContainer::OPEN) {
 			if (frame != nullptr) {
-				
+
 				callStat = avcodec_send_frame(stream.ctx, frame);
 				if (callStat != 0) {
 					if (callStat == AVERROR(EAGAIN)) {

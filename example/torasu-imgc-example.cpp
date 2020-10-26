@@ -494,7 +494,7 @@ int main(int argc, char** argv) {
 	});
 
 	enc.encode((imgc::MediaEncoder::EncodeRequest) {
-		
+
 	});
 
 	return 0;
