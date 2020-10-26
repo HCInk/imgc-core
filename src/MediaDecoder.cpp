@@ -176,6 +176,7 @@ MediaDecoder::~MediaDecoder() {
 	}
 
 	av_packet_free(&av_packet);
+	avio_context_free(&av_format_ctx->pb);
 	avformat_close_input(&av_format_ctx);
 
 	if (freeInput) delete[] in_stream.data;
