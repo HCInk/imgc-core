@@ -483,7 +483,9 @@ torasu::tstd::Dbimg* makeBimg(double time, torasu::tstd::Dbimg_FORMAT* format) {
 	uint8_t* data = bimg->getImageData();
 
 	for (uint32_t y = 0; y < height; y++) {
-		uint8_t val = (sin(time*4+((double)y)/100)*0.5+0.5)*0xFF;
+		// uint8_t val = (sin(time*4+((double)y)/100)*0.5+0.5)*0xFF;
+		// uint8_t val = time*4+((double)y)/100;
+		uint8_t val = (((int)(time*4+((double)y)/100))%2)*0xFF;
 		for (uint32_t x = 0; x < width; x++) {
 			*data = x;
 			data++;
@@ -538,6 +540,7 @@ int main(int argc, char** argv) {
 
 	imgc::MediaEncoder enc([](imgc::MediaEncoder::FrameRequest* fr) {
 		if (auto* videoFr = dynamic_cast<imgc::MediaEncoder::VideoFrameRequest*>(fr)) {
+			std::cout << "VFR " << videoFr->getTime() << std::endl;
 			auto* bimg = imgc::examples::makeBimg(videoFr->getTime(), videoFr->getFormat());
 			videoFr->setResult(bimg);
 			videoFr->setFree([bimg]() {
@@ -546,6 +549,7 @@ int main(int argc, char** argv) {
 			return 0;
 		} else if (auto* audioFr = dynamic_cast<imgc::MediaEncoder::AudioFrameRequest*>(fr)) {
 			auto* audioSeq = imgc::examples::makeAudioSeq(audioFr->getStart(), audioFr->getDuration(), audioFr->getFormat());
+			std::cout << "AFR " << audioFr->getStart() << std::endl;
 			audioFr->setResult(audioSeq);
 			audioFr->setFree([audioSeq]() {
 				delete audioSeq;
@@ -555,9 +559,21 @@ int main(int argc, char** argv) {
 		return -3;
 	});
 
-	auto* file = enc.encode((imgc::MediaEncoder::EncodeRequest) {
+	imgc::MediaEncoder::EncodeRequest req;
+	req.formatName = "mp4";
+	req.end = 10;
 
-	});
+	req.doVideo = true;
+	req.width = 1920;
+	req.height = 1080;
+	req.framerate = 60;
+	// req.videoBitrate = 224850 * 1000;
+
+	req.doAudio = true;
+	req.minSampleRate = 44100;
+	// req.audioBitrate = 40 * 1000;
+
+	auto* file = enc.encode(req);
 
 	std::cout << "Saving..." << std::endl;
 	std::ofstream sysFile("test.mp4");

@@ -289,53 +289,50 @@ public:
 
 } // namespace
 
+#define CHECK_PARAM_UNSET(unsetCondition, name, message) \
+	if (unsetCondition) throw std::logic_error("Parameter '" name "' is not provided in the request. " message);
+
 namespace imgc {
 
 torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
-	/*
-	FileBuilder fb;
-	{
-		uint8_t a[] = {1, 30, 10};
-		fb.write(a, 3);
-	}
-	fb.printMap();
-
-	{
-		fb.pos = 1;
-		uint8_t a[] = {2, 6, 40};
-		fb.write(a, 3);
-	}
-	fb.printMap();
-
-	{
-		uint8_t a[] = {2, 6, 40};
-		fb.write(a, 3);
-	}
-	fb.printMap();
-
-	{
-		auto* file = fb.compile();
-		uint8_t* data = file->getFileData();
-		size_t size = file->getFileSize();
-
-
-		for (size_t i = 0; i < size; i++) {
-			std::cout << " - " << (int)data[i] << std::endl;
-		}
-	}*/
-
 
 	//
-	// Settings
+	// Configure
 	//
 
-	std::string format_name = "mp4";
-	int width = 1920;
-	int height = 1080;
-	int framerate = 25;
-	int samplerate = 44100;
-	double begin = 0;
-	double end = 10;
+	std::string formatName = request.formatName;
+	CHECK_PARAM_UNSET(formatName.empty(), "formatName", "It is required for encoding. (Examples are 'mp4', 'mp3' etc..)")
+
+	double begin = request.begin;
+	double end = request.end;
+
+	CHECK_PARAM_UNSET(isnan(end), "end", "It is required for encoding.")
+
+	bool doVideo = request.doVideo;
+	bool doAudio = request.doAudio;
+	
+	if (!doVideo && !doAudio)
+		throw std::logic_error("Nor 'doVideo' or 'doAudio' is set, set one or both to configure.");
+
+	int width, height, framerate, videoBitrate;
+	if (doVideo) {
+		width = request.width;
+		height = request.height;
+		framerate = request.framerate;
+		videoBitrate = request.videoBitrate;
+		CHECK_PARAM_UNSET(width == -1, "width", "It is required for video-encoding.")
+		CHECK_PARAM_UNSET(height == -1, "height", "It is required for video-encoding.")
+		CHECK_PARAM_UNSET(framerate == -1, "framerate", "It is required for video-encoding.")
+	}
+
+	int minSampleRate, audioBitrate;
+	if (doAudio) {
+		minSampleRate = request.minSampleRate;
+		audioBitrate = request.audioBitrate;
+		CHECK_PARAM_UNSET(minSampleRate == -1, "minSampleRate", "It is required for audio-encoding. (For minimum quality set to 0, for maximum quality use INT32_MAX)")
+	}
+
+	int samplerate = minSampleRate; // TODO Get desired sample-rate
 
 	double duration = end-begin;
 
@@ -369,20 +366,35 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
 	for (void* itHelper = nullptr;;) {
 		const AVOutputFormat* oformatCurr = av_muxer_iterate(&itHelper);
 		if (oformatCurr == nullptr) {
-			throw std::runtime_error("Format name " + format_name + " couldn't be found!");
+			throw std::runtime_error("Format name " + formatName + " couldn't be found!");
 		}
 		// std::cout << " FMT-IT " << oformat->name << std::endl;
-		if (format_name == oformatCurr->name) {
+		if (formatName == oformatCurr->name) {
 			oformat = *oformatCurr;
 			break;
 		}
+	}
+
+	if (doAudio) {
+		if (oformat.audio_codec == AV_CODEC_ID_NONE) {
+			throw std::runtime_error("No audio-codec available for the format '" + formatName + "'");
+		}
+	} else {
+		oformat.audio_codec = AV_CODEC_ID_NONE;
+	}
+
+	if (doVideo) {
+		if (oformat.video_codec == AV_CODEC_ID_NONE) {
+			throw std::runtime_error("No video-codec available for the format '" + formatName + "'");
+		}
+	} else {
+		oformat.video_codec = AV_CODEC_ID_NONE;
 	}
 
 	std::cout << "FMT SELECTED:" << std::endl
 			  << "	name: " << oformat.name << std::endl
 			  << "	video_codec: " << avcodec_get_name(oformat.video_codec) << std::endl
 			  << "	audio_codec: " << avcodec_get_name(oformat.audio_codec) << std::endl;
-
 
 	formatCtx->oformat = &oformat;
 
@@ -393,7 +405,7 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
 	std::list<StreamContainer> streams;
 
 	// Video Stream
-	{
+	if (doVideo) {
 		auto& vidStream = streams.emplace_back();
 		vidStream.init(oformat.video_codec, formatCtx);
 
@@ -401,14 +413,14 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
 		vidStream.time_base = {1, framerate};
 		codecParams->width = width;
 		codecParams->height = height;
-		codecParams->format = AV_PIX_FMT_YUV420P;
-		codecParams->bit_rate = 4000 * 1000;
+		codecParams->format = *vidStream.codec->pix_fmts;
+		codecParams->bit_rate = videoBitrate;
 
 		vidStream.open();
 	}
 
 	// Audio Stream
-	{
+	if (doAudio) {
 		auto& audStream = streams.emplace_back();
 		audStream.init(oformat.audio_codec, formatCtx);
 
@@ -418,6 +430,7 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
 		codecParams->format = AV_SAMPLE_FMT_FLTP;
 		codecParams->sample_rate = samplerate;
 		codecParams->channel_layout = AV_CH_LAYOUT_STEREO;
+		codecParams->bit_rate = audioBitrate;
 
 		audStream.open();
 	}

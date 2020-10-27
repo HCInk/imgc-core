@@ -100,7 +100,20 @@ public:
 	};
 
 	struct EncodeRequest {
+		double begin = 0;
+		double end = NAN;
 
+		bool doVideo = false;
+		int width = -1;
+		int height = -1;
+		int framerate = -1;
+		int videoBitrate = 0;
+
+		bool doAudio = false;
+		int minSampleRate = -1;
+		int audioBitrate = 0;
+		
+		std::string formatName;
 	};
 
 	typedef std::function<int(FrameRequest*)> FrameCallbackFunc;
