@@ -119,6 +119,9 @@ public:
 		if (frame != nullptr) {
 			av_frame_free(&frame);
 		}
+		if (swsCtx != nullptr) {
+			sws_freeContext(swsCtx);
+		}
 	}
 
 	inline void init(AVCodecID codecId, AVFormatContext* formatCtx) {
