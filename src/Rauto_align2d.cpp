@@ -97,7 +97,17 @@ torasu::ResultSegment* Rauto_align2d::renderSegment(torasu::ResultSegmentSetting
 		}
 
 		auto foundDestRatio = rctx->find(TORASU_STD_CTX_IMG_RATIO);
-		double destRatio = foundDestRatio != rctx->end() ? dynamic_cast<torasu::tstd::Dnum*>(foundDestRatio->second)->getNum() : 0;
+		double destRatio;
+
+		if (foundDestRatio != rctx->end()) {
+			destRatio = dynamic_cast<torasu::tstd::Dnum*>(foundDestRatio->second)->getNum();
+		} else {
+			throw std::runtime_error("Render-Request provided no TORASU_STD_CTX_IMG_RATIO in the context, so the image can't be aligned!");
+		}
+
+		if (destRatio <= 0) {
+			throw std::runtime_error("Render-Request provided an invalid TORASU_STD_CTX_IMG_RATIO in the context (" +  std::to_string(destRatio) + ") - only ratios > 0 are allowed!");
+		}
 
 		auto* cropdata = calcAlign(this->posX, this->posY, this->zoomFactor, ratio, destRatio);
 
