@@ -1,5 +1,6 @@
 #include <iostream>
 #include <iomanip>
+#include <memory>
 #include <fstream>
 
 #include <lodepng.h>
@@ -26,6 +27,7 @@
 #include <torasu/mod/imgc/MediaDecoder.hpp>
 #include <torasu/mod/imgc/MediaEncoder.hpp>
 #include <torasu/mod/imgc/Rmedia_file.hpp>
+#include <torasu/mod/imgc/Rmedia_creator.hpp>
 #include <torasu/mod/imgc/Ralign2d.hpp>
 #include <torasu/mod/imgc/Rauto_align2d.hpp>
 #include <torasu/mod/imgc/Rgain.hpp>
@@ -578,6 +580,47 @@ void encodeExample() {
 
 }
 
+void encodeTorasu() {
+
+	torasu::tstd::Rnet_file file("https://cdn.discordapp.com/attachments/770711233065517106/770715070622990366/155216075_Bear_Freestyler_in_Rust.mp4");
+
+	imgc::Rmedia_file video(&file);
+
+	imgc::Rauto_align2d align(&video, 0, 0, 0);
+
+	imgc::Rmedia_creator encoded(&align);
+
+	auto* tree = &encoded;
+
+	// Creating Engine
+
+	torasu::tstd::EIcore_runner* runner = new torasu::tstd::EIcore_runner();
+	torasu::ExecutionInterface* ei = runner->createInterface();
+
+	torasu::tools::RenderInstructionBuilder rib;
+	auto handle = rib.addSegmentWithHandle<torasu::tstd::Dfile>(TORASU_STD_PL_FILE, nullptr);
+
+	torasu::RenderContext rctx;
+	std::unique_ptr<torasu::RenderResult> rr(rib.runRender(tree, &rctx, ei));
+
+	auto seg = handle.getFrom(rr.get());
+
+	auto* resFile = seg.getResult();
+
+	std::cout << "Saving..." << std::endl;
+	std::ofstream sysFile("test.mp4");
+
+	sysFile.write(const_cast<const char*>(reinterpret_cast<char*>(resFile->getFileData())), resFile->getFileSize());
+
+	sysFile.close();
+
+	std::cout << "Saved." << std::endl;
+
+	delete ei;
+	delete runner;
+
+}
+
 }  // namespace imgc::examples
 
 int main(int argc, char** argv) {
@@ -590,7 +633,9 @@ int main(int argc, char** argv) {
 	// examples::yetAnotherIMGCTest();
 	// examples::cropdataExample();
 	// examples::cropExample();
-	examples::encodeExample();
+	// examples::encodeExample();
+	examples::encodeTorasu();
+
 
 	return 0;
 }
