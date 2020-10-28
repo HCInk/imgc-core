@@ -525,18 +525,8 @@ torasu::tstd::Daudio_buffer* makeAudioSeq(double time, double duration, torasu::
 	return audBuff;
 }
 
-}  // namespace imgc::examples
 
-int main(int argc, char** argv) {
-	//netImageTest();
-	//avTest();
-	// anotherIMGCTest();
-	// audioTest();
-	// videoTest();
-	// example_sdl::main(argc, argv);
-	// examples::yetAnotherIMGCTest();
-	// examples::cropdataExample();
-	// examples::cropExample();
+void encodeExample() {
 
 	imgc::MediaEncoder enc([](imgc::MediaEncoder::FrameRequest* fr) {
 		if (auto* videoFr = dynamic_cast<imgc::MediaEncoder::VideoFrameRequest*>(fr)) {
@@ -585,6 +575,22 @@ int main(int argc, char** argv) {
 	std::cout << "Saved." << std::endl;
 
 	delete file;
+
+}
+
+}  // namespace imgc::examples
+
+int main(int argc, char** argv) {
+	//netImageTest();
+	//avTest();
+	// anotherIMGCTest();
+	// audioTest();
+	// videoTest();
+	// example_sdl::main(argc, argv);
+	// examples::yetAnotherIMGCTest();
+	// examples::cropdataExample();
+	// examples::cropExample();
+	examples::encodeExample();
 
 	return 0;
 }
