@@ -33,13 +33,16 @@ torasu::ResultSegment* Rmedia_creator::renderSegment(torasu::ResultSegmentSettin
 		MediaEncoder::EncodeRequest req;
 		
 		req.formatName = "mp4";
-		req.end = 10;
+		req.end = 26;
 
-		req.doVideo = true;
+		req.doVideo = false;
 		req.videoBitrate = 4000 * 1000;
 		req.width = 1920;
 		req.height = 1080;
 		req.framerate = 25;
+		
+		req.doAudio = true;
+		req.minSampleRate = 44100;
 
 		torasu::tstd::Dnum frameRatio((double) req.width / req.height);
 		torasu::tstd::Dnum frameDuration(0);
@@ -50,8 +53,8 @@ torasu::ResultSegment* Rmedia_creator::renderSegment(torasu::ResultSegmentSettin
 
 		MediaEncoder enc([this, ei, rctx, &visRib, &visHandle, &frameDuration, &frameRatio]
 			(MediaEncoder::FrameRequest* fr) {
+				torasu::RenderContext modRctx = *rctx;
 				if (auto* vidReq = dynamic_cast<MediaEncoder::VideoFrameRequest*>(fr)) {
-					torasu::RenderContext modRctx = *rctx;
 					torasu::tstd::Dnum time(vidReq->getTime());
 					modRctx[TORASU_STD_CTX_TIME] = &time;
 					modRctx[TORASU_STD_CTX_DURATION] = &frameDuration;
@@ -68,6 +71,28 @@ torasu::ResultSegment* Rmedia_creator::renderSegment(torasu::ResultSegmentSettin
 					if (fetchedRes.getResult() == nullptr) return -1;
 
 					vidReq->setResult(fetchedRes.getResult());
+
+					return 0;
+				} if (auto* audReq = dynamic_cast<MediaEncoder::AudioFrameRequest*>(fr)) {
+					torasu::tstd::Dnum time(audReq->getStart());
+					modRctx[TORASU_STD_CTX_TIME] = &time;
+					torasu::tstd::Dnum dur(audReq->getDuration());
+					modRctx[TORASU_STD_CTX_DURATION] = &dur;
+
+					torasu::tools::RenderInstructionBuilder audRib;
+					auto audHandle = audRib.addSegmentWithHandle<torasu::tstd::Daudio_buffer>(TORASU_STD_PL_AUDIO, audReq->getFormat());
+
+					auto* rr = audRib.runRender(srcRnd, &modRctx, ei);
+
+					fr->setFree([rr]() {
+						delete rr;
+					});
+
+					auto fetchedRes = audHandle.getFrom(rr);
+
+					if (fetchedRes.getResult() == nullptr) return -1;
+
+					audReq->setResult(fetchedRes.getResult());
 
 					return 0;
 				}

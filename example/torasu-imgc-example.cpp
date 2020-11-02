@@ -586,9 +586,9 @@ void encodeTorasu() {
 
 	imgc::Rmedia_file video(&file);
 
-	imgc::Rauto_align2d align(&video, 0, 0, 0);
+	// imgc::Rauto_align2d align(&video, 0, 0, 0);
 
-	imgc::Rmedia_creator encoded(&align);
+	imgc::Rmedia_creator encoded(&video);
 
 	auto* tree = &encoded;
 
