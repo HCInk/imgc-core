@@ -530,7 +530,7 @@ void MediaDecoder::concatAudio(DecodingState* decodingState) {
 	size_t sampleSize = determineSampleSize(audioStream);
 
 	// Channel-size in samples
-	int channelSize = sampleRate * (decodingState->requestEnd - decodingState->requestStart);
+	int channelSize = round(decodingState->requestEnd * sampleRate) - round(decodingState->requestStart * sampleRate);
 	*decodingState->segmentRequest.audioBuffer = new torasu::tstd::Daudio_buffer(channelCount, sampleRate, torasu::tstd::Daudio_buffer_CHFMT::FLOAT32, sampleSize, channelSize * sampleSize);
 
 	auto* channels = (*decodingState->segmentRequest.audioBuffer)->getChannels();
