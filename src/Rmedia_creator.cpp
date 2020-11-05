@@ -35,7 +35,7 @@ torasu::ResultSegment* Rmedia_creator::renderSegment(torasu::ResultSegmentSettin
 		req.formatName = "mp4";
 		req.end = 26;
 
-		req.doVideo = false;
+		req.doVideo = true;
 		req.videoBitrate = 4000 * 1000;
 		req.width = 1920;
 		req.height = 1080;

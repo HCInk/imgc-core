@@ -220,6 +220,7 @@ void MediaDecoder::removeCacheFrame(int64_t pos, std::vector<BufferedFrame>* lis
 		}
 
 	}
+	std::cerr << "Missing frame that should've been added" << std::endl;
 }
 
 void MediaDecoder::extractVideoFrame(StreamEntry* stream, uint8_t* outPt) {
@@ -277,9 +278,13 @@ void MediaDecoder::getSegment(SegmentRequest request) {
 		} else if (response < 0) {
 			throw runtime_error(std::string("Error ") + std::to_string(nextFrameStat) + std::string(" (") + getErrorMessage(nextFrameStat) + std::string(") occurred while sending frame to decoder!") );
 		}
+		
+		// Dont sve packets that with negative pts to cache, since they wont come out (just observed, no proofed rule)
+		if (av_packet->pts >= 0) {
+			auto fr = BufferedFrame{av_packet->pts, av_packet->pos, av_packet->duration};
+			stream->cachedFrames.push_back(fr);
+		}
 
-		auto fr = BufferedFrame{av_packet->pts, av_packet->pos, av_packet->duration};
-		stream->cachedFrames.push_back(fr);
 		response = avcodec_receive_frame(stream->ctx, stream->frame);
 		if (response == AVERROR(EAGAIN)) {
 			if (stream->flushCount > 0) {
@@ -483,6 +488,7 @@ void MediaDecoder::initializePosition(DecodingState* decodingState) {
 	// TODO Seek inidividual streams if required
 
 	if (videoSeekBack || audioSeekBack || videoSeekForward) {
+		// std::cout << "SEEK VB " << videoSeekBack << " AB " << audioSeekBack << " VF " << videoSeekForward << std::endl;
 		av_seek_frame(av_format_ctx, -1, decodingState->requestStart * AV_TIME_BASE,
 					  AVSEEK_FLAG_BACKWARD); //Assuming the -1 includes all streams
 		for (auto& stream : streams) {
