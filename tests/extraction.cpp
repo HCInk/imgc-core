@@ -19,16 +19,16 @@ void writeFrames(torasu::tstd::Dbimg_sequence* sequence, std::string base_path) 
 	int i = 0;
 	for (auto& frame : frames) {
 		std::string path = base_path + "file-" + std::to_string(i + 1) + ".png";
-		
-		
+
+
 		saver.enqueue([path, frame]() {
 			unsigned error = lodepng::encode(path,
-							frame.second->getImageData(), frame.second->getWidth(), frame.second->getHeight());
+											 frame.second->getImageData(), frame.second->getWidth(), frame.second->getHeight());
 			if (error) {
 				std::cerr << "LODEPNG ERROR " << error << ": " << lodepng_error_text(error) << " - while writing " << path << std::endl;
 			}
 		});
-	
+
 		++i;
 	}
 

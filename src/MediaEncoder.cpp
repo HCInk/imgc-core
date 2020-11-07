@@ -73,7 +73,7 @@ public:
 		CLOSED,      // Stream has been closed
 		ERROR        // An error occurrend and the stream is now in a bad state
 	} state = CREATED;
-	
+
 	// Contexts
 	AVCodec* codec = nullptr;
 	AVCodecContext* ctx = nullptr;
@@ -169,7 +169,7 @@ public:
 		}
 
 		frame_size = ctx->frame_size;
-		
+
 		initFrame();
 
 		state = OPEN;
@@ -216,69 +216,67 @@ public:
 
 		// Timestamp to be requested via callback
 		double reqTs = (double) playhead*time_base.num/time_base.den + offset;
-		
+
 		switch (ctx->codec_type) {
-		case AVMEDIA_TYPE_VIDEO:
-		{
-			int width = frame->width;
-			int height = frame->height;
-			if (!swsCtx) {
-				swsCtx = sws_getContext(width, height, AV_PIX_FMT_RGB0,
+		case AVMEDIA_TYPE_VIDEO: {
+				int width = frame->width;
+				int height = frame->height;
+				if (!swsCtx) {
+					swsCtx = sws_getContext(width, height, AV_PIX_FMT_RGB0,
 											width, height, ctx->pix_fmt,
 											SWS_FAST_BILINEAR, nullptr, nullptr, nullptr);
-				if (!swsCtx)
-					throw std::runtime_error("Failed to create sws_scaler_ctx!");
+					if (!swsCtx)
+						throw std::runtime_error("Failed to create sws_scaler_ctx!");
+				}
+
+				torasu::tstd::Dbimg_FORMAT bimgFmt(width, height);
+				imgc::MediaEncoder::VideoFrameRequest req(reqTs, &bimgFmt);
+
+				int callbackStat = callback(&req);
+
+				if (callbackStat != 0) {
+					std::cerr << "Frame callback exited with non-zero return code (" << callbackStat << ")!" << std::endl;
+				} else {
+					torasu::tstd::Dbimg* bimg = req.getResult();
+
+					uint8_t* dst[4] = {bimg->getImageData(), nullptr, nullptr, nullptr};
+					int dest_linesize[4] = {width * 4, 0, 0, 0};
+					sws_scale(swsCtx, dst, dest_linesize, 0, frame->height,
+							  frame->data, frame->linesize);
+				}
+
+				return 1;
 			}
 
-			torasu::tstd::Dbimg_FORMAT bimgFmt(width, height);
-			imgc::MediaEncoder::VideoFrameRequest req(reqTs, &bimgFmt);
+		case AVMEDIA_TYPE_AUDIO: {
+				bool crop = frame_size > maxDuration*frame->sample_rate;
+				if (crop) {
+					frame->nb_samples = maxDuration*frame->sample_rate;
+				} else {
+					frame->nb_samples = frame_size;
+				}
+				torasu::tstd::Daudio_buffer_FORMAT fmt(frame->sample_rate, torasu::tstd::Daudio_buffer_CHFMT::FLOAT32);
+				imgc::MediaEncoder::AudioFrameRequest req(reqTs, (double) frame->nb_samples/frame->sample_rate, &fmt);
+				int callbackStat = callback(&req);
 
-			int callbackStat = callback(&req);
+				if (callbackStat != 0) {
+					std::cerr << "Frame callback exited with non-zero return code (" << callbackStat << ")!" << std::endl;
+				} else {
+					torasu::tstd::Daudio_buffer* audioSeq = req.getResult();
 
-			if (callbackStat != 0) {
-				std::cerr << "Frame callback exited with non-zero return code (" << callbackStat << ")!" << std::endl;
-			} else {
-				torasu::tstd::Dbimg* bimg = req.getResult();
-
-				uint8_t* dst[4] = {bimg->getImageData(), nullptr, nullptr, nullptr};
-				int dest_linesize[4] = {width * 4, 0, 0, 0};
-				sws_scale(swsCtx, dst, dest_linesize, 0, frame->height, 
-					frame->data, frame->linesize);
-			}
-
-			return 1;
-		}
-
-		case AVMEDIA_TYPE_AUDIO:
-		{	
-			bool crop = frame_size > maxDuration*frame->sample_rate;
-			if (crop) {
-				frame->nb_samples = maxDuration*frame->sample_rate;
-			} else {
-				frame->nb_samples = frame_size;
-			}
-			torasu::tstd::Daudio_buffer_FORMAT fmt(frame->sample_rate, torasu::tstd::Daudio_buffer_CHFMT::FLOAT32);
-			imgc::MediaEncoder::AudioFrameRequest req(reqTs, (double) frame->nb_samples/frame->sample_rate, &fmt);
-			int callbackStat = callback(&req);
-
-			if (callbackStat != 0) {
-				std::cerr << "Frame callback exited with non-zero return code (" << callbackStat << ")!" << std::endl;
-			} else {
-				torasu::tstd::Daudio_buffer* audioSeq = req.getResult();
-				
-				size_t chCount = audioSeq->getChannelCount();
-				auto* channels = audioSeq->getChannels();
-				for (size_t ci = 0; ci < chCount; ci++) {
-					uint8_t* data = channels[ci].data;
-					std::copy(data, data+channels[ci].dataSize, frame->data[ci]);
-					if (crop) {
-						std::fill(data+frame->nb_samples, data+frame_size, 0x00);
+					size_t chCount = audioSeq->getChannelCount();
+					auto* channels = audioSeq->getChannels();
+					for (size_t ci = 0; ci < chCount; ci++) {
+						uint8_t* data = channels[ci].data;
+						std::copy(data, data+channels[ci].dataSize, frame->data[ci]);
+						if (crop) {
+							std::fill(data+frame->nb_samples, data+frame_size, 0x00);
+						}
 					}
 				}
-			}
 
-			return frame_size;
-		}
+				return frame_size;
+			}
 
 		default:
 			throw std::runtime_error("Can't write frame for codec-type: " + std::to_string(ctx->codec_type));
@@ -310,7 +308,7 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
 
 	bool doVideo = request.doVideo;
 	bool doAudio = request.doAudio;
-	
+
 	if (!doVideo && !doAudio)
 		throw std::logic_error("Nor 'doVideo' or 'doAudio' is set, set one or both to configure.");
 

@@ -278,7 +278,7 @@ void MediaDecoder::getSegment(SegmentRequest request) {
 		} else if (response < 0) {
 			throw runtime_error(std::string("Error ") + std::to_string(nextFrameStat) + std::string(" (") + getErrorMessage(nextFrameStat) + std::string(") occurred while sending frame to decoder!") );
 		}
-		
+
 		// Dont sve packets that with negative pts to cache, since they wont come out (just observed, no proofed rule)
 		if (av_packet->pts >= 0) {
 			auto fr = BufferedFrame{av_packet->pts, av_packet->pos, av_packet->duration};

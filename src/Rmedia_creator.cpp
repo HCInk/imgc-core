@@ -29,8 +29,8 @@ namespace imgc {
 
 #define DEL_OWNED(field, owned) if (owned) delete field;
 
-Rmedia_creator::Rmedia_creator(Renderable* src, Renderable* format, Renderable* begin, Renderable* end, 
-	Renderable* fps, Renderable* width, Renderable* height, Renderable* videoBitrate, Renderable* audioMinSampleRate)
+Rmedia_creator::Rmedia_creator(Renderable* src, Renderable* format, Renderable* begin, Renderable* end,
+							   Renderable* fps, Renderable* width, Renderable* height, Renderable* videoBitrate, Renderable* audioMinSampleRate)
 	: SimpleRenderable("IMGC::RMEDIA_CREATOR", false, true),
 	  srcRnd(src), formatRnd(format), endRnd(end) {
 
@@ -43,11 +43,11 @@ Rmedia_creator::Rmedia_creator(Renderable* src, Renderable* format, Renderable* 
 
 }
 
-Rmedia_creator::Rmedia_creator(Renderable* src, std::string format, double begin, double end, 
-	double fps, uint32_t width, uint32_t height, size_t videoBitrate, size_t audioMinSampleRate) 
+Rmedia_creator::Rmedia_creator(Renderable* src, std::string format, double begin, double end,
+							   double fps, uint32_t width, uint32_t height, size_t videoBitrate, size_t audioMinSampleRate)
 	: SimpleRenderable("IMGC::RMEDIA_CREATOR", false, true),
 	  srcRnd(src) {
-	
+
 	CONFIGURE_OWNED(formatRnd, ownsFormat, new torasu::tstd::Rstring(format))
 	CONFIGURE_OWNED(beginRnd, ownsBegin, new torasu::tstd::Rnum(begin))
 	CONFIGURE_OWNED(endRnd, ownsEnd, new torasu::tstd::Rnum(end))
@@ -78,7 +78,7 @@ torasu::ResultSegment* Rmedia_creator::renderSegment(torasu::ResultSegmentSettin
 		auto* rctx = ri->getRenderContext();
 
 		MediaEncoder::EncodeRequest req;
-		
+
 		{
 			torasu::tools::RenderInstructionBuilder textRib;
 			auto textHandle = textRib.addSegmentWithHandle<torasu::tstd::Dstring>(TORASU_STD_PL_STRING, nullptr);
@@ -134,7 +134,7 @@ torasu::ResultSegment* Rmedia_creator::renderSegment(torasu::ResultSegmentSettin
 				req.height = dHeight->getNum();
 				req.videoBitrate = dVbr->getNum();
 			}
-		
+
 
 			req.minSampleRate = dAmsr->getNum();
 
@@ -151,53 +151,54 @@ torasu::ResultSegment* Rmedia_creator::renderSegment(torasu::ResultSegmentSettin
 		auto visHandle = visRib.addSegmentWithHandle<torasu::tstd::Dbimg>(TORASU_STD_PL_VIS, &visFmt);
 
 		MediaEncoder enc([this, ei, rctx, &visRib, &visHandle, &frameDuration, &frameRatio]
-			(MediaEncoder::FrameRequest* fr) {
-				torasu::RenderContext modRctx = *rctx;
-				if (auto* vidReq = dynamic_cast<MediaEncoder::VideoFrameRequest*>(fr)) {
-					torasu::tstd::Dnum time(vidReq->getTime());
-					modRctx[TORASU_STD_CTX_TIME] = &time;
-					modRctx[TORASU_STD_CTX_DURATION] = &frameDuration;
-					modRctx[TORASU_STD_CTX_IMG_RATIO] = &frameRatio;
+		(MediaEncoder::FrameRequest* fr) {
+			torasu::RenderContext modRctx = *rctx;
+			if (auto* vidReq = dynamic_cast<MediaEncoder::VideoFrameRequest*>(fr)) {
+				torasu::tstd::Dnum time(vidReq->getTime());
+				modRctx[TORASU_STD_CTX_TIME] = &time;
+				modRctx[TORASU_STD_CTX_DURATION] = &frameDuration;
+				modRctx[TORASU_STD_CTX_IMG_RATIO] = &frameRatio;
 
-					auto* rr = visRib.runRender(srcRnd, &modRctx, ei);
+				auto* rr = visRib.runRender(srcRnd, &modRctx, ei);
 
-					fr->setFree([rr]() {
-						delete rr;
-					});
+				fr->setFree([rr]() {
+					delete rr;
+				});
 
-					auto fetchedRes = visHandle.getFrom(rr);
+				auto fetchedRes = visHandle.getFrom(rr);
 
-					if (fetchedRes.getResult() == nullptr) return -1;
+				if (fetchedRes.getResult() == nullptr) return -1;
 
-					vidReq->setResult(fetchedRes.getResult());
+				vidReq->setResult(fetchedRes.getResult());
 
-					return 0;
-				} if (auto* audReq = dynamic_cast<MediaEncoder::AudioFrameRequest*>(fr)) {
-					torasu::tstd::Dnum time(audReq->getStart());
-					modRctx[TORASU_STD_CTX_TIME] = &time;
-					torasu::tstd::Dnum dur(audReq->getDuration());
-					modRctx[TORASU_STD_CTX_DURATION] = &dur;
-
-					torasu::tools::RenderInstructionBuilder audRib;
-					auto audHandle = audRib.addSegmentWithHandle<torasu::tstd::Daudio_buffer>(TORASU_STD_PL_AUDIO, audReq->getFormat());
-
-					auto* rr = audRib.runRender(srcRnd, &modRctx, ei);
-
-					fr->setFree([rr]() {
-						delete rr;
-					});
-
-					auto fetchedRes = audHandle.getFrom(rr);
-
-					if (fetchedRes.getResult() == nullptr) return -1;
-
-					audReq->setResult(fetchedRes.getResult());
-
-					return 0;
-				}
-				return -3;
+				return 0;
 			}
-		);
+			if (auto* audReq = dynamic_cast<MediaEncoder::AudioFrameRequest*>(fr)) {
+				torasu::tstd::Dnum time(audReq->getStart());
+				modRctx[TORASU_STD_CTX_TIME] = &time;
+				torasu::tstd::Dnum dur(audReq->getDuration());
+				modRctx[TORASU_STD_CTX_DURATION] = &dur;
+
+				torasu::tools::RenderInstructionBuilder audRib;
+				auto audHandle = audRib.addSegmentWithHandle<torasu::tstd::Daudio_buffer>(TORASU_STD_PL_AUDIO, audReq->getFormat());
+
+				auto* rr = audRib.runRender(srcRnd, &modRctx, ei);
+
+				fr->setFree([rr]() {
+					delete rr;
+				});
+
+				auto fetchedRes = audHandle.getFrom(rr);
+
+				if (fetchedRes.getResult() == nullptr) return -1;
+
+				audReq->setResult(fetchedRes.getResult());
+
+				return 0;
+			}
+			return -3;
+		}
+						);
 
 
 		auto* result = enc.encode(req);

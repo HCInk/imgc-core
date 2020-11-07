@@ -508,7 +508,7 @@ torasu::tstd::Daudio_buffer* makeAudioSeq(double time, double duration, torasu::
 	auto sampleRate = format->getBitrate();
 	int samples = sampleRate*duration;
 	auto* audBuff = new torasu::tstd::Daudio_buffer(2, sampleRate, torasu::tstd::Daudio_buffer_CHFMT::FLOAT32, 4, 4*samples);
-	
+
 	auto* channels = audBuff->getChannels();
 
 	int playhead = round(time*sampleRate);

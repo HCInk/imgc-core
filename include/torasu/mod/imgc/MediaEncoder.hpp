@@ -43,7 +43,7 @@ public:
 		torasu::tstd::Dbimg* result;
 		torasu::tstd::Dbimg_FORMAT* format;
 
-	// protected:
+		// protected:
 	public:
 		VideoFrameRequest(double time, torasu::tstd::Dbimg_FORMAT* format)
 			: time(time), format(format) {}
@@ -72,7 +72,7 @@ public:
 		torasu::tstd::Daudio_buffer* result;
 		torasu::tstd::Daudio_buffer_FORMAT* format;
 
-	// protected:
+		// protected:
 	public:
 		AudioFrameRequest(double start, double duration, torasu::tstd::Daudio_buffer_FORMAT* format)
 			: start(start), duration(duration), format(format) {}
@@ -112,7 +112,7 @@ public:
 		bool doAudio = false;
 		int minSampleRate = -1;
 		int audioBitrate = 0;
-		
+
 		std::string formatName;
 	};
 
