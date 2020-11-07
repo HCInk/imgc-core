@@ -21,13 +21,14 @@
 #include <torasu/std/Rmultiply.hpp>
 #include <torasu/std/Rproperty.hpp>
 #include <torasu/std/Rnum.hpp>
+#include <torasu/std/Rstring.hpp>
 
 #include <torasu/mod/imgc/pipeline_names.hpp>
 #include <torasu/mod/imgc/Rimg_file.hpp>
-#include <torasu/mod/imgc/MediaDecoder.hpp>
-#include <torasu/mod/imgc/MediaEncoder.hpp>
 #include <torasu/mod/imgc/Rmedia_file.hpp>
 #include <torasu/mod/imgc/Rmedia_creator.hpp>
+#include <torasu/mod/imgc/MediaDecoder.hpp>
+#include <torasu/mod/imgc/MediaEncoder.hpp>
 #include <torasu/mod/imgc/Ralign2d.hpp>
 #include <torasu/mod/imgc/Rauto_align2d.hpp>
 #include <torasu/mod/imgc/Rgain.hpp>
@@ -588,7 +589,19 @@ void encodeTorasu() {
 
 	// imgc::Rauto_align2d align(&video, 0, 0, 0);
 
-	imgc::Rmedia_creator encoded(&video);
+	// imgc::Rmedia_creator encoded(&video, "mp4", 0, 23, 25, 1920, 1080, 4000*1000, 44100);
+
+	torasu::tstd::Rstring format("mp4");
+	torasu::tstd::Rnum begin(0);
+	torasu::tstd::Rnum end(23);
+	torasu::tstd::Rnum fps(25);
+	torasu::tstd::Rnum videoBitrate(4000*1000);
+	torasu::tstd::Rnum audioMinSamplerate(44100);
+
+	torasu::tstd::Rproperty width(&video, TORASU_STD_PROP_IMG_WIDTH, TORASU_STD_PL_NUM);
+	torasu::tstd::Rproperty height(&video, TORASU_STD_PROP_IMG_HEIGHT, TORASU_STD_PL_NUM);
+
+	imgc::Rmedia_creator encoded(&video, &format, &begin, &end, &fps, &width, &height, &videoBitrate, &audioMinSamplerate);
 
 	auto* tree = &encoded;
 
