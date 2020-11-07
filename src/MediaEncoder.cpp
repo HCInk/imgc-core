@@ -278,7 +278,7 @@ public:
 #endif
 						std::copy(srcData, srcData+channels[ci].dataSize, destData);
 						if (crop) {
-							std::fill(destData+frame->nb_samples*4, destData+frame_size, 0x00); // XXX Fix filling
+							std::fill(destData+(frame->nb_samples*4), destData+frame_size, 0x00);
 						}
 					}
 				}
