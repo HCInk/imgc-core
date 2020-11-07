@@ -12,6 +12,8 @@
 #include <iostream>
 #include <lodepng.h>
 
+#define DECODER_SANITY_CHECKS true
+
 using namespace std;
 namespace {
 
@@ -572,6 +574,11 @@ void MediaDecoder::concatAudio(DecodingState* decodingState) {
 			if (fillGap > 0) {
 				std::fill(channels[i].data+lastWrittenPos, channels[i].data+lastWrittenPos+fillGap, 0);
 			}
+#if DECODER_SANITY_CHECKS
+			else if (fillGap < 0) {
+				throw std::runtime_error("Sanity-Panic: Pre-fill gap negative (" + std::to_string(fillGap) + "<0) - may have written into non-authrized area!");
+			}
+#endif
 			delete[] frame.data[i];
 		}
 		lastWrittenPos = (copyDestPos + (copySrcEnd-copySrcStart)) * sampleSize;
@@ -579,9 +586,15 @@ void MediaDecoder::concatAudio(DecodingState* decodingState) {
 
 	for (int i = 0; i < channelCount; ++i) {
 		int64_t fillGap = channels[i].dataSize-lastWrittenPos;
+
 		if (fillGap > 0) {
 			std::fill(channels[i].data+lastWrittenPos, channels[i].data+lastWrittenPos+fillGap, 0);
 		}
+#if DECODER_SANITY_CHECKS
+		else if (fillGap < 0) {
+			throw std::runtime_error("Sanity-Panic: Post-fill gap negative (" + std::to_string(fillGap) + "<0) - may have written into non-authrized area!");
+		}
+#endif
 	}
 
 	decodingState->audioFrames.clear();

@@ -6,6 +6,8 @@
 #include <fstream>
 #include <list>
 
+#define ENCODER_SANITY_CHECKS true
+
 namespace {
 
 typedef torasu::tstd::Dfile::FileBuilder FileBuilder;
@@ -267,10 +269,16 @@ public:
 					size_t chCount = audioSeq->getChannelCount();
 					auto* channels = audioSeq->getChannels();
 					for (size_t ci = 0; ci < chCount; ci++) {
-						uint8_t* data = channels[ci].data;
-						std::copy(data, data+channels[ci].dataSize, frame->data[ci]);
+						uint8_t* srcData = channels[ci].data;
+						uint8_t* destData = frame->data[ci];
+#if ENCODER_SANITY_CHECKS
+						if (channels[ci].dataSize > frame->nb_samples*4) {
+							throw std::runtime_error("Sanity-Panic: Recieved frame is bigger then expected!");
+						}
+#endif
+						std::copy(srcData, srcData+channels[ci].dataSize, destData);
 						if (crop) {
-							std::fill(data+frame->nb_samples, data+frame_size, 0x00);
+							std::fill(destData+frame->nb_samples*4, destData+frame_size, 0x00); // XXX Fix filling
 						}
 					}
 				}

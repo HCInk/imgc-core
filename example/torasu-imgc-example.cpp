@@ -593,7 +593,7 @@ void encodeTorasu() {
 
 	torasu::tstd::Rstring format("mp4");
 	torasu::tstd::Rnum begin(0);
-	torasu::tstd::Rnum end(23);
+	torasu::tstd::Rnum end(1);
 	torasu::tstd::Rnum fps(25);
 	torasu::tstd::Rnum videoBitrate(4000*1000);
 	torasu::tstd::Rnum audioMinSamplerate(44100);
