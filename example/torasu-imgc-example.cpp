@@ -1,5 +1,6 @@
 #include <iostream>
 #include <iomanip>
+#include <memory>
 #include <fstream>
 
 #include <lodepng.h>
@@ -12,6 +13,7 @@
 #include <torasu/std/EIcore_runner.hpp>
 #include <torasu/std/Dstring.hpp>
 #include <torasu/std/Dbimg.hpp>
+#include <torasu/std/Daudio_buffer.hpp>
 #include <torasu/std/Dnum.hpp>
 #include <torasu/std/Dfile.hpp>
 #include <torasu/std/Rlocal_file.hpp>
@@ -19,11 +21,14 @@
 #include <torasu/std/Rmultiply.hpp>
 #include <torasu/std/Rproperty.hpp>
 #include <torasu/std/Rnum.hpp>
+#include <torasu/std/Rstring.hpp>
 
 #include <torasu/mod/imgc/pipeline_names.hpp>
 #include <torasu/mod/imgc/Rimg_file.hpp>
-#include <torasu/mod/imgc/MediaDecoder.hpp>
 #include <torasu/mod/imgc/Rmedia_file.hpp>
+#include <torasu/mod/imgc/Rmedia_creator.hpp>
+#include <torasu/mod/imgc/MediaDecoder.hpp>
+#include <torasu/mod/imgc/MediaEncoder.hpp>
 #include <torasu/mod/imgc/Ralign2d.hpp>
 #include <torasu/mod/imgc/Rauto_align2d.hpp>
 #include <torasu/mod/imgc/Rgain.hpp>
@@ -474,6 +479,161 @@ void cropExample() {
 
 }
 
+torasu::tstd::Dbimg* makeBimg(double time, torasu::tstd::Dbimg_FORMAT* format) {
+	auto* bimg = new torasu::tstd::Dbimg(*format);
+	uint32_t width = format->getWidth();
+	uint32_t height = format->getHeight();
+	uint8_t* data = bimg->getImageData();
+
+	for (uint32_t y = 0; y < height; y++) {
+		// uint8_t val = (sin(time*4+((double)y)/100)*0.5+0.5)*0xFF;
+		// uint8_t val = time*4+((double)y)/100;
+		uint8_t val = (((int)(time*4+((double)y)/100))%2)*0xFF;
+		for (uint32_t x = 0; x < width; x++) {
+			*data = x;
+			data++;
+			*data = y;
+			data++;
+			*data = val;
+			data++;
+			*data = 0xFF;
+			data++;
+		}
+	}
+
+	return bimg;
+}
+
+torasu::tstd::Daudio_buffer* makeAudioSeq(double time, double duration, torasu::tstd::Daudio_buffer_FORMAT* format) {
+	auto sampleRate = format->getBitrate();
+	int samples = sampleRate*duration;
+	auto* audBuff = new torasu::tstd::Daudio_buffer(2, sampleRate, torasu::tstd::Daudio_buffer_CHFMT::FLOAT32, 4, 4*samples);
+	
+	auto* channels = audBuff->getChannels();
+
+	int playhead = round(time*sampleRate);
+	for (int i = 0; i < samples; i++) {
+		float sampleNo = playhead+i;
+		float freq = sin(sampleNo / 44100 / 1)*1000+1000 + 100;
+		float val = sin(sampleNo * freq / 44100)/2;
+
+		uint32_t d = *(reinterpret_cast<uint32_t*>(&val));
+		for (int c = 0; c < 2; c++) {
+			for (int b = 0; b < 4; b++) {
+				channels[c].data[i*4+b] = d >> b*8 & 0xFF;
+			}
+		}
+
+	}
+	return audBuff;
+}
+
+
+void encodeExample() {
+
+	imgc::MediaEncoder enc([](imgc::MediaEncoder::FrameRequest* fr) {
+		if (auto* videoFr = dynamic_cast<imgc::MediaEncoder::VideoFrameRequest*>(fr)) {
+			std::cout << "VFR " << videoFr->getTime() << std::endl;
+			auto* bimg = imgc::examples::makeBimg(videoFr->getTime(), videoFr->getFormat());
+			videoFr->setResult(bimg);
+			videoFr->setFree([bimg]() {
+				delete bimg;
+			});
+			return 0;
+		} else if (auto* audioFr = dynamic_cast<imgc::MediaEncoder::AudioFrameRequest*>(fr)) {
+			auto* audioSeq = imgc::examples::makeAudioSeq(audioFr->getStart(), audioFr->getDuration(), audioFr->getFormat());
+			std::cout << "AFR " << audioFr->getStart() << std::endl;
+			audioFr->setResult(audioSeq);
+			audioFr->setFree([audioSeq]() {
+				delete audioSeq;
+			});
+			return 0;
+		}
+		return -3;
+	});
+
+	imgc::MediaEncoder::EncodeRequest req;
+	req.formatName = "mp4";
+	req.end = 10;
+
+	req.doVideo = true;
+	req.width = 1920;
+	req.height = 1080;
+	req.framerate = 60;
+	// req.videoBitrate = 224850 * 1000;
+
+	req.doAudio = true;
+	req.minSampleRate = 44100;
+	// req.audioBitrate = 40 * 1000;
+
+	auto* file = enc.encode(req);
+
+	std::cout << "Saving..." << std::endl;
+	std::ofstream sysFile("test.mp4");
+
+	sysFile.write(const_cast<const char*>(reinterpret_cast<char*>(file->getFileData())), file->getFileSize());
+
+	sysFile.close();
+
+	std::cout << "Saved." << std::endl;
+
+	delete file;
+
+}
+
+void encodeTorasu() {
+
+	torasu::tstd::Rnet_file file("https://cdn.discordapp.com/attachments/770711233065517106/770715070622990366/155216075_Bear_Freestyler_in_Rust.mp4");
+
+	imgc::Rmedia_file video(&file);
+
+	// imgc::Rauto_align2d align(&video, 0, 0, 0);
+
+	// imgc::Rmedia_creator encoded(&video, "mp4", 0, 23, 25, 1920, 1080, 4000*1000, 44100);
+
+	torasu::tstd::Rstring format("mp4");
+	torasu::tstd::Rnum begin(0);
+	torasu::tstd::Rnum end(23);
+	torasu::tstd::Rnum fps(25);
+	torasu::tstd::Rnum videoBitrate(4000*1000);
+	torasu::tstd::Rnum audioMinSamplerate(44100);
+
+	torasu::tstd::Rproperty width(&video, TORASU_STD_PROP_IMG_WIDTH, TORASU_STD_PL_NUM);
+	torasu::tstd::Rproperty height(&video, TORASU_STD_PROP_IMG_HEIGHT, TORASU_STD_PL_NUM);
+
+	imgc::Rmedia_creator encoded(&video, &format, &begin, &end, &fps, &width, &height, &videoBitrate, &audioMinSamplerate);
+
+	auto* tree = &encoded;
+
+	// Creating Engine
+
+	torasu::tstd::EIcore_runner* runner = new torasu::tstd::EIcore_runner();
+	torasu::ExecutionInterface* ei = runner->createInterface();
+
+	torasu::tools::RenderInstructionBuilder rib;
+	auto handle = rib.addSegmentWithHandle<torasu::tstd::Dfile>(TORASU_STD_PL_FILE, nullptr);
+
+	torasu::RenderContext rctx;
+	std::unique_ptr<torasu::RenderResult> rr(rib.runRender(tree, &rctx, ei));
+
+	auto seg = handle.getFrom(rr.get());
+
+	auto* resFile = seg.getResult();
+
+	std::cout << "Saving..." << std::endl;
+	std::ofstream sysFile("test.mp4");
+
+	sysFile.write(const_cast<const char*>(reinterpret_cast<char*>(resFile->getFileData())), resFile->getFileSize());
+
+	sysFile.close();
+
+	std::cout << "Saved." << std::endl;
+
+	delete ei;
+	delete runner;
+
+}
+
 }  // namespace imgc::examples
 
 int main(int argc, char** argv) {
@@ -484,8 +644,11 @@ int main(int argc, char** argv) {
 	// videoTest();
 	// example_sdl::main(argc, argv);
 	// examples::yetAnotherIMGCTest();
-	examples::cropdataExample();
-	examples::cropExample();
+	// examples::cropdataExample();
+	// examples::cropExample();
+	// examples::encodeExample();
+	examples::encodeTorasu();
+
 
 	return 0;
 }
