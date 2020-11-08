@@ -13,6 +13,10 @@ private:
 
 	double offLeft, offRight, offTop, offBottom;
 
+protected:
+	void load() override;
+	nlohmann::json makeJson() override;
+
 public:
 	explicit Dcropdata(std::string jsonStripped);
 	explicit Dcropdata(nlohmann::json jsonParsed);
@@ -23,9 +27,8 @@ public:
 	double getOffTop();
 	double getOffBottom();
 
-	std::string getIdent();
-	void load();
-	nlohmann::json makeJson();
+	std::string getIdent() override;
+	Dcropdata* clone() override;
 
 };
 

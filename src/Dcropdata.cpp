@@ -40,6 +40,10 @@ std::string Dcropdata::getIdent() {
 	return ident;
 }
 
+Dcropdata* Dcropdata::clone() {
+	return new Dcropdata(*this);
+}
+
 void Dcropdata::load() {
 	auto json = this->getJson();
 	offLeft = json["l"];
