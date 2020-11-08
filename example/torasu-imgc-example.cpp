@@ -22,6 +22,7 @@
 #include <torasu/std/Rproperty.hpp>
 #include <torasu/std/Rnum.hpp>
 #include <torasu/std/Rstring.hpp>
+#include <torasu/std/Rmix_pipelines.hpp>
 
 #include <torasu/mod/imgc/pipeline_names.hpp>
 #include <torasu/mod/imgc/Rimg_file.hpp>
@@ -583,25 +584,26 @@ void encodeExample() {
 
 void encodeTorasu() {
 
-	torasu::tstd::Rnet_file file("https://cdn.discordapp.com/attachments/770711233065517106/770715070622990366/155216075_Bear_Freestyler_in_Rust.mp4");
+	torasu::tstd::Rnet_file videoFile1("https://cdn.discordapp.com/attachments/598323767202152458/666010465809465410/8807502_Bender_and_penguins.mp4");
+	torasu::tstd::Rnet_file videoFile2("https://cdn.discordapp.com/attachments/770711233065517106/770715070622990366/155216075_Bear_Freestyler_in_Rust.mp4");
 
-	imgc::Rmedia_file video(&file);
+	imgc::Rmedia_file video1(&videoFile1);
+	imgc::Rmedia_file video2(&videoFile2);
 
-	// imgc::Rauto_align2d align(&video, 0, 0, 0);
-
-	// imgc::Rmedia_creator encoded(&video, "mp4", 0, 23, 25, 1920, 1080, 4000*1000, 44100);
+	// Take video1 and replace its audio with the audio of video2
+	torasu::tstd::Rmix_pipelines comp(&video1, {{TORASU_STD_PL_AUDIO, &video2}});
 
 	torasu::tstd::Rstring format("mp4");
 	torasu::tstd::Rnum begin(0);
-	torasu::tstd::Rnum end(1);
 	torasu::tstd::Rnum fps(25);
 	torasu::tstd::Rnum videoBitrate(4000*1000);
 	torasu::tstd::Rnum audioMinSamplerate(44100);
 
-	torasu::tstd::Rproperty width(&video, TORASU_STD_PROP_IMG_WIDTH, TORASU_STD_PL_NUM);
-	torasu::tstd::Rproperty height(&video, TORASU_STD_PROP_IMG_HEIGHT, TORASU_STD_PL_NUM);
+	torasu::tstd::Rproperty end(&video1, TORASU_STD_PROP_DURATION, TORASU_STD_PL_NUM);
+	torasu::tstd::Rproperty width(&video1, TORASU_STD_PROP_IMG_WIDTH, TORASU_STD_PL_NUM);
+	torasu::tstd::Rproperty height(&video1, TORASU_STD_PROP_IMG_HEIGHT, TORASU_STD_PL_NUM);
 
-	imgc::Rmedia_creator encoded(&video, &format, &begin, &end, &fps, &width, &height, &videoBitrate, &audioMinSamplerate);
+	imgc::Rmedia_creator encoded(&comp, &format, &begin, &end, &fps, &width, &height, &videoBitrate, &audioMinSamplerate);
 
 	auto* tree = &encoded;
 
