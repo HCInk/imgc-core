@@ -272,13 +272,13 @@ public:
 						uint8_t* srcData = channels[ci].data;
 						uint8_t* destData = frame->data[ci];
 #if ENCODER_SANITY_CHECKS
-						if (channels[ci].dataSize > frame->nb_samples*4) {
+						if (channels[ci].dataSize > (size_t) frame->nb_samples*4) {
 							throw std::runtime_error("Sanity-Panic: Recieved frame is bigger then expected!");
 						}
 #endif
 						std::copy(srcData, srcData+channels[ci].dataSize, destData);
 						if (crop) {
-							std::fill(destData+(frame->nb_samples*4), destData+frame_size, 0x00);
+							std::fill(destData+(frame->nb_samples*4), destData+(frame_size*4), 0x00);
 						}
 					}
 				}
