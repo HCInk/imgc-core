@@ -26,6 +26,8 @@
 #include <torasu/std/Rmod_rctx.hpp>
 #include <torasu/std/Rrctx_value.hpp>
 #include <torasu/std/Rdivide.hpp>
+#include <torasu/std/Rfloor_mod.hpp>
+#include <torasu/std/Radd.hpp>
 
 #include <torasu/mod/imgc/pipeline_names.hpp>
 #include <torasu/mod/imgc/Rimg_file.hpp>
@@ -589,17 +591,21 @@ void encodeTorasu() {
 	// This is a constant, still looking for a better alternative compared to this here
 	torasu::tstd::Rnum one(1);
 
-	torasu::tstd::Rnum speed(2);
 	torasu::tstd::Rnet_file videoFile1("https://cdn.discordapp.com/attachments/598323767202152458/666010465809465410/8807502_Bender_and_penguins.mp4");
 	torasu::tstd::Rnet_file videoFile2("https://cdn.discordapp.com/attachments/770711233065517106/770715070622990366/155216075_Bear_Freestyler_in_Rust.mp4");
 
 	imgc::Rmedia_file video1(&videoFile1);
 	imgc::Rmedia_file video2(&videoFile2);
 	
-	// Remap time to speed it up
+	// Remap time to speed it up and then loop it from the 2nd to 4th second
+	torasu::tstd::Rnum speed(2);
+	torasu::tstd::Rnum loop(2);
+	torasu::tstd::Rnum offset(2);
 	torasu::tstd::Rrctx_value time(TORASU_STD_CTX_TIME, TORASU_STD_PL_NUM);
-	torasu::tstd::Rmultiply timeRemapping(&time, &speed);
-	torasu::tstd::Rmod_rctx speedVid(&video1, &timeRemapping, TORASU_STD_CTX_TIME, TORASU_STD_PL_NUM);
+	torasu::tstd::Rmultiply timeRemapping1(&time, &speed);
+	torasu::tstd::Rfloor_mod timeRemapping2(&timeRemapping1, &loop);
+	torasu::tstd::Radd timeRemapping3(&timeRemapping2, &offset);
+	torasu::tstd::Rmod_rctx speedVid(&video1, &timeRemapping3, TORASU_STD_CTX_TIME, TORASU_STD_PL_NUM);
 
 	// Take video1 and replace its audio with the audio of video2
 	torasu::tstd::Rmix_pipelines comp(&speedVid, {{TORASU_STD_PL_AUDIO, &video2}});
