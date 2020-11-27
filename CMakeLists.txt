@@ -24,7 +24,8 @@ set(IMGC_SRC
         ${CMAKE_CURRENT_LIST_DIR}/src/Dcropdata.cpp
         ${CMAKE_CURRENT_LIST_DIR}/src/Rcropdata.cpp
         ${CMAKE_CURRENT_LIST_DIR}/src/Rcropdata_combined.cpp
-        ${CMAKE_CURRENT_LIST_DIR}/src/Rauto_align2d.cpp)
+        ${CMAKE_CURRENT_LIST_DIR}/src/Rauto_align2d.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/src/Rgraphics.cpp)
 
 add_library(imgc SHARED ${IMGC_SRC})
 

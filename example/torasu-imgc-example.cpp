@@ -41,6 +41,7 @@
 #include <torasu/mod/imgc/Dcropdata.hpp>
 #include <torasu/mod/imgc/Rcropdata.hpp>
 #include <torasu/mod/imgc/Rcropdata_combined.hpp>
+#include <torasu/mod/imgc/Rgraphics.hpp>
 
 #include "example_tools.hpp"
 
@@ -655,6 +656,54 @@ void encodeTorasu() {
 
 }
 
+void graphicsExample() {
+	Rgraphics tree;
+
+
+	auto* runner = new torasu::tstd::EIcore_runner();
+
+	torasu::ExecutionInterface* ei = runner->createInterface();
+
+	torasu::tools::RenderInstructionBuilder rib;
+
+	torasu::tstd::Dbimg_FORMAT format(1920, 1080);
+
+	auto handle = rib.addSegmentWithHandle<torasu::tstd::Dbimg>(TORASU_STD_PL_VIS, &format);
+
+	std::cout << "RENDER BEGIN" << std::endl;
+
+	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+
+	torasu::RenderContext rctx;
+	auto result = rib.runRender(&tree, &rctx, ei);
+
+	std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+	std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
+	std::cout << "RENDER FIN" << std::endl;
+
+	auto castedRes = handle.getFrom(result);
+
+	torasu::ResultSegmentStatus rss = castedRes.getStatus();
+
+	std::cout << "STATUS " << rss << std::endl;
+
+	if (rss >= torasu::ResultSegmentStatus::ResultSegmentStatus_OK) {
+		torasu::tstd::Dbimg* bimg = castedRes.getResult();
+
+		unsigned error = lodepng::encode("out.png", bimg->getImageData(), bimg->getWidth(), bimg->getHeight());
+
+		std::cout << "ENCODE STAT " << error << std::endl;
+	}
+
+
+
+
+	delete result;
+
+	delete ei;
+	delete runner;
+}
+
 }  // namespace imgc::examples
 
 int main(int argc, char** argv) {
@@ -668,8 +717,8 @@ int main(int argc, char** argv) {
 	// examples::cropdataExample();
 	// examples::cropExample();
 	// examples::encodeExample();
-	examples::encodeTorasu();
-
+	// examples::encodeTorasu();
+	examples::graphicsExample();
 
 	return 0;
 }
