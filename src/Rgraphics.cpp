@@ -20,11 +20,15 @@ struct CurvedSegment {
 	Coordinate a, ca, cb, b;
 };
 
-#define ABS_CORD_FAC 1000
+// #define ABS_CORD_FAC 1000
+// typedef int64_t abs_cord_t;
+
+#define ABS_CORD_FAC 1
+typedef double abs_cord_t;
 
 class OptimisedCurvedSegment {
 public:
-	const size_t 
+	const abs_cord_t 
 		ax, ay, 
 		cax, cay, 
 		cbx, cby, 
@@ -32,13 +36,13 @@ public:
 
 	OptimisedCurvedSegment(const CurvedSegment& seg, const ProjectionSettings& set) 
 		: ax(seg.a.x * set.width * ABS_CORD_FAC), ay(seg.a.y * set.height * ABS_CORD_FAC),
-		cax(seg.a.x * set.width * 3 * ABS_CORD_FAC), cay(seg.ca.y * set.height * 3 * ABS_CORD_FAC),
+		cax(seg.ca.x * set.width * 3 * ABS_CORD_FAC), cay(seg.ca.y * set.height * 3 * ABS_CORD_FAC),
 		cbx(seg.cb.x * set.width * 3 * ABS_CORD_FAC), cby(seg.cb.y * set.height * 3 * ABS_CORD_FAC),
 		bx(seg.b.x * set.width * ABS_CORD_FAC), by(seg.b.y * set.height * ABS_CORD_FAC) {}
 };
 
 struct AbsoluteCoordinate {
-	size_t x, y;
+	abs_cord_t x, y;
 };
 
 struct InterpRational {
@@ -54,23 +58,49 @@ inline void eval(const OptimisedCurvedSegment& seg, const ProjectionSettings& se
 	// elem->cord.x = (size_t) elem->interp.num *ABS_CORD_FAC* settings.width / elem->interp.den ;
 	// elem->cord.y = (size_t) elem->interp.num *ABS_CORD_FAC* settings.height / elem->interp.den ;
 
+	//b(u)=
+	// (1-u)^3 A
+	// + 3 (1-u)^2 u CA
+	// + 3 (1-u) u^2 CB
+	// + u^3 B
+
 	auto un = elem->interp.num;
 	auto den = elem->interp.den;
 	auto uni = den-un;
 
-	elem->cord.x =(
-		  seg.ax * uni * uni/den * uni
-		+ seg.cax * uni * uni/den * un
-		+ seg.cbx * uni * un/den * un
-		+ seg.bx * un * un/den * un
-	)/(den*den);
+	// "Fast"
 
-	elem->cord.y =(
-		  seg.ay * uni * uni/den * uni
-		+ seg.cay * uni * uni/den * un
-		+ seg.cby * uni * un/den * un
-		+ seg.by * un * un/den * un
-	)/(den*den);
+	// elem->cord.x =(
+	// 	  seg.ax * uni * uni/den * uni
+	// 	+ seg.cax * uni * uni/den * un
+	// 	+ seg.cbx * uni * un/den * un
+	// 	+ seg.bx * un * un/den * un
+	// )/(den*den);
+
+	// elem->cord.y =(
+	// 	  seg.ay * uni * uni/den * uni
+	// 	+ seg.cay * uni * uni/den * un
+	// 	+ seg.cby * uni * un/den * un
+	// 	+ seg.by * un * un/den * un
+	// )/(den*den);
+
+	// wtf why is this even faster?
+
+	double und = (double) un/den;
+	double unid = (double) uni/den;
+
+	elem->cord.x =
+		  (double) seg.ax * unid * unid * unid
+		+ (double) seg.cax * unid * unid * und
+		+ (double) seg.cbx * unid * und * und
+		+ (double) seg.bx * und * und * und;
+
+	elem->cord.y =
+		  (double) seg.ay * unid * unid * unid
+		+ (double) seg.cay * unid * unid * und
+		+ (double) seg.cby * unid * und * und
+		+ (double) seg.by * und * und * und;
+
 }
 
 inline std::string setostr(const InterpStackElem& elem) {
@@ -106,8 +136,8 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 		
 		CurvedSegment seg = {
 			{.2,.2},
-			{.2,.8},
-			{.8,.6},
+			{1,2},
+			{-1,-.5},
 			{.8,.8}
 		};
 		OptimisedCurvedSegment oseg(seg, set);
@@ -139,6 +169,13 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 
 				// std::cout << " EVAL \t" << setostr(cBegin) << "-" << setostr(cEnd) << " IR " << inRange << " OI " << overinterpolate << std::endl;
 
+				// if (cBegin.interp.den == 1073741824) {
+				// 	cBegin = interpolationStack.top();
+				// 	result.push_back(cBegin);
+				// 	interpolationStack.pop();
+					
+				// } else
+
 				if (inRange && overinterpolate) {
 					overinterpolate = false;
 					// std::cout << " POP OI \t" << setostr(interpolationStack.top()) << std::endl;
@@ -169,6 +206,8 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 				(double) vert.cord.x / ABS_CORD_FAC,
 				(double) vert.cord.y / ABS_CORD_FAC
 			};
+
+			if (cord.x < 0 || cord.x >= width || cord.y < 0 || cord.y >= height) continue;
 			
 			auto* locPtr = data + ( ((((size_t)cord.y)*width)+((size_t)cord.x))*4);
 			*locPtr = ((size_t) vert.interp.num*0xFF)/vert.interp.den;
