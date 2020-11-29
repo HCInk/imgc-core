@@ -3,7 +3,9 @@
 #include <torasu/std/pipeline_names.hpp>
 #include <torasu/std/Dbimg.hpp>
 
+#include <cmath>
 #include <stack>
+#include <list>
 #include <iostream>
 
 namespace {
@@ -52,6 +54,10 @@ struct InterpRational {
 struct InterpStackElem {
 	InterpRational interp;
 	AbsoluteCoordinate cord;
+};
+
+struct RasterizedFraction {
+	AbsoluteCoordinate a, b; // a.x <= b.x // 0 <= a.y <= 1 // 0 <= b.y <= 1
 };
 
 inline void eval(const OptimisedCurvedSegment& seg, const ProjectionSettings& settings, InterpStackElem* elem) {
@@ -134,6 +140,10 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 
 		ProjectionSettings set = {width, height};
 		
+		// for (int i = 0; i < 1000; i++) {
+		// 	data = base->getImageData();
+		std::chrono::steady_clock::time_point bench = std::chrono::steady_clock::now();
+
 		CurvedSegment seg = {
 			{.2,.2},
 			{1,2},
@@ -199,9 +209,104 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 			} while (!interpolationStack.empty());
 
 		}
+
+		std::cout << "Subdivision = " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - bench).count() << "[ms]" << std::endl;
+		bench = std::chrono::steady_clock::now();
+
+		std::map<size_t, std::multimap<int64_t, RasterizedFraction>> lineMapping;
 		
-		size_t vertCount = 0;
+		AbsoluteCoordinate prevCord;
+		bool hasPrev = false;
 		for (auto& vert : result) {
+			auto cord = vert.cord;
+			if (hasPrev 
+				&& !(cord.y < 0 && prevCord.y < 0)) {
+				
+				size_t yLow, yHigh;
+
+
+				bool swap = cord.x < prevCord.x;
+
+				// if (cord.y < 0 && prevCord.y < 0) continue;
+
+				// std::cout << "SUBDIV " 
+				// 	<< prevCord.x << "#" << prevCord.y << " // "
+				// 	<< cord.x << "#" << cord.y << std::endl;
+
+
+				bool risingY = cord.y > prevCord.y;
+				if (risingY) {
+					yLow = floor(prevCord.y);
+					yHigh = floor(cord.y);
+				} else {
+					yLow = floor(cord.y);
+					yHigh = floor(prevCord.y);
+				}
+
+				if (yLow == yHigh) {
+
+					RasterizedFraction frac;
+					if (swap) {
+						frac = {cord, prevCord};
+					} else {
+						frac = {prevCord, cord};
+					}
+					lineMapping[yLow].insert(
+						std::pair<int64_t, RasterizedFraction>(frac.a.x, frac));
+
+					// std::cout << " SINGLE -> " 
+					// 	<< frac.a.x << "#" << frac.a.y << " // "
+					// 	<< frac.b.x << "#" << frac.b.y << std::endl;
+
+				} else {
+
+					double liftFact = (cord.x - prevCord.x)/(cord.y - prevCord.y);
+
+					for (size_t y = yLow; y <= yHigh; y++) {
+						
+						double ya, yb;
+						if (risingY) {
+							ya = std::max((double)y, prevCord.y);
+							yb = std::min((double)y+1, cord.y);
+						} else {
+							ya = std::min((double)y+1, prevCord.y);
+							yb = std::max((double)y, cord.y);
+						}
+
+						double xa, xb;
+						xa = (ya - prevCord.y)*liftFact + prevCord.x;
+						xb = (yb - prevCord.y)*liftFact + prevCord.x;
+
+						RasterizedFraction frac;
+						if (swap) {
+							frac = {{xb, yb}, {xa, ya}};
+						} else {
+							frac = {{xa, ya}, {xb, yb}};
+						}
+						lineMapping[y].insert(
+							std::pair<int64_t, RasterizedFraction>(frac.a.x, frac));
+
+						// std::cout << " MULTI -> " 
+						// 	<< frac.a.x << "#" << frac.a.y << " // "
+						// 	<< frac.b.x << "#" << frac.b.y << std::endl;
+
+					}
+				}
+
+
+			} else {
+				hasPrev = true;
+			}
+
+			prevCord = vert.cord;
+		}
+
+
+		std::cout << "Remapping = " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - bench).count() << "[ms]" << std::endl;
+		bench = std::chrono::steady_clock::now();
+
+		size_t vertCount = 0;
+		/*for (auto& vert : result) {
 			Coordinate cord = {
 				(double) vert.cord.x / ABS_CORD_FAC,
 				(double) vert.cord.y / ABS_CORD_FAC
@@ -218,25 +323,88 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 			locPtr++;
 			*locPtr = 0xFF;
 			vertCount++;
-		}
-		std::cout << "Drawn " << vertCount << " verts" << std::endl;
+		}*/
 
-		/*for (uint32_t y = 0; y < width; y++) {
+		std::list<RasterizedFraction> currFractions;
+
+		// auto* fixedData = base->getImageData();
+
+		for (uint32_t y = 0; y < height; y++) {
 			
-			
-			for (uint32_t x = 0; x < height; x++) {
-				
-				*data = (0xF0 & y) | (0x0F & x);
+			// std::cout << "LINE " << y << std::endl;
+
+			auto& mappingEntry = lineMapping[y];
+			auto readPtr = mappingEntry.begin();
+			uint32_t nextRelX = 0;
+			for (uint32_t x = 0; x < width; x++) {
+				if (x >= nextRelX) {
+					while (readPtr != mappingEntry.end() && readPtr->first <= x) {
+						currFractions.push_back(readPtr->second);
+						// std::cout << "[" << x << "#" << y << "] READ FRAC " 
+						// 	<< readPtr->second.a.x << "#" << readPtr->second.a.y << " // "
+						// 	<< readPtr->second.b.x << "#" << readPtr->second.b.y << std::endl;
+
+						// {
+						// 	auto* locPtr = fixedData + ( ((((size_t)y)*width)+((size_t)x))*4+0);
+						// 	*locPtr = 0xFF;
+						// }
+						// {
+						// 	auto* locPtr = fixedData + ( ((((size_t) /* readPtr->second.a.y */ y)*width)+((size_t)readPtr->second.a.x))*4+1);
+						// 	*locPtr = 0xFF;
+						// }
+						// {
+						// 	auto* locPtr = fixedData + ( ((((size_t) /* readPtr->second.b.y */ y)*width)+((size_t)readPtr->second.b.x))*4+2);
+						// 	*locPtr = 0xFF;
+						// }
+
+						readPtr++;
+						vertCount++;
+					}
+
+					
+					for (auto frit = currFractions.begin(); frit != currFractions.end(); frit++) {
+						if (frit->b.x < x) {
+							frit = currFractions.erase(frit);
+							continue;
+						}
+
+						// TODO Actual coverage
+					}
+
+					if (currFractions.empty()) {
+						nextRelX = readPtr != mappingEntry.end() 
+							? readPtr->first
+							: UINT32_MAX;
+						*data = 0xFF;
+					} else {
+						*data = 0x00;
+					}
+
+					data++;
+					*data = 0xFF;
+				} else {
+					*data = 0x00;
+					data++;
+					*data = 0x00;
+				}
+
 				data++;
-				*data = (0xF0 & x) | (0x0F & y);
-				data++;
-				*data = x*y;
+				*data = x;
 				data++;
 				*data = 0xFF;
 				data++;
 			}
 
-		}*/
+			currFractions.clear();
+
+		}
+
+		std::cout << "Raster = " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - bench).count() << "[ms]" << std::endl;
+
+
+		std::cout << "Drawn " << vertCount << " verts" << std::endl;
+
+		// }
 		
 		return new torasu::ResultSegment(torasu::ResultSegmentStatus_OK, base, true);
 	} else {

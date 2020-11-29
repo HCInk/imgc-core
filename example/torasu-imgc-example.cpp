@@ -666,7 +666,7 @@ void graphicsExample() {
 
 	torasu::tools::RenderInstructionBuilder rib;
 
-	torasu::tstd::Dbimg_FORMAT format(400, 300);
+	torasu::tstd::Dbimg_FORMAT format(400/* 1920*2 */, 300/* 1080*2 */);
 
 	auto handle = rib.addSegmentWithHandle<torasu::tstd::Dbimg>(TORASU_STD_PL_VIS, &format);
 
