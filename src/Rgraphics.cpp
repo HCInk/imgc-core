@@ -93,6 +93,33 @@ public:
 	}
 };
 
+uint8_t* fillOffset(uint8_t* data, size_t offset) {
+	/* auto* dataEnd = data+(offset*4);
+	std::fill(data, dataEnd, 0xFF);
+	return dataEnd; */
+
+	/* std::fill_n(data, offset*4, 0xFFFFFF);
+	return data+(offset*4); */
+
+	uint32_t* optData = reinterpret_cast<uint32_t*>(data);
+	// for (size_t i = offset-1; i >= 0; i--) {
+	for (size_t i = 0; i < offset; i++) {
+		// *optData = 0xFF222222;
+		*optData = 0xFFFFFF;
+		optData++;
+		// *data = 0xFF;
+		// data++;
+		// *data = 0xFF;
+		// data++;
+		// *data = 0xFF;
+		// data++;
+		// *data = 0xFF;
+		// data++;
+	}
+
+	return reinterpret_cast<uint8_t*>(optData);
+}
+
 inline void eval(const OptimisedCurvedSegment& seg, const ProjectionSettings& settings, InterpStackElem* elem) {
 	// elem->cord.x = (size_t) elem->interp.num *ABS_CORD_FAC* settings.width / elem->interp.den ;
 	// elem->cord.y = (size_t) elem->interp.num *ABS_CORD_FAC* settings.height / elem->interp.den ;
@@ -169,13 +196,19 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 		uint32_t height = base->getHeight();
 		uint8_t* data = base->getImageData();
 
-		std::fill(data, data+(width*height*4), 0x00);
+		std::chrono::steady_clock::time_point bench;
+
+		// bench = std::chrono::steady_clock::now();
+		// std::fill_n(reinterpret_cast<uint32_t*>(data), width*height, 0);
+		// std::cout << "Init-Fill = " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - bench).count() << "[ms]" << std::endl;
+
 
 		ProjectionSettings set = {width, height};
 		
 		// for (int i = 0; i < 1000; i++) {
-		// 	data = base->getImageData();
-		std::chrono::steady_clock::time_point bench = std::chrono::steady_clock::now();
+		//  	data = base->getImageData();
+
+		bench = std::chrono::steady_clock::now();
 
 		CurvedSegment seg = {
 			{.2,.2},
@@ -284,8 +317,10 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 					} else {
 						frac = {prevCord, cord};
 					}
-					lineMapping.stor[yLow].insert(
-						std::pair<int64_t, RasterizedFraction>(frac.a.x, frac));
+					// lineMapping.stor[yLow].insert(
+					// 	std::pair<int64_t, RasterizedFraction>(frac.a.x, frac));
+
+					lineMapping.fracs[yLow].push_back(frac);
 
 					// std::cout << " SINGLE -> " 
 					// 	<< frac.a.x << "#" << frac.a.y << " // "
@@ -294,6 +329,8 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 				} else {
 
 					double liftFact = (cord.x - prevCord.x)/(cord.y - prevCord.y);
+
+					auto* fracLine = &lineMapping.fracs[yLow];
 
 					for (size_t y = yLow; y <= yHigh; y++) {
 						
@@ -316,13 +353,16 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 						} else {
 							frac = {{xa, ya}, {xb, yb}};
 						}
-						lineMapping.stor[y].insert(
-							std::pair<int64_t, RasterizedFraction>(frac.a.x, frac));
+						// lineMapping.stor[y].insert(
+						// 	std::pair<int64_t, RasterizedFraction>(frac.a.x, frac));
+						
+						fracLine->push_back(frac);
 
 						// std::cout << " MULTI -> " 
 						// 	<< frac.a.x << "#" << frac.a.y << " // "
 						// 	<< frac.b.x << "#" << frac.b.y << std::endl;
-
+						
+						fracLine++;
 					}
 				}
 
@@ -361,19 +401,20 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 		std::list<RasterizedFraction> currFractions;
 
 		// auto* fixedData = base->getImageData();
-
+		
 		for (uint32_t y = 0; y < height; y++) {
 			
 			// std::cout << "LINE " << y << std::endl;
 
-			auto& mappingEntry = lineMapping.stor[y];
+			// auto& mappingEntry = lineMapping.stor[y];
 
-			auto readPtr = mappingEntry.begin();
+			auto& fracs = lineMapping.getOrderedLine(y);
+			auto readPtr = fracs.begin();
 			uint32_t nextRelX = 0;
 			for (uint32_t x = 0; x < width; x++) {
 				if (x >= nextRelX) {
-					while (readPtr != mappingEntry.end() && readPtr->first <= x) {
-						currFractions.push_back(readPtr->second);
+					while (readPtr != fracs.end() && readPtr->a.x <= x) {
+						currFractions.push_back(*readPtr);
 						// std::cout << "[" << x << "#" << y << "] READ FRAC " 
 						// 	<< readPtr->second.a.x << "#" << readPtr->second.a.y << " // "
 						// 	<< readPtr->second.b.x << "#" << readPtr->second.b.y << std::endl;
@@ -406,9 +447,9 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 					}
 
 					if (currFractions.empty()) {
-						nextRelX = readPtr != mappingEntry.end() 
-							? readPtr->first
-							: UINT32_MAX;
+						nextRelX = readPtr != fracs.end()
+							? readPtr->a.x
+							: width;
 						*data = 0xFF;
 					} else {
 						*data = 0x00;
@@ -417,9 +458,20 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 					data++;
 					*data = 0xFF;
 				} else {
-					*data = 0x00;
-					data++;
-					*data = 0x00;
+					size_t offset;
+					if (nextRelX == UINT32_MAX) {
+						offset = width-x;
+					} else {
+						offset = nextRelX-x;
+					}
+					
+					x += offset-1; // -1 since it will be inrecmented on loop
+					data = fillOffset(data, offset);
+					// data += offset * 4;
+					continue;
+					// *data = 0x00;
+					// data++;
+					// *data = 0x00;
 				}
 
 				data++;
