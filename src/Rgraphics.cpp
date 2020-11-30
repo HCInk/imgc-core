@@ -413,7 +413,7 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 			uint32_t nextRelX = 0;
 			for (uint32_t x = 0; x < width; x++) {
 				if (x >= nextRelX) {
-					while (readPtr != fracs.end() && readPtr->a.x <= x) {
+					while (readPtr != fracs.end() && floor(readPtr->a.x) <= x) {
 						currFractions.push_back(*readPtr);
 						// std::cout << "[" << x << "#" << y << "] READ FRAC " 
 						// 	<< readPtr->second.a.x << "#" << readPtr->second.a.y << " // "
@@ -437,26 +437,32 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 					}
 
 					
-					for (auto frit = currFractions.begin(); frit != currFractions.end(); frit++) {
+					*data = 0x00;
+					for (auto frit = currFractions.begin(); frit != currFractions.end(); ) {
 						if (frit->b.x < x) {
 							frit = currFractions.erase(frit);
 							continue;
 						}
 
+						*data = *data < 0xE0 ? *data+0x30 : 0xFF; // RED (0x30 for every call)
+						
+						frit++;
 						// TODO Actual coverage
 					}
-
+					
+					data++;
+					
 					if (currFractions.empty()) {
 						nextRelX = readPtr != fracs.end()
-							? readPtr->a.x
+							? floor(readPtr->a.x)
 							: width;
-						*data = 0xFF;
+						*data = 0xFF; // GREEN
 					} else {
-						*data = 0x00;
+						*data = 0x00; // NOT GREEN
 					}
 
 					data++;
-					*data = 0xFF;
+					*data = 0xFF; // BLUE
 				} else {
 					size_t offset;
 					if (nextRelX == UINT32_MAX) {
@@ -472,10 +478,10 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 					// *data = 0x00;
 					// data++;
 					// *data = 0x00;
+					// data++;
+					// *data = 0xFF;
 				}
 
-				data++;
-				*data = x;
 				data++;
 				*data = 0xFF;
 				data++;
