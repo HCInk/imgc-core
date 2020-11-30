@@ -104,8 +104,8 @@ uint8_t* fillOffset(uint8_t* data, size_t offset) {
 	uint32_t* optData = reinterpret_cast<uint32_t*>(data);
 	// for (size_t i = offset-1; i >= 0; i--) {
 	for (size_t i = 0; i < offset; i++) {
-		// *optData = 0xFF222222;
-		*optData = 0xFFFFFF;
+		*optData = 0xFF222222;
+		// *optData = 0xFFFFFFFF;
 		optData++;
 		// *data = 0xFF;
 		// data++;
