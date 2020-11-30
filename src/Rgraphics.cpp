@@ -56,8 +56,41 @@ struct InterpStackElem {
 	AbsoluteCoordinate cord;
 };
 
+// Gurantee: First element is 
 struct RasterizedFraction {
 	AbsoluteCoordinate a, b; // a.x <= b.x // 0 <= a.y <= 1 // 0 <= b.y <= 1
+};
+
+class ScanlineParticleStorage {
+public:
+	std::map<size_t, std::multimap<int64_t, RasterizedFraction>> stor;
+	std::vector<std::vector<RasterizedFraction>> fracs;
+	ScanlineParticleStorage(size_t height) 
+		: fracs(height) {}
+
+	/**
+	 * @brief  Fetches an ordered line for rasterisation
+	 * @note   Not thread-safe
+	 * @param  lineNo: Number of line to be fetched (0 <= lineNo < height)
+	 * 
+	 * @retval The ordered vector of the contained lines in order of thier RasterizedFraction.a.x
+	 */
+	inline std::vector<RasterizedFraction>& getOrderedLine(size_t lineNo) {
+		auto& line = fracs[lineNo];
+
+		if (line.size() > 2) {
+			
+			struct {
+				bool operator()(RasterizedFraction a, RasterizedFraction b) const {
+					return a.a.x < b.a.x; // Returns true if less
+				}
+			} fractionComp;
+
+			std::sort(line.begin(), line.end(), fractionComp);
+		}
+
+		return line;
+	}
 };
 
 inline void eval(const OptimisedCurvedSegment& seg, const ProjectionSettings& settings, InterpStackElem* elem) {
@@ -213,7 +246,7 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 		std::cout << "Subdivision = " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - bench).count() << "[ms]" << std::endl;
 		bench = std::chrono::steady_clock::now();
 
-		std::map<size_t, std::multimap<int64_t, RasterizedFraction>> lineMapping;
+		ScanlineParticleStorage lineMapping(height);
 		
 		AbsoluteCoordinate prevCord;
 		bool hasPrev = false;
@@ -251,7 +284,7 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 					} else {
 						frac = {prevCord, cord};
 					}
-					lineMapping[yLow].insert(
+					lineMapping.stor[yLow].insert(
 						std::pair<int64_t, RasterizedFraction>(frac.a.x, frac));
 
 					// std::cout << " SINGLE -> " 
@@ -283,7 +316,7 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 						} else {
 							frac = {{xa, ya}, {xb, yb}};
 						}
-						lineMapping[y].insert(
+						lineMapping.stor[y].insert(
 							std::pair<int64_t, RasterizedFraction>(frac.a.x, frac));
 
 						// std::cout << " MULTI -> " 
@@ -333,7 +366,8 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 			
 			// std::cout << "LINE " << y << std::endl;
 
-			auto& mappingEntry = lineMapping[y];
+			auto& mappingEntry = lineMapping.stor[y];
+
 			auto readPtr = mappingEntry.begin();
 			uint32_t nextRelX = 0;
 			for (uint32_t x = 0; x < width; x++) {
