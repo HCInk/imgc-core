@@ -210,70 +210,96 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 
 		bench = std::chrono::steady_clock::now();
 
-		CurvedSegment seg = {
-			{.2,.2},
-			{1,2},
-			{-1,-.5},
-			{.8,.8}
+		auto unit = 2*0.4*4*(sqrt(2)-1)/3;
+
+		std::vector<CurvedSegment> segments = {
+			{
+				{.1,.5},
+				{.1,.5-unit},
+				{.5-unit,.1},
+				{.5,.1},
+			},
+			{
+				{.5,.1},
+				{.5+unit,.1},
+				{.9,.5-unit},
+				{.9,.5},
+			},
+			{
+				{.9,.5},
+				{.9,.5+unit},
+				{.5+unit,.9},
+				{.5,.9},
+			},
+			{
+				{.5,.9},
+				{.5-unit,.9},
+				{.1,.5+unit},
+				{.1,.5},
+			},
 		};
-		OptimisedCurvedSegment oseg(seg, set);
+
 		std::vector<InterpStackElem> result;
-		{
-			std::stack<InterpStackElem> interpolationStack;
 
-			InterpStackElem cBegin = {{0,1}};
-			eval(oseg, set, &cBegin);
-			result.push_back(cBegin);
+		for (auto& seg : segments) {
+			OptimisedCurvedSegment oseg(seg, set);
+			{
+				std::stack<InterpStackElem> interpolationStack;
 
-			InterpStackElem cEnd = {{1,1}};
-			eval(oseg, set, &cEnd);
-			interpolationStack.push(cEnd);
+				InterpStackElem cBegin = {{0,1}};
+				eval(oseg, set, &cBegin);
+				result.push_back(cBegin);
 
-			bool overinterpolate = false;
-			do {
-				cEnd = interpolationStack.top();
-				auto& a = cBegin.cord;
-				auto& b = cEnd.cord;
+				InterpStackElem cEnd = {{1,1}};
+				eval(oseg, set, &cEnd);
+				interpolationStack.push(cEnd);
 
-				bool inRange; 
-				{
-					auto x = a.x - b.x;
-					auto y = a.y - b.y;
-					// (x/ABS_CORD_FAC)^2 + (y/ABS_CORD_FAC)^2 < sqrt(1) -> x^2 + y^2 < ABS_CORD_FAC^2
-					inRange = (x*x)+(y*y) < ABS_CORD_FAC*ABS_CORD_FAC; 
-				}
+				bool overinterpolate = false;
+				do {
+					cEnd = interpolationStack.top();
+					auto& a = cBegin.cord;
+					auto& b = cEnd.cord;
 
-				// std::cout << " EVAL \t" << setostr(cBegin) << "-" << setostr(cEnd) << " IR " << inRange << " OI " << overinterpolate << std::endl;
+					bool inRange; 
+					{
+						auto x = a.x - b.x;
+						auto y = a.y - b.y;
+						// (x/ABS_CORD_FAC)^2 + (y/ABS_CORD_FAC)^2 < sqrt(1) -> x^2 + y^2 < ABS_CORD_FAC^2
+						inRange = (x*x)+(y*y) < ABS_CORD_FAC*ABS_CORD_FAC; 
+					}
 
-				// if (cBegin.interp.den == 1073741824) {
-				// 	cBegin = interpolationStack.top();
-				// 	result.push_back(cBegin);
-				// 	interpolationStack.pop();
-					
-				// } else
+					// std::cout << " EVAL \t" << setostr(cBegin) << "-" << setostr(cEnd) << " IR " << inRange << " OI " << overinterpolate << std::endl;
 
-				if (inRange && overinterpolate) {
-					overinterpolate = false;
-					// std::cout << " POP OI \t" << setostr(interpolationStack.top()) << std::endl;
-					interpolationStack.pop(); // remove overinterpolation overhead
-					cBegin = interpolationStack.top();
-					// result.push_back(cBegin.cord);
-					result.push_back(cBegin);
-					// std::cout << " TAKE/POP TOP \t" << setostr(cBegin) << std::endl;
-					interpolationStack.pop();
-				} else {
-					cBegin.interp.num *= 2;
-					cBegin.interp.den *= 2;
-					InterpStackElem subElem = {cBegin.interp.num + 1, cBegin.interp.den};
-					eval(oseg, set, &subElem);
-					interpolationStack.push(subElem);
-					overinterpolate = inRange;
-					// std::cout << " ADD STACK \t" << setostr(subElem) << " OI " << overinterpolate << std::endl;
-					continue;
-				}
+					// if (cBegin.interp.den == 1073741824) {
+					// 	cBegin = interpolationStack.top();
+					// 	result.push_back(cBegin);
+					// 	interpolationStack.pop();
+						
+					// } else
 
-			} while (!interpolationStack.empty());
+					if (inRange && overinterpolate) {
+						overinterpolate = false;
+						// std::cout << " POP OI \t" << setostr(interpolationStack.top()) << std::endl;
+						interpolationStack.pop(); // remove overinterpolation overhead
+						cBegin = interpolationStack.top();
+						// result.push_back(cBegin.cord);
+						result.push_back(cBegin);
+						// std::cout << " TAKE/POP TOP \t" << setostr(cBegin) << std::endl;
+						interpolationStack.pop();
+					} else {
+						cBegin.interp.num *= 2;
+						cBegin.interp.den *= 2;
+						InterpStackElem subElem = {cBegin.interp.num + 1, cBegin.interp.den};
+						eval(oseg, set, &subElem);
+						interpolationStack.push(subElem);
+						overinterpolate = inRange;
+						// std::cout << " ADD STACK \t" << setostr(subElem) << " OI " << overinterpolate << std::endl;
+						continue;
+					}
 
+				} while (!interpolationStack.empty());
+
+			}
 		}
 
 		std::cout << "Subdivision = " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - bench).count() << "[ms]" << std::endl;
