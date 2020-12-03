@@ -443,53 +443,123 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 			auto readPtr = fracs.begin();
 			uint32_t nextRelX = 0;
 			int32_t containmentBalance = 0;
-			double nextEnd = INFINITY; // Ressemles the lowest end-x-coordinate in the stack
+			double nextEnd = INFINITY; // Ressembles the lowest end-x-coordinate in the currFractions
 			for (uint32_t x = 0; x < width; x++) {
 				if (x >= nextRelX) {
 
+					double fillState = 0;
+
 					abs_cord_t lastX = x;
-					bool fromList = true; // true: from list, false: from source
-					auto frit = currFractions.begin();
 					for (;;) {
-						RasterizedFraction rf;
-						if (fromList) {
+						bool hasNew = readPtr != fracs.end() && floor(readPtr->a.x) <= x;
 
-							if (frit == currFractions.end()) { // If list has been fully read switch to source
-								fromList = false;
-								continue;
+						// std::cout << "[" << x << "#" << y << "] READ FRAC " 
+						// 	<< readPtr->second.a.x << "#" << readPtr->second.a.y << " // "
+						// 	<< readPtr->second.b.x << "#" << readPtr->second.b.y << std::endl;
+
+						// {
+						// 	auto* locPtr = fixedData + ( ((((size_t)y)*width)+((size_t)x))*4+0);
+						// 	*locPtr = 0xFF;
+						// }
+						// {
+						// 	auto* locPtr = fixedData + ( ((((size_t) /* readPtr->second.a.y */ y)*width)+((size_t)readPtr->second.a.x))*4+1);
+						// 	*locPtr = 0xFF;
+						// }
+						// {
+						// 	auto* locPtr = fixedData + ( ((((size_t) /* readPtr->second.b.y */ y)*width)+((size_t)readPtr->second.b.x))*4+2);
+						// 	*locPtr = 0xFF;
+						// }
+
+						*data = *data < 0xE0 ? *data+0x30 : 0xFF; // RED (0x30 for every call)
+
+						/*if (rf.b.x > x+1) { // Check if inside on next round
+							if (!fromList) {
+								currFractions.push_back(rf);
 							}
-
-							if (frit->b.x <= x) {
-								throw std::logic_error("too old fraction still in list!");
-							}
-
-							rf = *frit;
-
-							frit++;
 						} else {
+							if (fromList) {
+								frit--;
+								frit = currFractions.erase(frit);
+							}
+						}*/
+						double newBegin; // x-coordinate of new element
+						if (hasNew) {
+							newBegin = readPtr->a.x;
+						}
 
-							if (readPtr == fracs.end() || floor(readPtr->a.x) > x ) {
+						bool end = false; // If true end the loop afterwards, also stack doesnt have to be cleaned since the range is capped before the next end
+						bool insertNew = false;
+						double evalTo;
+						for (;;) {
+
+							// Determine if rather existing elements shall be processed 
+							// or (if available) a new element should be inserted
+							if (hasNew) insertNew = nextEnd >= newBegin;
+
+							if (insertNew) {
+								// Evaluate until beginning of element to be inserted
+								evalTo = newBegin; 
+							} else {
+								// Evalulate until the next end of the existing elements
+								if (nextEnd > x+1) {
+									end = true;
+									evalTo = x+1;
+								} else {
+									evalTo = nextEnd;
+								}
+							}
+
+							// Evalulate column 
+
+							double segFill;
+							if (currFractions.size() >= 1) {
+
+								double midPos = (lastX+evalTo)/2;
+
+								auto& frac = *currFractions.begin();
+								double liftFac = (frac.b.y - frac.a.y) / (frac.b.x-frac.a.x);
+								segFill = liftFac*(midPos - frac.a.x)+(frac.a.y-y);
+								
+								// std::cout << " SEGFILL" << segFill << std::endl;
+								
+								if (segFill <= 0 || segFill > 1) {
+									throw std::logic_error("Invalid seg-fill " + std::to_string(segFill));
+								}
+
+								if (0 == containmentBalance%2) segFill *= -1; // Invert seg-fill if bottom is empty
+
+							} else {
+								segFill = 0;
+							}
+
+							fillState += segFill*(evalTo-lastX);
+
+							lastX = evalTo;
+
+							if (insertNew) {
+								// Insert new element after area to it has been analyzed
+								currFractions.push_back(*readPtr);
+							} else if (end) {
 								break;
 							}
 
-							rf = *readPtr;
+							nextEnd = INFINITY;
+							for (auto cleanIt = currFractions.begin(); cleanIt != currFractions.end(); ) {
+								if (cleanIt->b.x <= evalTo) {
+									cleanIt = currFractions.erase(cleanIt);
+									continue;
+								}
 
-							// std::cout << "[" << x << "#" << y << "] READ FRAC " 
-							// 	<< readPtr->second.a.x << "#" << readPtr->second.a.y << " // "
-							// 	<< readPtr->second.b.x << "#" << readPtr->second.b.y << std::endl;
+								if (nextEnd > cleanIt->b.x) nextEnd = cleanIt->b.x;
 
-							// {
-							// 	auto* locPtr = fixedData + ( ((((size_t)y)*width)+((size_t)x))*4+0);
-							// 	*locPtr = 0xFF;
-							// }
-							// {
-							// 	auto* locPtr = fixedData + ( ((((size_t) /* readPtr->second.a.y */ y)*width)+((size_t)readPtr->second.a.x))*4+1);
-							// 	*locPtr = 0xFF;
-							// }
-							// {
-							// 	auto* locPtr = fixedData + ( ((((size_t) /* readPtr->second.b.y */ y)*width)+((size_t)readPtr->second.b.x))*4+2);
-							// 	*locPtr = 0xFF;
-							// }
+								cleanIt++;
+							}
+
+							// Also break with inner loop after insert, so a new element to be inserted can be fetched
+							if (insertNew) break;
+						}
+
+						if (hasNew) {
 							if (0 == readPtr->a.y - y) {
 								containmentBalance++;
 								// std::cout << "CNG BIL++ " << containmentBalance << std::endl;
@@ -500,22 +570,9 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 							}
 							readPtr++;
 							vertCount++;
-						}
-
-						if (rf.b.x > x+1) { // Check if inside on next round
-							if (!fromList) {
-								currFractions.push_back(rf);
-							}
 						} else {
-							if (fromList) {
-								frit--;
-								frit = currFractions.erase(frit);
-							}
+							break;
 						}
-
-						*data = *data < 0xE0 ? *data+0x30 : 0xFF; // RED (0x30 for every call)
-						
-						// TODO Evalulate
 
 					}
 					
@@ -531,7 +588,7 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 					}
 
 					data++;
-					*data = 0xFF; // BLUE
+					*data = 0xFF*fillState; // BLUE
 				} else {
 					size_t offset;
 					if (nextRelX >= width) {
