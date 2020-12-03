@@ -58,7 +58,7 @@ struct InterpStackElem {
 
 // Gurantee: First element is 
 struct RasterizedFraction {
-	AbsoluteCoordinate a, b; // a.x <= b.x // 0 <= a.y <= 1 // 0 <= b.y <= 1
+	AbsoluteCoordinate a, b; // a.x <= b.x // lineY <= a.y <= lineY+1 // 0 <= b.y <= 1
 };
 
 class ScanlineParticleStorage {
@@ -93,7 +93,7 @@ public:
 	}
 };
 
-uint8_t* fillOffset(uint8_t* data, size_t offset) {
+uint8_t* fillOffset(uint8_t* data, size_t offset, uint32_t color) {
 	/* auto* dataEnd = data+(offset*4);
 	std::fill(data, dataEnd, 0xFF);
 	return dataEnd; */
@@ -104,7 +104,7 @@ uint8_t* fillOffset(uint8_t* data, size_t offset) {
 	uint32_t* optData = reinterpret_cast<uint32_t*>(data);
 	// for (size_t i = offset-1; i >= 0; i--) {
 	for (size_t i = 0; i < offset; i++) {
-		*optData = 0xFF222222;
+		*optData = color;
 		// *optData = 0xFFFFFFFF;
 		optData++;
 		// *data = 0xFF;
@@ -210,32 +210,33 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 
 		bench = std::chrono::steady_clock::now();
 
-		auto unit = 2*0.4*4*(sqrt(2)-1)/3;
+		double radius = 0.6;
+		auto unit = radius*4*(sqrt(2)-1)/3;
 
 		std::vector<CurvedSegment> segments = {
 			{
-				{.1,.5},
-				{.1,.5-unit},
-				{.5-unit,.1},
-				{.5,.1},
+				{.5-radius,.5},
+				{.5-radius,.5-unit},
+				{.5-unit,.5-radius},
+				{.5,.5-radius},
 			},
 			{
-				{.5,.1},
-				{.5+unit,.1},
-				{.9,.5-unit},
-				{.9,.5},
+				{.5,.5-radius},
+				{.5+unit,.5-radius},
+				{.5+radius,.5-unit},
+				{.5+radius,.5},
 			},
 			{
-				{.9,.5},
-				{.9,.5+unit},
-				{.5+unit,.9},
-				{.5,.9},
+				{.5+radius,.5},
+				{.5+radius,.5+unit},
+				{.5+unit,.5+radius},
+				{.5,.5+radius},
 			},
 			{
-				{.5,.9},
-				{.5-unit,.9},
-				{.1,.5+unit},
-				{.1,.5},
+				{.5,.5+radius},
+				{.5-unit,.5+radius},
+				{.5-radius,.5+unit},
+				{.5-radius,.5},
 			},
 		};
 
@@ -311,10 +312,9 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 		bool hasPrev = false;
 		for (auto& vert : result) {
 			auto cord = vert.cord;
-			if (hasPrev 
-				&& !(cord.y < 0 && prevCord.y < 0)) {
+			if (hasPrev) {
 				
-				size_t yLow, yHigh;
+				int64_t yLow, yHigh;
 
 
 				bool swap = cord.x < prevCord.x;
@@ -334,6 +334,11 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 					yLow = floor(cord.y);
 					yHigh = floor(prevCord.y);
 				}
+
+				if (yLow >= height) continue;
+				if (yHigh < 0) continue;
+				if (yLow < 0) yLow = 0;
+				if (yHigh >= height) yHigh = height-1;
 
 				if (yLow == yHigh) {
 
@@ -358,7 +363,7 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 
 					auto* fracLine = &lineMapping.fracs[yLow];
 
-					for (size_t y = yLow; y <= yHigh; y++) {
+					for (int64_t y = yLow; y <= yHigh; y++) {
 						
 						double ya, yb;
 						if (risingY) {
@@ -437,6 +442,7 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 			auto& fracs = lineMapping.getOrderedLine(y);
 			auto readPtr = fracs.begin();
 			uint32_t nextRelX = 0;
+			int32_t containmentBalance = 0;
 			for (uint32_t x = 0; x < width; x++) {
 				if (x >= nextRelX) {
 					while (readPtr != fracs.end() && floor(readPtr->a.x) <= x) {
@@ -457,7 +463,14 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 						// 	auto* locPtr = fixedData + ( ((((size_t) /* readPtr->second.b.y */ y)*width)+((size_t)readPtr->second.b.x))*4+2);
 						// 	*locPtr = 0xFF;
 						// }
-
+						if (0 == readPtr->a.y - y) {
+							containmentBalance++;
+							// std::cout << "CNG BIL++ " << containmentBalance << std::endl;
+						}
+						if (0 == readPtr->b.y - y) {
+							containmentBalance--;
+							// std::cout << "CNG BIL-- " << containmentBalance << std::endl;
+						}
 						readPtr++;
 						vertCount++;
 					}
@@ -465,7 +478,7 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 					
 					*data = 0x00;
 					for (auto frit = currFractions.begin(); frit != currFractions.end(); ) {
-						if (frit->b.x < x) {
+						if (frit->b.x <= x) {
 							frit = currFractions.erase(frit);
 							continue;
 						}
@@ -491,14 +504,18 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 					*data = 0xFF; // BLUE
 				} else {
 					size_t offset;
-					if (nextRelX == UINT32_MAX) {
+					if (nextRelX >= width) {
 						offset = width-x;
 					} else {
 						offset = nextRelX-x;
 					}
 					
 					x += offset-1; // -1 since it will be inrecmented on loop
-					data = fillOffset(data, offset);
+					if (0 == containmentBalance%2) {
+						data = fillOffset(data, offset, 0x00000000);
+					} else {
+						data = fillOffset(data, offset, 0xFF222222);
+					}
 					// data += offset * 4;
 					continue;
 					// *data = 0x00;
