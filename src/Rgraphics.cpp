@@ -210,8 +210,8 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 
 		bench = std::chrono::steady_clock::now();
 
-		double radius = 0.6;
-		auto unit = radius*4*(sqrt(2)-1)/3;
+		double radius = 0.2;
+		auto unit = 8*radius*4*(sqrt(2)-1)/3;
 
 		std::vector<CurvedSegment> segments = {
 			{
@@ -443,50 +443,80 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 			auto readPtr = fracs.begin();
 			uint32_t nextRelX = 0;
 			int32_t containmentBalance = 0;
+			double nextEnd = INFINITY; // Ressemles the lowest end-x-coordinate in the stack
 			for (uint32_t x = 0; x < width; x++) {
 				if (x >= nextRelX) {
-					while (readPtr != fracs.end() && floor(readPtr->a.x) <= x) {
-						currFractions.push_back(*readPtr);
-						// std::cout << "[" << x << "#" << y << "] READ FRAC " 
-						// 	<< readPtr->second.a.x << "#" << readPtr->second.a.y << " // "
-						// 	<< readPtr->second.b.x << "#" << readPtr->second.b.y << std::endl;
 
-						// {
-						// 	auto* locPtr = fixedData + ( ((((size_t)y)*width)+((size_t)x))*4+0);
-						// 	*locPtr = 0xFF;
-						// }
-						// {
-						// 	auto* locPtr = fixedData + ( ((((size_t) /* readPtr->second.a.y */ y)*width)+((size_t)readPtr->second.a.x))*4+1);
-						// 	*locPtr = 0xFF;
-						// }
-						// {
-						// 	auto* locPtr = fixedData + ( ((((size_t) /* readPtr->second.b.y */ y)*width)+((size_t)readPtr->second.b.x))*4+2);
-						// 	*locPtr = 0xFF;
-						// }
-						if (0 == readPtr->a.y - y) {
-							containmentBalance++;
-							// std::cout << "CNG BIL++ " << containmentBalance << std::endl;
-						}
-						if (0 == readPtr->b.y - y) {
-							containmentBalance--;
-							// std::cout << "CNG BIL-- " << containmentBalance << std::endl;
-						}
-						readPtr++;
-						vertCount++;
-					}
+					abs_cord_t lastX = x;
+					bool fromList = true; // true: from list, false: from source
+					auto frit = currFractions.begin();
+					for (;;) {
+						RasterizedFraction rf;
+						if (fromList) {
 
-					
-					*data = 0x00;
-					for (auto frit = currFractions.begin(); frit != currFractions.end(); ) {
-						if (frit->b.x <= x) {
-							frit = currFractions.erase(frit);
-							continue;
+							if (frit == currFractions.end()) { // If list has been fully read switch to source
+								fromList = false;
+								continue;
+							}
+
+							if (frit->b.x <= x) {
+								throw std::logic_error("too old fraction still in list!");
+							}
+
+							rf = *frit;
+
+							frit++;
+						} else {
+
+							if (readPtr == fracs.end() || floor(readPtr->a.x) > x ) {
+								break;
+							}
+
+							rf = *readPtr;
+
+							// std::cout << "[" << x << "#" << y << "] READ FRAC " 
+							// 	<< readPtr->second.a.x << "#" << readPtr->second.a.y << " // "
+							// 	<< readPtr->second.b.x << "#" << readPtr->second.b.y << std::endl;
+
+							// {
+							// 	auto* locPtr = fixedData + ( ((((size_t)y)*width)+((size_t)x))*4+0);
+							// 	*locPtr = 0xFF;
+							// }
+							// {
+							// 	auto* locPtr = fixedData + ( ((((size_t) /* readPtr->second.a.y */ y)*width)+((size_t)readPtr->second.a.x))*4+1);
+							// 	*locPtr = 0xFF;
+							// }
+							// {
+							// 	auto* locPtr = fixedData + ( ((((size_t) /* readPtr->second.b.y */ y)*width)+((size_t)readPtr->second.b.x))*4+2);
+							// 	*locPtr = 0xFF;
+							// }
+							if (0 == readPtr->a.y - y) {
+								containmentBalance++;
+								// std::cout << "CNG BIL++ " << containmentBalance << std::endl;
+							}
+							if (0 == readPtr->b.y - y) {
+								containmentBalance--;
+								// std::cout << "CNG BIL-- " << containmentBalance << std::endl;
+							}
+							readPtr++;
+							vertCount++;
+						}
+
+						if (rf.b.x > x+1) { // Check if inside on next round
+							if (!fromList) {
+								currFractions.push_back(rf);
+							}
+						} else {
+							if (fromList) {
+								frit--;
+								frit = currFractions.erase(frit);
+							}
 						}
 
 						*data = *data < 0xE0 ? *data+0x30 : 0xFF; // RED (0x30 for every call)
 						
-						frit++;
-						// TODO Actual coverage
+						// TODO Evalulate
+
 					}
 					
 					data++;
