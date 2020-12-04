@@ -196,6 +196,11 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 		uint32_t height = base->getHeight();
 		uint8_t* data = base->getImageData();
 
+
+		//
+		// Subdivision
+		//
+
 		std::chrono::steady_clock::time_point bench;
 
 		// bench = std::chrono::steady_clock::now();
@@ -304,6 +309,11 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 		}
 
 		std::cout << "Subdivision = " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - bench).count() << "[ms]" << std::endl;
+		
+		//
+		// Remapping
+		//
+
 		bench = std::chrono::steady_clock::now();
 
 		ScanlineParticleStorage lineMapping(height);
@@ -410,24 +420,10 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 		bench = std::chrono::steady_clock::now();
 
 		size_t vertCount = 0;
-		/*for (auto& vert : result) {
-			Coordinate cord = {
-				(double) vert.cord.x / ABS_CORD_FAC,
-				(double) vert.cord.y / ABS_CORD_FAC
-			};
 
-			if (cord.x < 0 || cord.x >= width || cord.y < 0 || cord.y >= height) continue;
-			
-			auto* locPtr = data + ( ((((size_t)cord.y)*width)+((size_t)cord.x))*4);
-			*locPtr = ((size_t) vert.interp.num*0xFF)/vert.interp.den;
-			locPtr++;
-			*locPtr = 0xFF*cord.x/width;
-			locPtr++;
-			*locPtr = 0xFF*cord.y/height;
-			locPtr++;
-			*locPtr = 0xFF;
-			vertCount++;
-		}*/
+		//
+		// Rasterisation
+		//
 
 		std::list<RasterizedFraction> currFractions;
 
@@ -452,6 +448,14 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 					abs_cord_t lastX = x;
 					for (;;) {
 						bool hasNew = readPtr != fracs.end() && floor(readPtr->a.x) <= x;
+
+						if (hasNew) {
+							if (readPtr->a.y < y) {
+								throw std::logic_error("Praticle not in range! (" + std::to_string(y) + " !< " + std::to_string(y) + " < " + std::to_string(y+1));
+							} else if (readPtr->a.y > y+1) {
+								throw std::logic_error("Praticle not in range! (" + std::to_string(y) + " < " + std::to_string(y) + " !< " + std::to_string(y+1));
+							}
+						}
 
 						// std::cout << "[" << x << "#" << y << "] READ FRAC " 
 						// 	<< readPtr->second.a.x << "#" << readPtr->second.a.y << " // "
@@ -526,11 +530,11 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 									throw std::logic_error("Invalid seg-fill " + std::to_string(segFill));
 								}
 
-								if (0 == containmentBalance%2) segFill *= -1; // Invert seg-fill if bottom is empty
-
 							} else {
-								segFill = 0;
+								segFill = 1;
 							}
+
+							if (0 == containmentBalance%2) segFill = 1-segFill; // Invert seg-fill if bottom is empty
 
 							fillState += segFill*(evalTo-lastX);
 
@@ -599,9 +603,9 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 					
 					x += offset-1; // -1 since it will be inrecmented on loop
 					if (0 == containmentBalance%2) {
-						data = fillOffset(data, offset, 0x00000000);
+						data = fillOffset(data, offset, 0xFF000000);
 					} else {
-						data = fillOffset(data, offset, 0xFF222222);
+						data = fillOffset(data, offset, 0xFFFF2222);
 					}
 					// data += offset * 4;
 					continue;
