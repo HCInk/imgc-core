@@ -542,6 +542,12 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 
 							if (insertNew) {
 								// Insert new element after area to it has been analyzed
+
+								if (0 == readPtr->a.y - y) {
+									containmentBalance++;
+									// std::cout << "CNG BIL++ " << containmentBalance << std::endl;
+								}
+
 								currFractions.push_back(*readPtr);
 							} else if (end) {
 								break;
@@ -550,6 +556,11 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 							nextEnd = INFINITY;
 							for (auto cleanIt = currFractions.begin(); cleanIt != currFractions.end(); ) {
 								if (cleanIt->b.x <= evalTo) {
+
+									if (0 == cleanIt->b.y - y) {
+										containmentBalance--;
+										// std::cout << "CNG BIL-- " << containmentBalance << std::endl;
+									}
 									cleanIt = currFractions.erase(cleanIt);
 									continue;
 								}
@@ -563,21 +574,10 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 							if (insertNew) break;
 						}
 
-						if (hasNew) {
-							if (0 == readPtr->a.y - y) {
-								containmentBalance++;
-								// std::cout << "CNG BIL++ " << containmentBalance << std::endl;
-							}
-							if (0 == readPtr->b.y - y) {
-								containmentBalance--;
-								// std::cout << "CNG BIL-- " << containmentBalance << std::endl;
-							}
-							readPtr++;
-							vertCount++;
-						} else {
-							break;
-						}
-
+						if (!hasNew) break;
+						
+						readPtr++;
+						vertCount++;
 					}
 					
 					data++;
