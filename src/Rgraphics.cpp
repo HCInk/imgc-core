@@ -339,10 +339,10 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 				bool risingY = cord.y > prevCord.y;
 				if (risingY) {
 					yLow = floor(prevCord.y);
-					yHigh = floor(cord.y);
+					yHigh = ceil(cord.y-1);
 				} else {
 					yLow = floor(cord.y);
-					yHigh = floor(prevCord.y);
+					yHigh = ceil(prevCord.y-1);
 				}
 
 				if (yLow >= height) continue;
