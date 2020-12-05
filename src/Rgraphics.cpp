@@ -8,6 +8,13 @@
 #include <list>
 #include <iostream>
 
+// Sanity-checks. Recommended for debugging. Stop the code once something seems doesn't meet the requirements
+#define IMGC_RGRAPHICS_DBG_SANITY_CHECKS false
+// Image-Debug mode - 0: Normal/Disabled 1: R[VertCount]G[StripEnd]B[Result]
+#define IMGC_RGRAPHICS_DBG_IMAGE_MODE 0	
+// 0: Disabled, != 0: Run n-times sequentially
+#define IMGC_RGRAPHICS_DBG_BENCH_LOOP 0 
+
 namespace {
 
 struct ProjectionSettings {
@@ -209,10 +216,11 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 
 
 		ProjectionSettings set = {width, height};
-		
-		// for (int i = 0; i < 1000; i++) {
-		//  	data = base->getImageData();
 
+#if IMGC_RGRAPHICS_DBG_BENCH_LOOP != 0
+		for (int benchIndex = 0; benchIndex < IMGC_RGRAPHICS_DBG_BENCH_LOOP; benchIndex++) {
+			data = base->getImageData();
+#endif
 		bench = std::chrono::steady_clock::now();
 
 		double radius = 0.2;
@@ -276,13 +284,14 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 
 					// std::cout << " EVAL \t" << setostr(cBegin) << "-" << setostr(cEnd) << " IR " << inRange << " OI " << overinterpolate << std::endl;
 
-					// if (cBegin.interp.den == 1073741824) {
-					// 	cBegin = interpolationStack.top();
-					// 	result.push_back(cBegin);
-					// 	interpolationStack.pop();
-						
-					// } else
-
+#if IMGC_RGRAPHICS_DBG_SANITY_CHECKS
+					if (cBegin.interp.den >= 1073741824) {
+					 	// cBegin = interpolationStack.top();
+					 	// result.push_back(cBegin);
+					 	// interpolationStack.pop();
+						throw std::logic_error("Reached stack-index-overflow when subdividing!");
+					} else
+#endif
 					if (inRange && overinterpolate) {
 						overinterpolate = false;
 						// std::cout << " POP OI \t" << setostr(interpolationStack.top()) << std::endl;
@@ -326,10 +335,7 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 				
 				int64_t yLow, yHigh;
 
-
 				bool swap = cord.x < prevCord.x;
-
-				// if (cord.y < 0 && prevCord.y < 0) continue;
 
 				// std::cout << "SUBDIV " 
 				// 	<< prevCord.x << "#" << prevCord.y << " // "
@@ -358,8 +364,6 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 					} else {
 						frac = {prevCord, cord};
 					}
-					// lineMapping.stor[yLow].insert(
-					// 	std::pair<int64_t, RasterizedFraction>(frac.a.x, frac));
 
 					lineMapping.fracs[yLow].push_back(frac);
 
@@ -394,9 +398,12 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 						} else {
 							frac = {{xa, ya}, {xb, yb}};
 						}
-						// lineMapping.stor[y].insert(
-						// 	std::pair<int64_t, RasterizedFraction>(frac.a.x, frac));
-						
+
+#if IMGC_RGRAPHICS_DBG_SANITY_CHECKS					
+						if (frac.a.x == frac.b.x && frac.a.y == frac.b.y) {
+							throw std::runtime_error("Calculated non-line! @ " + std::to_string(frac.a.y) + "#" + std::to_string(frac.a.y));
+						}
+#endif
 						fracLine->push_back(frac);
 
 						// std::cout << " MULTI -> " 
@@ -445,10 +452,15 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 
 					double fillState = 0;
 
+#if IMGC_RGRAPHICS_DBG_IMAGE_MODE != 0
+					*data = 0x00;
+#endif
+
 					abs_cord_t lastX = x;
 					for (;;) {
 						bool hasNew = readPtr != fracs.end() && floor(readPtr->a.x) <= x;
 
+#if IMGC_RGRAPHICS_DBG_SANITY_CHECKS
 						if (hasNew) {
 							if (readPtr->a.y < y) {
 								throw std::logic_error("Praticle not in range! (" + std::to_string(y) + " !< " + std::to_string(y) + " < " + std::to_string(y+1));
@@ -456,7 +468,7 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 								throw std::logic_error("Praticle not in range! (" + std::to_string(y) + " < " + std::to_string(y) + " !< " + std::to_string(y+1));
 							}
 						}
-
+#endif
 						// std::cout << "[" << x << "#" << y << "] READ FRAC " 
 						// 	<< readPtr->second.a.x << "#" << readPtr->second.a.y << " // "
 						// 	<< readPtr->second.b.x << "#" << readPtr->second.b.y << std::endl;
@@ -474,18 +486,10 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 						// 	*locPtr = 0xFF;
 						// }
 
+#if IMGC_RGRAPHICS_DBG_IMAGE_MODE == 1
 						*data = *data < 0xE0 ? *data+0x30 : 0xFF; // RED (0x30 for every call)
+#endif
 
-						/*if (rf.b.x > x+1) { // Check if inside on next round
-							if (!fromList) {
-								currFractions.push_back(rf);
-							}
-						} else {
-							if (fromList) {
-								frit--;
-								frit = currFractions.erase(frit);
-							}
-						}*/
 						double newBegin; // x-coordinate of new element
 						if (hasNew) {
 							newBegin = readPtr->a.x;
@@ -524,12 +528,12 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 								double liftFac = (frac.b.y - frac.a.y) / (frac.b.x-frac.a.x);
 								segFill = liftFac*(midPos - frac.a.x)+(frac.a.y-y);
 								
-								// std::cout << " SEGFILL" << segFill << std::endl;
-								
+#if IMGC_RGRAPHICS_DBG_SANITY_CHECKS
+								// std::cout << " SEGFILL" << segFill << std::endl;						
 								if (segFill <= 0 || segFill > 1) {
 									throw std::logic_error("Invalid seg-fill " + std::to_string(segFill));
 								}
-
+#endif
 							} else {
 								segFill = 1;
 							}
@@ -579,20 +583,35 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 						readPtr++;
 						vertCount++;
 					}
-					
+
+#if IMGC_RGRAPHICS_DBG_IMAGE_MODE == 1
 					data++;
-					
+#endif
 					if (currFractions.empty()) {
 						nextRelX = readPtr != fracs.end()
 							? floor(readPtr->a.x)
 							: width;
+#if IMGC_RGRAPHICS_DBG_IMAGE_MODE == 1
 						*data = 0xFF; // GREEN
-					} else {
+#endif
+					} 
+#if IMGC_RGRAPHICS_DBG_IMAGE_MODE == 1
+					else {
 						*data = 0x00; // NOT GREEN
 					}
 
 					data++;
 					*data = 0xFF*fillState; // BLUE
+					data++;
+					*data = 0xFF; // ALPHA
+					data++;
+#else
+					*reinterpret_cast<uint32_t*>(data) = 0xFFFFFFFF;
+					data += 3;
+					*data *= fillState;
+					data++;
+#endif
+
 				} else {
 					size_t offset;
 					if (nextRelX >= width) {
@@ -602,23 +621,22 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 					}
 					
 					x += offset-1; // -1 since it will be inrecmented on loop
+
+#if IMGC_RGRAPHICS_DBG_IMAGE_MODE == 1
 					if (0 == containmentBalance%2) {
 						data = fillOffset(data, offset, 0xFF000000);
 					} else {
 						data = fillOffset(data, offset, 0xFFFF2222);
 					}
-					// data += offset * 4;
-					continue;
-					// *data = 0x00;
-					// data++;
-					// *data = 0x00;
-					// data++;
-					// *data = 0xFF;
+#else
+					if (0 == containmentBalance%2) {
+						data = fillOffset(data, offset, 0x00FFFFFF);
+					} else {
+						data = fillOffset(data, offset, 0xFFFFFFFF);
+					}
+#endif
 				}
 
-				data++;
-				*data = 0xFF;
-				data++;
 			}
 
 			currFractions.clear();
@@ -630,7 +648,9 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 
 		std::cout << "Drawn " << vertCount << " verts" << std::endl;
 
-		// }
+#if IMGC_RGRAPHICS_DBG_BENCH_LOOP != 0
+		}
+#endif
 		
 		return new torasu::ResultSegment(torasu::ResultSegmentStatus_OK, base, true);
 	} else {
