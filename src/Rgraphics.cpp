@@ -4,15 +4,18 @@
 
 #include <torasu/std/pipeline_names.hpp>
 
-#include <torasu/mod/imgc/Dgraphics.hpp>
 #include <torasu/mod/imgc/ShapeRenderer.hpp>
 
 namespace imgc {
 
-Rgraphics::Rgraphics() 
-	: SimpleRenderable("IMGC::RGRAPHICS", false, false) {
+Rgraphics::Rgraphics(Dgraphics* graphics) 
+	: SimpleRenderable("IMGC::RGRAPHICS", true, true),
+	graphics(graphics), source(this) {}
 
-}
+
+Rgraphics::Rgraphics(Renderable* graphics) 
+	: SimpleRenderable("IMGC::RGRAPHICS", true, true),
+	graphics(nullptr), source(graphics) {}
 
 Rgraphics::~Rgraphics() {}
 
@@ -21,8 +24,6 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 	if (resSettings->getPipeline() == TORASU_STD_PL_VIS) {
 
 		if (auto* fmt = dynamic_cast<torasu::tstd::Dbimg_FORMAT*>(resSettings->getResultFormatSettings())) {
-			
-			Renderable* graphicsSrc = this;
 
 			torasu::tools::RenderInstructionBuilder rib;
 			Dgraphics_FORMAT graphicsFmt;
@@ -30,7 +31,7 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 
 			auto ei = ri->getExecutionInterface();
 
-			auto rid = rib.enqueueRender(graphicsSrc, ri->getRenderContext(), ei);
+			auto rid = rib.enqueueRender(source, ri->getRenderContext(), ei);
 
 			std::unique_ptr<torasu::RenderResult> res(ei->fetchRenderResult(rid));
 
@@ -57,57 +58,58 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 			}
 
 			return new torasu::ResultSegment(torasu::ResultSegmentStatus_OK, base, true);
-		} else if (auto* fmt = dynamic_cast<imgc::Dgraphics_FORMAT*>(resSettings->getResultFormatSettings())) {
+		} else if (dynamic_cast<imgc::Dgraphics_FORMAT*>(resSettings->getResultFormatSettings())) {
 
-			double radius = 0.2;
-			auto unit = 8*radius*4*(sqrt(2)-1)/3;
-
-			auto* graphics = new Dgraphics({
-				Dgraphics::GObject(
-				Dgraphics::GShape(
-				Dgraphics::GSection({
-					{
-						{.5-radius,.5},
-						{.5-radius,.5-unit},
-						{.5-unit,.5-radius},
-						{.5,.5-radius},
-					},
-					{
-						{.5,.5-radius},
-						{.5+unit,.5-radius},
-						{.5+radius,.5-unit},
-						{.5+radius,.5},
-					},
-					{
-						{.5+radius,.5},
-						{.5+radius,.5+unit},
-						{.5+unit,.5+radius},
-						{.5,.5+radius},
-					},
-					{
-						{.5,.5+radius},
-						{.5-unit,.5+radius},
-						{.5-radius,.5+unit},
-						{.5-radius,.5},
-					},
-				}),
-				{
-					{0,0}, {0,1}, {1,1}, {1,0}
-				}
-			))});
-
-			return new torasu::ResultSegment(torasu::ResultSegmentStatus_OK, graphics, true);
+			return new torasu::ResultSegment(torasu::ResultSegmentStatus_OK, graphics.get(), false);
 
 		} else {
 			return new torasu::ResultSegment(torasu::ResultSegmentStatus_INVALID_FORMAT);
 		}
 
-
-
 	} else {
 		return new torasu::ResultSegment(torasu::ResultSegmentStatus_INVALID_SEGMENT);
 	}
 
+}
+
+torasu::ElementMap Rgraphics::getElements() {
+	torasu::ElementMap map;
+
+	if (graphics != nullptr) {
+		map["src"] = source;
+	}
+
+	return map;
+}
+
+void Rgraphics::setElement(std::string key, Element* elem) {
+	if (key == "src") {
+
+		if (elem == nullptr) {
+			source = this;
+		} else if(auto* rnd = dynamic_cast<Renderable*>(elem)) {
+			source = rnd;
+		} else {
+			throw torasu::tools::makeExceptSlotOnlyRenderables(key);
+		}
+
+	} else {
+		throw torasu::tools::makeExceptSlotDoesntExist(key);
+	}
+}
+
+torasu::DataResource* Rgraphics::getData() {
+	return graphics.get();
+}
+
+void Rgraphics::setData(torasu::DataResource* data) {
+	if (data == nullptr) {
+		this->graphics = nullptr;
+	} else if (auto* graphics = dynamic_cast<Dgraphics*>(data)) {
+		this->graphics = std::unique_ptr<Dgraphics>(graphics);
+	} else {
+		throw std::invalid_argument("Only data-type imgc::Dgraphics acceptable!");
+	}
 }
 
 } // namespace imgc

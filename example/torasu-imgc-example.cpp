@@ -657,7 +657,45 @@ void encodeTorasu() {
 }
 
 void graphicsExample() {
-	Rgraphics tree;
+
+	double radius = 0.2;
+	auto unit = 8*radius*4*(sqrt(2)-1)/3;
+
+	auto* graphics = new Dgraphics({
+		Dgraphics::GObject(
+		Dgraphics::GShape(
+		Dgraphics::GSection({
+			{
+				{.5-radius,.5},
+				{.5-radius,.5-unit},
+				{.5-unit,.5-radius},
+				{.5,.5-radius},
+			},
+			{
+				{.5,.5-radius},
+				{.5+unit,.5-radius},
+				{.5+radius,.5-unit},
+				{.5+radius,.5},
+			},
+			{
+				{.5+radius,.5},
+				{.5+radius,.5+unit},
+				{.5+unit,.5+radius},
+				{.5,.5+radius},
+			},
+			{
+				{.5,.5+radius},
+				{.5-unit,.5+radius},
+				{.5-radius,.5+unit},
+				{.5-radius,.5},
+			},
+		}),
+		{
+			{0,0}, {0,1}, {1,1}, {1,0}
+		}
+	))});
+
+	Rgraphics tree(graphics);
 
 
 	auto* runner = new torasu::tstd::EIcore_runner();
