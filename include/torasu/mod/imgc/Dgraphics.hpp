@@ -6,6 +6,14 @@
 
 namespace imgc {
 
+class Dgraphics_FORMAT : public torasu::ResultFormatSettings {
+public:
+	Dgraphics_FORMAT();
+
+	torasu::DataDump* dumpResource() override;
+	Dgraphics_FORMAT* clone() override;
+};
+
 class Dgraphics : public torasu::DataPackable {
 public:
 
@@ -54,7 +62,10 @@ public:
 	 * @brief  Object to be filled
 	 */
 	class GObject {
+	public:
 		GShape shape;
+	public:
+		explicit GObject(GShape shape);
 	};
 
 private:
@@ -68,13 +79,13 @@ public:
 	Dgraphics(std::string jsonStripped);
 	Dgraphics(torasu::json jsonParsed);
 
-	Dgraphics();
+	Dgraphics(std::vector<GObject> objects);
 	~Dgraphics();
 
 	std::string getIdent() override;
 	Dgraphics* clone() override;
 
-	std::vector<GObject> getObjects();
+	std::vector<GObject>& getObjects();
 };
 	
 } // namespace imgc

@@ -5,8 +5,20 @@ namespace imgc {
 Dgraphics::Dgraphics(std::string jsonStripped) : DataPackable(jsonStripped) {}
 Dgraphics::Dgraphics(torasu::json jsonParsed) : DataPackable(jsonParsed) {}
 
-Dgraphics::Dgraphics() {}
+Dgraphics::Dgraphics(std::vector<Dgraphics::GObject> objects)
+	: objects(objects) {}
 Dgraphics::~Dgraphics() {}
+
+Dgraphics_FORMAT::Dgraphics_FORMAT()
+	: ResultFormatSettings("IMGC::DGRAPHICS") {}
+
+torasu::DataDump* Dgraphics_FORMAT::dumpResource() {
+	return new torasu::DataDump(torasu::DDDataPointer(nullptr), 0, nullptr);
+}
+
+Dgraphics_FORMAT* Dgraphics_FORMAT::clone() {
+	return new Dgraphics_FORMAT();
+}
 
 std::string Dgraphics::getIdent() {
 	return "IMGC::DGRAPHICS";
@@ -30,7 +42,7 @@ torasu::json Dgraphics::makeJson() {
 	return json;
 }
 
-std::vector<Dgraphics::GObject> Dgraphics::getObjects() {
+std::vector<Dgraphics::GObject>& Dgraphics::getObjects() {
 	ensureLoaded();
 	return objects;
 }
@@ -43,6 +55,9 @@ Dgraphics::GShape::GShape(std::vector<GSection> sections, std::vector<GCoordinat
 
 Dgraphics::GShape::GShape(GSection section, std::vector<GCoordinate> bounds) 
 	: sections({section}), bounds(bounds) {}
+
+Dgraphics::GObject::GObject(GShape shape)
+	: shape(shape) {}
 
 } // namespace imgc
 
