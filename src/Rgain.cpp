@@ -5,7 +5,7 @@
 
 namespace imgc {
 
-Rgain::Rgain(Renderable* src, Renderable* gainVal)
+Rgain::Rgain(torasu::tools::RenderableSlot src, torasu::tstd::NumSlot gainVal)
 	: SimpleRenderable("IMGC::RGAIN", false, true),
 	  rSrc(src), rGainVal(gainVal) {}
 
@@ -92,8 +92,8 @@ torasu::ResultSegment* Rgain::renderSegment(torasu::ResultSegmentSettings* resSe
 
 torasu::ElementMap Rgain::getElements() {
 	torasu::ElementMap elems;
-	elems["src"] = rSrc;
-	elems["val"] = rGainVal;
+	elems["src"] = rSrc.get();
+	elems["val"] = rGainVal.get();
 	return elems;
 }
 
