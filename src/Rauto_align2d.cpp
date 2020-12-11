@@ -15,7 +15,7 @@
 
 namespace imgc {
 
-Rauto_align2d::Rauto_align2d(torasu::tools::RenderableSlot rndSrc, double posX, double posY, double zoomFactor, double ratio)
+Rauto_align2d::Rauto_align2d(Renderable* rndSrc, double posX, double posY, double zoomFactor, double ratio)
 	: SimpleRenderable("IMGC::RAUTO_ALIGN2D", true, false),
 	  rndSrc(rndSrc), posX(posX), posY(posY), zoomFactor(zoomFactor), ratio(ratio) {
 
@@ -88,7 +88,7 @@ torasu::ResultSegment* Rauto_align2d::renderSegment(torasu::ResultSegmentSetting
 	if (resSettings->getPipeline() == IMGC_PL_ALIGN) {
 		double ratio;
 		if (this->ratio == 0) {
-			torasu::RenderableProperties* props = torasu::tools::getProperties(rndSrc.get(), {TORASU_STD_PROP_IMG_RAITO}, ei);
+			torasu::RenderableProperties* props = torasu::tools::getProperties(rndSrc, {TORASU_STD_PROP_IMG_RAITO}, ei);
 			auto* dataRatio = torasu::tools::getPropertyValue<torasu::tstd::Dnum>(props, TORASU_STD_PROP_IMG_RAITO);
 			ratio = dataRatio ? dataRatio->getNum() : 1;
 			delete props;
@@ -138,7 +138,7 @@ torasu::ResultSegment* Rauto_align2d::renderSegment(torasu::ResultSegmentSetting
 torasu::ElementMap Rauto_align2d::getElements() {
 	torasu::ElementMap elems;
 
-	elems["src"] = rndSrc.get();
+	elems["src"] = rndSrc;
 
 	return elems;
 }
