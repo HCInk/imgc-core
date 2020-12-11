@@ -17,7 +17,7 @@
 
 namespace imgc {
 
-Ralign2d::Ralign2d(torasu::tools::RenderableSlot rndSrc, torasu::tools::RenderableSlot rndAlign)
+Ralign2d::Ralign2d(Renderable* rndSrc, Renderable* rndAlign)
 	: torasu::tools::SimpleRenderable("IMGC::RALIGN2D", false, true),
 	  rndSrc(rndSrc),
 	  rndAlign(rndAlign) {}
@@ -138,7 +138,7 @@ torasu::ResultSegment* Ralign2d::renderSegment(torasu::ResultSegmentSettings* re
 
 		Ralign2d_CROPDATA cropData;
 
-		calcAlign(rndAlign.get(), ei, rctx, fmt->getWidth(), fmt->getHeight(), &cropData);
+		calcAlign(rndAlign, ei, rctx, fmt->getWidth(), fmt->getHeight(), &cropData);
 
 		// Format creation
 
@@ -194,8 +194,8 @@ torasu::ResultSegment* Ralign2d::renderSegment(torasu::ResultSegmentSettings* re
 torasu::ElementMap Ralign2d::getElements() {
 	torasu::ElementMap elems;
 
-	elems["src"] = rndSrc.get();
-	elems["align"] = rndAlign.get();
+	elems["src"] = rndSrc;
+	elems["align"] = rndAlign;
 
 	return elems;
 }
