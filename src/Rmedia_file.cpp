@@ -18,7 +18,7 @@
 namespace imgc {
 
 
-Rmedia_file::Rmedia_file(torasu::Renderable* src)
+Rmedia_file::Rmedia_file(torasu::tools::RenderableSlot src)
 	: torasu::tools::NamedIdentElement("IMGC::RMEDIA_FILE"),
 	  torasu::tools::SimpleDataElement(false, true),
 	  srcRnd(src) {}
@@ -41,7 +41,7 @@ void Rmedia_file::load(torasu::ExecutionInterface* ei) {
 		return;
 	}
 
-	if (srcRnd == NULL) throw std::logic_error("Source renderable set loaded yet!");
+	if (srcRnd.get() == NULL) throw std::logic_error("Source renderable set loaded yet!");
 
 	if (srcRendRes != NULL) {
 		delete srcRendRes;
@@ -56,7 +56,7 @@ void Rmedia_file::load(torasu::ExecutionInterface* ei) {
 	auto handle = rib.addSegmentWithHandle<torasu::tstd::Dfile>(TORASU_STD_PL_FILE, NULL);
 
 	torasu::RenderContext rctx;
-	srcRendRes = rib.runRender(srcRnd, &rctx, ei);
+	srcRendRes = rib.runRender(srcRnd.get(), &rctx, ei);
 
 	auto castedResultSeg = handle.getFrom(srcRendRes);
 
@@ -205,7 +205,7 @@ torasu::RenderResult* Rmedia_file::render(torasu::RenderInstruction* ri) {
 torasu::ElementMap Rmedia_file::getElements() {
 	torasu::ElementMap ret;
 
-	if (srcRnd != NULL) ret["src"] = srcRnd;
+	if (srcRnd.get() != NULL) ret["src"] = srcRnd.get();
 
 	return ret;
 }
