@@ -684,15 +684,16 @@ void graphicsExample() {
 	imgc::Rimg_file white(&whiteFile);
 	torasu::tstd::Rsubtract premulMaybe(&white, &comp);
 	
-	imgc::Rmedia_creator encoded(&premulMaybe, "mp4", 0, 36, 20, 1080, 1080, 4000*100);
+	imgc::Rmedia_creator encoded(&premulMaybe, "mp4", 0, 36, 30, 1080*2, 1080*2, 4000*100);
 
 	auto* runner = new torasu::tstd::EIcore_runner();
 
 	torasu::ExecutionInterface* ei = runner->createInterface();
 
-
 	torasu::tools::RenderInstructionBuilder rib;
 	auto handle = rib.addSegmentWithHandle<torasu::tstd::Dfile>(TORASU_STD_PL_FILE, nullptr);
+
+	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
 	torasu::RenderContext rctx;
 	std::unique_ptr<torasu::RenderResult> rr(rib.runRender(&encoded, &rctx, ei));
@@ -700,6 +701,9 @@ void graphicsExample() {
 	auto seg = handle.getFrom(rr.get());
 
 	auto* resFile = seg.getResult();
+	
+	std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+	std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
 
 	std::cout << "Saving..." << std::endl;
 	std::ofstream sysFile("test.mp4");
