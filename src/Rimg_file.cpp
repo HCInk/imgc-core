@@ -5,7 +5,6 @@
 
 #include <lodepng.h>
 
-
 #include <torasu/torasu.hpp>
 #include <torasu/render_tools.hpp>
 #include <torasu/std/pipeline_names.hpp>
@@ -22,11 +21,10 @@ using namespace torasu::tstd;
 
 namespace imgc {
 
-Rimg_file::Rimg_file(Renderable* file)
+Rimg_file::Rimg_file(torasu::tools::RenderableSlot file)
 	: SimpleRenderable("STD::RIMG_FILE", false, true),
-	  resHandle(rib.addSegmentWithHandle<Dfile>(TORASU_STD_PL_FILE, NULL)) {
-	this->rfile = file;
-}
+	  rfile(file),
+	  resHandle(rib.addSegmentWithHandle<Dfile>(TORASU_STD_PL_FILE, NULL)) {}
 
 Rimg_file::~Rimg_file() {}
 
@@ -36,7 +34,7 @@ void Rimg_file::load(torasu::RenderContext* rctx, torasu::ExecutionInterface* ei
 
 	if (!loaded) {
 
-		RenderResult* fileRenderResult = rib.runRender(rfile, rctx, ei);
+		RenderResult* fileRenderResult = rib.runRender(rfile.get(), rctx, ei);
 
 		auto fileRes = resHandle.getFrom(fileRenderResult);
 
@@ -125,7 +123,7 @@ ResultSegment* Rimg_file::renderSegment(ResultSegmentSettings* resSettings, Rend
 
 torasu::ElementMap Rimg_file::getElements() {
 	torasu::ElementMap elems;
-	elems["f"] = rfile;
+	elems["f"] = rfile.get();
 	return elems;
 }
 

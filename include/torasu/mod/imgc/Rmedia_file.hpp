@@ -4,6 +4,8 @@
 
 #include <torasu/torasu.hpp>
 #include <torasu/SimpleRenderable.hpp>
+#include <torasu/slot_tools.hpp>
+
 #include <torasu/std/spoilsD.hpp>
 
 
@@ -18,7 +20,7 @@ class Rmedia_file :  public torasu::Renderable,
 	public torasu::tools::SimpleDataElement,
 	public torasu::tools::ReadylessElement {
 private:
-	torasu::Renderable* srcRnd;
+	torasu::tools::ManagedRenderableSlot srcRnd;
 	torasu::RenderResult* srcRendRes = NULL;
 	torasu::tstd::Dfile* srcFile = NULL;
 	MediaDecoder* decoder = NULL;
@@ -26,7 +28,7 @@ private:
 	void load(torasu::ExecutionInterface* ei);
 
 public:
-	Rmedia_file(Renderable* src = NULL);
+	Rmedia_file(torasu::tools::RenderableSlot src);
 	~Rmedia_file();
 
 	torasu::RenderResult* render(torasu::RenderInstruction* ri) override;

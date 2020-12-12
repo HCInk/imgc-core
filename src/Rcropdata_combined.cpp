@@ -4,14 +4,13 @@
 
 #include <torasu/render_tools.hpp>
 #include <torasu/std/pipeline_names.hpp>
-#include <torasu/std/Dnum.hpp>
 
 #include <torasu/mod/imgc/pipeline_names.hpp>
 #include <torasu/mod/imgc/Dcropdata.hpp>
 
 namespace imgc {
 
-Rcropdata_combined::Rcropdata_combined(Renderable* left, Renderable* right, Renderable* top, Renderable* bottom)
+Rcropdata_combined::Rcropdata_combined(torasu::tstd::NumSlot left, torasu::tstd::NumSlot right, torasu::tstd::NumSlot top, torasu::tstd::NumSlot bottom)
 	: SimpleRenderable("IMGC::RCROPDATA_COMBINED", false, true),
 	  leftRnd(left), rightRnd(right), topRnd(top), bottomRnd(bottom)  {}
 
@@ -63,10 +62,10 @@ torasu::ResultSegment* Rcropdata_combined::renderSegment(torasu::ResultSegmentSe
 torasu::ElementMap Rcropdata_combined::getElements() {
 	torasu::ElementMap elems;
 
-	elems["l"] = leftRnd;
-	elems["r"] = rightRnd;
-	elems["t"] = topRnd;
-	elems["b"] = bottomRnd;
+	elems["l"] = leftRnd.get();
+	elems["r"] = rightRnd.get();
+	elems["t"] = topRnd.get();
+	elems["b"] = bottomRnd.get();
 
 	return elems;
 }
