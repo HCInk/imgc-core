@@ -13,7 +13,9 @@ Dgraphics_FORMAT::Dgraphics_FORMAT()
 	: ResultFormatSettings("IMGC::DGRAPHICS") {}
 
 torasu::DataDump* Dgraphics_FORMAT::dumpResource() {
-	return new torasu::DataDump(torasu::DDDataPointer(nullptr), 0, nullptr);
+	torasu::DDDataPointer dp;
+	dp.b = nullptr;
+	return new torasu::DataDump(dp, 0, nullptr);
 }
 
 Dgraphics_FORMAT* Dgraphics_FORMAT::clone() {
