@@ -3,6 +3,7 @@
 
 #include <torasu/torasu.hpp>
 #include <torasu/SimpleRenderable.hpp>
+#include <torasu/slot_tools.hpp>
 
 #include <torasu/std/spoilsD.hpp>
 
@@ -10,8 +11,8 @@ namespace imgc {
 
 class Ralign2d : public torasu::tools::SimpleRenderable {
 private:
-	Renderable* rndSrc;
-	Renderable* rndAlign;
+	torasu::tools::ManagedRenderableSlot  rndSrc;
+	torasu::tools::ManagedRenderableSlot rndAlign;
 
 	struct Ralign2d_CROPDATA {
 		uint32_t srcWidth, srcHeight;
@@ -28,7 +29,7 @@ protected:
 	torasu::ResultSegment* renderSegment(torasu::ResultSegmentSettings* resSettings, torasu::RenderInstruction* ri) override;
 
 public:
-	Ralign2d(Renderable* rndSrc, Renderable* rndAlign);
+	Ralign2d(torasu::tools::RenderableSlot rndSrc, torasu::tools::RenderableSlot rndAlign);
 	~Ralign2d();
 
 	torasu::ElementMap getElements() override;

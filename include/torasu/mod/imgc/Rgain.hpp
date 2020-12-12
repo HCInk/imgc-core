@@ -4,7 +4,10 @@
 #include <torasu/torasu.hpp>
 #include <torasu/SimpleRenderable.hpp>
 #include <torasu/render_tools.hpp>
+#include <torasu/slot_tools.hpp>
+
 #include <torasu/std/pipeline_names.hpp>
+#include <torasu/std/Rnum.hpp>
 
 namespace imgc {
 
@@ -13,14 +16,14 @@ private:
 	const std::string visPipeline = std::string(TORASU_STD_PL_VIS);
 	const std::string numPipeline = std::string(TORASU_STD_PL_NUM);
 
-	torasu::Renderable* rSrc;
-	torasu::Renderable* rGainVal;
+	torasu::tools::ManagedRenderableSlot rSrc;
+	torasu::tools::ManagedSlot<torasu::tstd::NumSlot> rGainVal;
 
 protected:
 	torasu::ResultSegment* renderSegment(torasu::ResultSegmentSettings* resSettings, torasu::RenderInstruction* ri) override;
 
 public:
-	Rgain(Renderable* src, Renderable* gainVal);
+	Rgain(torasu::tools::RenderableSlot src, torasu::tstd::NumSlot gainVal);
 	~Rgain();
 
 	torasu::ElementMap getElements() override;

@@ -11,64 +11,21 @@
 #include <torasu/std/Dnum.hpp>
 #include <torasu/std/Dstring.hpp>
 
-#include <torasu/std/Rnum.hpp>
-#include <torasu/std/Rstring.hpp>
-
 #include <torasu/mod/imgc/MediaEncoder.hpp>
 
 namespace imgc {
 
-#define CONFIGURE_OWNED(field, owns, def) field = def; owns = true;
 
-#define CONFIGURE_DEFUALT(incooming, field, owns, def) \
-	if (incooming) { \
-		field = incooming; \
-	} else { \
-		CONFIGURE_OWNED(field, owns, def) \
-	}
-
-#define DEL_OWNED(field, owned) if (owned) delete field;
-
-Rmedia_creator::Rmedia_creator(Renderable* src, Renderable* format, Renderable* begin, Renderable* end,
-							   Renderable* fps, Renderable* width, Renderable* height, Renderable* videoBitrate, Renderable* audioMinSampleRate)
+Rmedia_creator::Rmedia_creator(torasu::tools::RenderableSlot src, torasu::tstd::StringSlot format, 
+		torasu::tstd::NumSlot begin, torasu::tstd::NumSlot end, torasu::tstd::NumSlot fps, 
+		torasu::tstd::NumSlot width, torasu::tstd::NumSlot height, 
+		torasu::tstd::NumSlot videoBitrate, torasu::tstd::NumSlot audioMinSampleRate)
 	: SimpleRenderable("IMGC::RMEDIA_CREATOR", false, true),
-	  srcRnd(src), formatRnd(format), endRnd(end) {
+	  srcRnd(src), formatRnd(format), beginRnd(begin), endRnd(end), fpsRnd(fps), 
+	  widthRnd(width), heightRnd(height), 
+	  videoBitrateRnd(videoBitrate), audioMinSampleRateRnd(audioMinSampleRate) {}
 
-	CONFIGURE_DEFUALT(begin, beginRnd, ownsBegin, new torasu::tstd::Rnum(0))
-	CONFIGURE_DEFUALT(fps, fpsRnd, ownsFps, new torasu::tstd::Rnum(0))
-	CONFIGURE_DEFUALT(width, widthRnd, ownsWidth, new torasu::tstd::Rnum(0))
-	CONFIGURE_DEFUALT(height, heightRnd, ownsHeight, new torasu::tstd::Rnum(0))
-	CONFIGURE_DEFUALT(videoBitrate, videoBitrateRnd, ownsVideoBitrate, new torasu::tstd::Rnum(0))
-	CONFIGURE_DEFUALT(audioMinSampleRate, audioMinSampleRateRnd, ownsAudioMinSampleRate, new torasu::tstd::Rnum(0))
-
-}
-
-Rmedia_creator::Rmedia_creator(Renderable* src, std::string format, double begin, double end,
-							   double fps, uint32_t width, uint32_t height, size_t videoBitrate, size_t audioMinSampleRate)
-	: SimpleRenderable("IMGC::RMEDIA_CREATOR", false, true),
-	  srcRnd(src) {
-
-	CONFIGURE_OWNED(formatRnd, ownsFormat, new torasu::tstd::Rstring(format))
-	CONFIGURE_OWNED(beginRnd, ownsBegin, new torasu::tstd::Rnum(begin))
-	CONFIGURE_OWNED(endRnd, ownsEnd, new torasu::tstd::Rnum(end))
-	CONFIGURE_OWNED(fpsRnd, ownsFps, new torasu::tstd::Rnum(fps))
-	CONFIGURE_OWNED(widthRnd, ownsWidth, new torasu::tstd::Rnum(width))
-	CONFIGURE_OWNED(heightRnd, ownsHeight, new torasu::tstd::Rnum(height))
-	CONFIGURE_OWNED(videoBitrateRnd, ownsVideoBitrate, new torasu::tstd::Rnum(videoBitrate))
-	CONFIGURE_OWNED(audioMinSampleRateRnd, ownsAudioMinSampleRate, new torasu::tstd::Rnum(audioMinSampleRate))
-
-}
-
-Rmedia_creator::~Rmedia_creator() {
-	DEL_OWNED(formatRnd, ownsFormat)
-	DEL_OWNED(beginRnd, ownsBegin)
-	DEL_OWNED(endRnd, ownsEnd)
-	DEL_OWNED(fpsRnd, ownsFps)
-	DEL_OWNED(widthRnd, ownsWidth)
-	DEL_OWNED(heightRnd, ownsHeight)
-	DEL_OWNED(videoBitrateRnd, ownsVideoBitrate)
-	DEL_OWNED(audioMinSampleRateRnd, ownsAudioMinSampleRate)
-}
+Rmedia_creator::~Rmedia_creator() {}
 
 torasu::ResultSegment* Rmedia_creator::renderSegment(torasu::ResultSegmentSettings* resSettings, torasu::RenderInstruction* ri) {
 	std::string pipeline = resSettings->getPipeline();
@@ -159,7 +116,7 @@ torasu::ResultSegment* Rmedia_creator::renderSegment(torasu::ResultSegmentSettin
 				modRctx[TORASU_STD_CTX_DURATION] = &frameDuration;
 				modRctx[TORASU_STD_CTX_IMG_RATIO] = &frameRatio;
 
-				auto* rr = visRib.runRender(srcRnd, &modRctx, ei);
+				auto* rr = visRib.runRender(srcRnd.get(), &modRctx, ei);
 
 				fr->setFree([rr]() {
 					delete rr;
@@ -182,7 +139,7 @@ torasu::ResultSegment* Rmedia_creator::renderSegment(torasu::ResultSegmentSettin
 				torasu::tools::RenderInstructionBuilder audRib;
 				auto audHandle = audRib.addSegmentWithHandle<torasu::tstd::Daudio_buffer>(TORASU_STD_PL_AUDIO, audReq->getFormat());
 
-				auto* rr = audRib.runRender(srcRnd, &modRctx, ei);
+				auto* rr = audRib.runRender(srcRnd.get(), &modRctx, ei);
 
 				fr->setFree([rr]() {
 					delete rr;
@@ -211,26 +168,26 @@ torasu::ResultSegment* Rmedia_creator::renderSegment(torasu::ResultSegmentSettin
 
 torasu::ElementMap Rmedia_creator::getElements() {
 	torasu::ElementMap elems;
-	elems["src"] = srcRnd;
-	elems["begin"] = beginRnd;
-	elems["end"] = endRnd;
-	elems["fps"] = fpsRnd;
-	elems["width"] = widthRnd;
-	elems["height"] = heightRnd;
-	elems["vbr"] = videoBitrateRnd;
-	elems["amsr"] = audioMinSampleRateRnd;
+	elems["src"] = srcRnd.get();
+	elems["begin"] = beginRnd.get();
+	elems["end"] = endRnd.get();
+	elems["fps"] = fpsRnd.get();
+	elems["width"] = widthRnd.get();
+	elems["height"] = heightRnd.get();
+	elems["vbr"] = videoBitrateRnd.get();
+	elems["amsr"] = audioMinSampleRateRnd.get();
 	return elems;
 }
 
 void Rmedia_creator::setElement(std::string key, torasu::Element* elem) {
 	if (torasu::tools::trySetRenderableSlot("src", &srcRnd, false, key, elem)) return;
-	if (torasu::tools::trySetRenderableSlot("begin", &beginRnd, false, key, elem, &ownsBegin)) return;
-	if (torasu::tools::trySetRenderableSlot("end", &endRnd, false, key, elem, &ownsEnd)) return;
-	if (torasu::tools::trySetRenderableSlot("fps", &fpsRnd, false, key, elem, &ownsFps)) return;
-	if (torasu::tools::trySetRenderableSlot("width", &widthRnd, false, key, elem, &ownsWidth)) return;
-	if (torasu::tools::trySetRenderableSlot("height", &heightRnd, false, key, elem, &ownsHeight)) return;
-	if (torasu::tools::trySetRenderableSlot("vbr", &videoBitrateRnd, false, key, elem, &ownsVideoBitrate)) return;
-	if (torasu::tools::trySetRenderableSlot("amsr", &audioMinSampleRateRnd, false, key, elem, &ownsAudioMinSampleRate)) return;
+	if (torasu::tools::trySetRenderableSlot("begin", &beginRnd, false, key, elem)) return;
+	if (torasu::tools::trySetRenderableSlot("end", &endRnd, false, key, elem)) return;
+	if (torasu::tools::trySetRenderableSlot("fps", &fpsRnd, false, key, elem)) return;
+	if (torasu::tools::trySetRenderableSlot("width", &widthRnd, false, key, elem)) return;
+	if (torasu::tools::trySetRenderableSlot("height", &heightRnd, false, key, elem)) return;
+	if (torasu::tools::trySetRenderableSlot("vbr", &videoBitrateRnd, false, key, elem)) return;
+	if (torasu::tools::trySetRenderableSlot("amsr", &audioMinSampleRateRnd, false, key, elem)) return;
 	throw torasu::tools::makeExceptSlotDoesntExist(key);
 }
 

@@ -6,8 +6,9 @@
 
 #include <torasu/torasu.hpp>
 #include <torasu/SimpleRenderable.hpp>
-
 #include <torasu/render_tools.hpp>
+#include <torasu/slot_tools.hpp>
+
 #include <torasu/std/spoilsD.hpp>
 #include <torasu/std/pipeline_names.hpp>
 
@@ -17,7 +18,7 @@ class Rimg_file : public torasu::tools::SimpleRenderable {
 private:
 	const std::string pipeline = std::string(TORASU_STD_PL_FILE);
 
-	torasu::Renderable* rfile;
+	torasu::tools::ManagedRenderableSlot rfile;
 
 	torasu::tools::RenderInstructionBuilder rib;
 	torasu::tools::RenderResultSegmentHandle<torasu::tstd::Dfile> resHandle;
@@ -34,7 +35,7 @@ protected:
 	torasu::ResultSegment* renderSegment(torasu::ResultSegmentSettings* resSettings, torasu::RenderInstruction* ri) override;
 
 public:
-	explicit Rimg_file(Renderable* file);
+	explicit Rimg_file(torasu::tools::RenderableSlot file);
 	~Rimg_file();
 
 	torasu::ElementMap getElements() override;
