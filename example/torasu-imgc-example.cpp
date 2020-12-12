@@ -684,7 +684,7 @@ void graphicsExample() {
 	imgc::Rimg_file white(&whiteFile);
 	torasu::tstd::Rsubtract premulMaybe(&white, &comp);
 	
-	imgc::Rmedia_creator encoded(&premulMaybe, "mp4", 0, 36, 30, 1080*2, 1080*2, 4000*100);
+	imgc::Rmedia_creator encoded(&premulMaybe, "mp4", 0., 36, 30, 1080*2, 1080*2, 4000*100);
 
 	auto* runner = new torasu::tstd::EIcore_runner();
 
