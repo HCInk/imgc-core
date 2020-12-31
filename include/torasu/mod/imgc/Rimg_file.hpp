@@ -29,7 +29,7 @@ private:
 	uint32_t srcWidth, srcHeight;
 
 private:
-	void load(torasu::RenderContext* rctx, torasu::ExecutionInterface* ei);
+	void load(torasu::RenderContext* rctx, torasu::ExecutionInterface* ei, torasu::LogInstruction li);
 
 protected:
 	torasu::ResultSegment* renderSegment(torasu::ResultSegmentSettings* resSettings, torasu::RenderInstruction* ri) override;

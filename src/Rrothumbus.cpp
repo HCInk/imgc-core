@@ -30,6 +30,7 @@ torasu::ResultSegment* Rrothumbus::renderSegment(torasu::ResultSegmentSettings* 
 		if (roundValRnd != nullptr) {
 
 			auto* ei = ri->getExecutionInterface();
+			auto li = ri->getLogInstruction();
 			auto* rctx = ri->getRenderContext();
 
 			// Sub-renderings
@@ -37,7 +38,7 @@ torasu::ResultSegment* Rrothumbus::renderSegment(torasu::ResultSegmentSettings* 
 			torasu::tools::RenderInstructionBuilder rib;
 			auto segHandle = rib.addSegmentWithHandle<torasu::tstd::Dnum>(TORASU_STD_PL_NUM, nullptr);
 
-			auto renderId = rib.enqueueRender(roundValRnd, rctx, ei);
+			auto renderId = rib.enqueueRender(roundValRnd, rctx, ei, li);
 
 			std::unique_ptr<torasu::RenderResult> rndRes(ei->fetchRenderResult(renderId));
 

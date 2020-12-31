@@ -31,7 +31,7 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 
 			auto ei = ri->getExecutionInterface();
 
-			auto rid = rib.enqueueRender(source, ri->getRenderContext(), ei);
+			auto rid = rib.enqueueRender(source, ri->getRenderContext(), ei, ri->getLogInstruction());
 
 			std::unique_ptr<torasu::RenderResult> res(ei->fetchRenderResult(rid));
 

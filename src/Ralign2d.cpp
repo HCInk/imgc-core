@@ -26,7 +26,7 @@ Ralign2d::~Ralign2d() {}
 
 #define ROUND_PRECISION 40000
 
-void Ralign2d::calcAlign(Renderable* alignmentProvider, torasu::ExecutionInterface* ei, torasu::RenderContext* rctx,
+void Ralign2d::calcAlign(Renderable* alignmentProvider, torasu::ExecutionInterface* ei, torasu::LogInstruction li, torasu::RenderContext* rctx,
 						 uint32_t destWidth, uint32_t destHeight,
 						 Ralign2d_CROPDATA* outCropData) const {
 
@@ -37,7 +37,7 @@ void Ralign2d::calcAlign(Renderable* alignmentProvider, torasu::ExecutionInterfa
 
 	// Running render based on instruction
 
-	torasu::RenderResult* rr = rib.runRender(alignmentProvider, rctx, ei);
+	torasu::RenderResult* rr = rib.runRender(alignmentProvider, rctx, ei, li);
 
 	// Finding results
 
@@ -132,13 +132,14 @@ torasu::ResultSegment* Ralign2d::renderSegment(torasu::ResultSegmentSettings* re
 		}
 
 		auto ei = ri->getExecutionInterface();
+		auto li = ri->getLogInstruction();
 		auto rctx = ri->getRenderContext();
 
 		torasu::tools::RenderInstructionBuilder rib;
 
 		Ralign2d_CROPDATA cropData;
 
-		calcAlign(rndAlign.get(), ei, rctx, fmt->getWidth(), fmt->getHeight(), &cropData);
+		calcAlign(rndAlign.get(), ei, li, rctx, fmt->getWidth(), fmt->getHeight(), &cropData);
 
 		// Format creation
 
@@ -153,7 +154,7 @@ torasu::ResultSegment* Ralign2d::renderSegment(torasu::ResultSegmentSettings* re
 		modRctx[TORASU_STD_CTX_IMG_RATIO] = &ratio;
 
 		// Sub-Renderings
-		auto srcRndId = rib.enqueueRender(rndSrc, rctx, ei);
+		auto srcRndId = rib.enqueueRender(rndSrc, rctx, ei, li);
 
 		torasu::RenderResult* srcRes = ei->fetchRenderResult(srcRndId);
 

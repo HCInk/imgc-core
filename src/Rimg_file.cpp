@@ -28,13 +28,13 @@ Rimg_file::Rimg_file(torasu::tools::RenderableSlot file)
 
 Rimg_file::~Rimg_file() {}
 
-void Rimg_file::load(torasu::RenderContext* rctx, torasu::ExecutionInterface* ei) {
+void Rimg_file::load(torasu::RenderContext* rctx, torasu::ExecutionInterface* ei, torasu::LogInstruction li) {
 
 	ei->lock();
 
 	if (!loaded) {
 
-		RenderResult* fileRenderResult = rib.runRender(rfile.get(), rctx, ei);
+		RenderResult* fileRenderResult = rib.runRender(rfile.get(), rctx, ei, li);
 
 		auto fileRes = resHandle.getFrom(fileRenderResult);
 
@@ -63,6 +63,7 @@ void Rimg_file::load(torasu::RenderContext* rctx, torasu::ExecutionInterface* ei
 ResultSegment* Rimg_file::renderSegment(ResultSegmentSettings* resSettings, RenderInstruction* ri) {
 
 	auto ei = ri->getExecutionInterface();
+	auto li = ri->getLogInstruction();
 	auto rctx = ri->getRenderContext();
 
 	std::string currentPipeline = resSettings->getPipeline();
@@ -83,7 +84,7 @@ ResultSegment* Rimg_file::renderSegment(ResultSegmentSettings* resSettings, Rend
 			}
 		}
 
-		load(rctx, ei);
+		load(rctx, ei, li);
 
 		if (rWidth == 0 || rHeight == 0) {
 			return new ResultSegment(ResultSegmentStatus_OK, new Dbimg(rWidth, rHeight), true);
@@ -94,7 +95,6 @@ ResultSegment* Rimg_file::renderSegment(ResultSegmentSettings* resSettings, Rend
 			rHeight = srcHeight;
 		}
 
-
 		Dbimg_FORMAT fmt(rWidth, rHeight);
 
 		Dbimg* resultImage = scaler::scaleImg(loadedImage.data(), srcWidth, srcHeight, &fmt, true);
@@ -104,13 +104,13 @@ ResultSegment* Rimg_file::renderSegment(ResultSegmentSettings* resSettings, Rend
 
 	} else if (torasu::isPipelineKeyPropertyKey(currentPipeline)) { // optional so properties get skipped if it is no property
 		if (currentPipeline == TORASU_PROPERTY(TORASU_STD_PROP_IMG_WIDTH)) {
-			load(rctx, ei);
+			load(rctx, ei, li);
 			return new torasu::ResultSegment(torasu::ResultSegmentStatus_OK, new torasu::tstd::Dnum(srcWidth), true);
 		} else if (currentPipeline == TORASU_PROPERTY(TORASU_STD_PROP_IMG_HEIGHT)) {
-			load(rctx, ei);
+			load(rctx, ei, li);
 			return new torasu::ResultSegment(torasu::ResultSegmentStatus_OK, new torasu::tstd::Dnum(srcHeight), true);
 		} else if (currentPipeline == TORASU_PROPERTY(TORASU_STD_PROP_IMG_RAITO)) {
-			load(rctx, ei);
+			load(rctx, ei, li);
 			return new torasu::ResultSegment(torasu::ResultSegmentStatus_OK, new torasu::tstd::Dnum((double) srcWidth / srcHeight), true);
 		} else {
 			// Unsupported Property

@@ -19,7 +19,7 @@ private:
 		int32_t offLeft, offRight, offTop, offBottom;
 	};
 
-	void calcAlign(Renderable* alignmentProvider, torasu::ExecutionInterface* ei, torasu::RenderContext* rctx,
+	void calcAlign(Renderable* alignmentProvider, torasu::ExecutionInterface* ei, torasu::LogInstruction li, torasu::RenderContext* rctx,
 				   uint32_t destWidth, uint32_t destHeight,
 				   Ralign2d_CROPDATA* outCropData) const;
 

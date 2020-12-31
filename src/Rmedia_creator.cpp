@@ -32,6 +32,7 @@ torasu::ResultSegment* Rmedia_creator::renderSegment(torasu::ResultSegmentSettin
 	if (pipeline == TORASU_STD_PL_FILE) {
 
 		auto* ei = ri->getExecutionInterface();
+		auto li = ri->getLogInstruction();
 		auto* rctx = ri->getRenderContext();
 
 		MediaEncoder::EncodeRequest req;
@@ -42,14 +43,14 @@ torasu::ResultSegment* Rmedia_creator::renderSegment(torasu::ResultSegmentSettin
 			torasu::tools::RenderInstructionBuilder numRib;
 			auto numHandle = numRib.addSegmentWithHandle<torasu::tstd::Dnum>(TORASU_STD_PL_NUM, nullptr);
 
-			auto formatRid = textRib.enqueueRender(formatRnd, rctx, ei);
-			auto beginRid = numRib.enqueueRender(beginRnd, rctx, ei);
-			auto endRid = numRib.enqueueRender(endRnd, rctx, ei);
-			auto fpsRid = numRib.enqueueRender(fpsRnd, rctx, ei);
-			auto widthRid = numRib.enqueueRender(widthRnd, rctx, ei);
-			auto heightRid = numRib.enqueueRender(heightRnd, rctx, ei);
-			auto vbrRid = numRib.enqueueRender(videoBitrateRnd, rctx, ei);
-			auto amsrRid = numRib.enqueueRender(audioMinSampleRateRnd, rctx, ei);
+			auto formatRid = textRib.enqueueRender(formatRnd, rctx, ei, li);
+			auto beginRid = numRib.enqueueRender(beginRnd, rctx, ei, li);
+			auto endRid = numRib.enqueueRender(endRnd, rctx, ei, li);
+			auto fpsRid = numRib.enqueueRender(fpsRnd, rctx, ei, li);
+			auto widthRid = numRib.enqueueRender(widthRnd, rctx, ei, li);
+			auto heightRid = numRib.enqueueRender(heightRnd, rctx, ei, li);
+			auto vbrRid = numRib.enqueueRender(videoBitrateRnd, rctx, ei, li);
+			auto amsrRid = numRib.enqueueRender(audioMinSampleRateRnd, rctx, ei, li);
 
 			std::unique_ptr<torasu::RenderResult> rrFormat(ei->fetchRenderResult(formatRid));
 			std::unique_ptr<torasu::RenderResult> rrBegin(ei->fetchRenderResult(beginRid));
@@ -107,7 +108,7 @@ torasu::ResultSegment* Rmedia_creator::renderSegment(torasu::ResultSegmentSettin
 		torasu::tstd::Dbimg_FORMAT visFmt(req.width, req.height);
 		auto visHandle = visRib.addSegmentWithHandle<torasu::tstd::Dbimg>(TORASU_STD_PL_VIS, &visFmt);
 
-		MediaEncoder enc([this, ei, rctx, &visRib, &visHandle, &frameDuration, &frameRatio]
+		MediaEncoder enc([this, ei, li, rctx, &visRib, &visHandle, &frameDuration, &frameRatio]
 		(MediaEncoder::FrameRequest* fr) {
 			torasu::RenderContext modRctx = *rctx;
 			if (auto* vidReq = dynamic_cast<MediaEncoder::VideoFrameRequest*>(fr)) {
@@ -116,7 +117,7 @@ torasu::ResultSegment* Rmedia_creator::renderSegment(torasu::ResultSegmentSettin
 				modRctx[TORASU_STD_CTX_DURATION] = &frameDuration;
 				modRctx[TORASU_STD_CTX_IMG_RATIO] = &frameRatio;
 
-				auto* rr = visRib.runRender(srcRnd.get(), &modRctx, ei);
+				auto* rr = visRib.runRender(srcRnd.get(), &modRctx, ei, li);
 
 				fr->setFree([rr]() {
 					delete rr;
@@ -139,7 +140,7 @@ torasu::ResultSegment* Rmedia_creator::renderSegment(torasu::ResultSegmentSettin
 				torasu::tools::RenderInstructionBuilder audRib;
 				auto audHandle = audRib.addSegmentWithHandle<torasu::tstd::Daudio_buffer>(TORASU_STD_PL_AUDIO, audReq->getFormat());
 
-				auto* rr = audRib.runRender(srcRnd.get(), &modRctx, ei);
+				auto* rr = audRib.runRender(srcRnd.get(), &modRctx, ei, li);
 
 				fr->setFree([rr]() {
 					delete rr;

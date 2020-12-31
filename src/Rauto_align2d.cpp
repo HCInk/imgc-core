@@ -83,12 +83,13 @@ imgc::Dcropdata* Rauto_align2d::calcAlign(double posX, double posY, double zoomF
 torasu::ResultSegment* Rauto_align2d::renderSegment(torasu::ResultSegmentSettings* resSettings, torasu::RenderInstruction* ri) {
 
 	auto* ei = ri->getExecutionInterface();
+	auto li = ri->getLogInstruction();
 	auto* rctx = ri->getRenderContext();
 
 	if (resSettings->getPipeline() == IMGC_PL_ALIGN) {
 		double ratio;
 		if (this->ratio == 0) {
-			torasu::RenderableProperties* props = torasu::tools::getProperties(rndSrc.get(), {TORASU_STD_PROP_IMG_RAITO}, ei);
+			torasu::RenderableProperties* props = torasu::tools::getProperties(rndSrc.get(), {TORASU_STD_PROP_IMG_RAITO}, ei, li);
 			auto* dataRatio = torasu::tools::getPropertyValue<torasu::tstd::Dnum>(props, TORASU_STD_PROP_IMG_RAITO);
 			ratio = dataRatio ? dataRatio->getNum() : 1;
 			delete props;
@@ -120,7 +121,7 @@ torasu::ResultSegment* Rauto_align2d::renderSegment(torasu::ResultSegmentSetting
 
 		// Running render based on instruction
 
-		torasu::RenderResult* rr = rib.runRender(internalAlign, rctx, ei);
+		torasu::RenderResult* rr = rib.runRender(internalAlign, rctx, ei, li);
 
 		auto res = handle.getFrom(rr);
 

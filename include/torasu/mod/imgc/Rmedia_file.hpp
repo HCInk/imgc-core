@@ -25,7 +25,7 @@ private:
 	torasu::tstd::Dfile* srcFile = NULL;
 	MediaDecoder* decoder = NULL;
 
-	void load(torasu::ExecutionInterface* ei);
+	void load(torasu::ExecutionInterface* ei, torasu::LogInstruction li);
 
 public:
 	Rmedia_file(torasu::tools::RenderableSlot src);

@@ -26,17 +26,18 @@ torasu::ResultSegment* Rgain::renderSegment(torasu::ResultSegmentSettings* resSe
 	}
 
 	torasu::ExecutionInterface* ei = ri->getExecutionInterface();
+	torasu::LogInstruction li = ri->getLogInstruction();
 	torasu::RenderContext* rctx = ri->getRenderContext();
 
 	// Creation of Requests
 
 	torasu::tools::RenderInstructionBuilder ribSrc;
 	auto srcHandle = ribSrc.addSegmentWithHandle<torasu::tstd::Dbimg>(visPipeline, format);
-	auto srcRndId = ribSrc.enqueueRender(rSrc, rctx, ei);
+	auto srcRndId = ribSrc.enqueueRender(rSrc, rctx, ei, li);
 
 	torasu::tools::RenderInstructionBuilder ribGain;
 	auto gainHandle = ribGain.addSegmentWithHandle<torasu::tstd::Dnum>(numPipeline, NULL);
-	auto gainRndId = ribGain.enqueueRender(rGainVal, rctx, ei);
+	auto gainRndId = ribGain.enqueueRender(rGainVal, rctx, ei, li);
 
 	// Fetching of requests
 

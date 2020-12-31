@@ -22,15 +22,16 @@ torasu::ResultSegment* Rcropdata_combined::renderSegment(torasu::ResultSegmentSe
 	if (pipeline.compare(IMGC_PL_ALIGN) == 0) {
 
 		auto ei = ri->getExecutionInterface();
+		auto li = ri->getLogInstruction();
 		auto rctx = ri->getRenderContext();
 
 		torasu::tools::RenderInstructionBuilder rib;
 		auto resHandle = rib.addSegmentWithHandle<torasu::tstd::Dnum>(TORASU_STD_PL_NUM, nullptr);
 
-		auto rendL = rib.enqueueRender(leftRnd, rctx, ei);
-		auto rendR = rib.enqueueRender(rightRnd, rctx, ei);
-		auto rendT = rib.enqueueRender(topRnd, rctx, ei);
-		auto rendB = rib.enqueueRender(bottomRnd, rctx, ei);
+		auto rendL = rib.enqueueRender(leftRnd, rctx, ei, li);
+		auto rendR = rib.enqueueRender(rightRnd, rctx, ei, li);
+		auto rendT = rib.enqueueRender(topRnd, rctx, ei, li);
+		auto rendB = rib.enqueueRender(bottomRnd, rctx, ei, li);
 
 		torasu::RenderResult* resL = ei->fetchRenderResult(rendL);
 		torasu::RenderResult* resR = ei->fetchRenderResult(rendR);
