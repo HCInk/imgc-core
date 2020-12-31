@@ -28,6 +28,8 @@
 #include <torasu/std/Rdivide.hpp>
 #include <torasu/std/Rfloor_mod.hpp>
 #include <torasu/std/Radd.hpp>
+#include <torasu/std/Rsin.hpp>
+#include <torasu/std/Rsubtract.hpp>
 
 #include <torasu/mod/imgc/pipeline_names.hpp>
 #include <torasu/mod/imgc/Rimg_file.hpp>
@@ -41,6 +43,8 @@
 #include <torasu/mod/imgc/Dcropdata.hpp>
 #include <torasu/mod/imgc/Rcropdata.hpp>
 #include <torasu/mod/imgc/Rcropdata_combined.hpp>
+#include <torasu/mod/imgc/Rgraphics.hpp>
+#include <torasu/mod/imgc/Rrothombus.hpp>
 
 #include "example_tools.hpp"
 
@@ -655,6 +659,104 @@ void encodeTorasu() {
 
 }
 
+void graphicsExample() {
+
+	torasu::tstd::Rrctx_value time(TORASU_STD_CTX_TIME, TORASU_STD_PL_NUM);
+
+	torasu::tstd::Rnum speed(40);
+
+	torasu::tstd::Rmultiply trm(&time, &speed);
+
+	torasu::tstd::Rsin sinVal(&trm);
+
+	torasu::tstd::Rnum valRoundFac(9.5);
+	torasu::tstd::Rnum valRoundAdd(-1);
+	torasu::tstd::Rmultiply mul(&sinVal, &valRoundFac);
+	torasu::tstd::Radd round(&mul, &valRoundAdd);
+
+	// torasu::tstd::Rnum round(1);
+
+	Rrothumbus roth(&round);
+
+	Rgraphics comp(&roth);
+
+	torasu::tstd::Rnet_file whiteFile("https://cdn.discordapp.com/attachments/217933179992932354/784853530628194304/unknown.png");
+	imgc::Rimg_file white(&whiteFile);
+	torasu::tstd::Rsubtract premulMaybe(&white, &comp);
+	
+	imgc::Rmedia_creator encoded(&premulMaybe, "mp4", 0., 36, 30, 1080*2, 1080*2, 4000*100);
+
+	auto* runner = new torasu::tstd::EIcore_runner();
+
+	torasu::ExecutionInterface* ei = runner->createInterface();
+
+	torasu::tools::RenderInstructionBuilder rib;
+	auto handle = rib.addSegmentWithHandle<torasu::tstd::Dfile>(TORASU_STD_PL_FILE, nullptr);
+
+	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+
+	torasu::RenderContext rctx;
+	std::unique_ptr<torasu::RenderResult> rr(rib.runRender(&encoded, &rctx, ei));
+
+	auto seg = handle.getFrom(rr.get());
+
+	auto* resFile = seg.getResult();
+	
+	std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+	std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
+
+	std::cout << "Saving..." << std::endl;
+	std::ofstream sysFile("test.mp4");
+
+	sysFile.write(const_cast<const char*>(reinterpret_cast<char*>(resFile->getFileData())), resFile->getFileSize());
+
+	sysFile.close();
+
+	std::cout << "Saved." << std::endl;
+
+	/*
+	torasu::tools::RenderInstructionBuilder rib;
+
+	torasu::tstd::Dbimg_FORMAT format(1080*2, 1080*2);
+	// torasu::tstd::Dbimg_FORMAT format(30*3, 30*3);
+
+	auto handle = rib.addSegmentWithHandle<torasu::tstd::Dbimg>(TORASU_STD_PL_VIS, &format);
+
+	std::cout << "RENDER BEGIN" << std::endl;
+
+	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+
+	torasu::RenderContext rctx;
+	auto result = rib.runRender(&comp, &rctx, ei);
+
+	std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+	std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
+	std::cout << "RENDER FIN" << std::endl;
+
+	auto castedRes = handle.getFrom(result);
+
+	torasu::ResultSegmentStatus rss = castedRes.getStatus();
+
+	std::cout << "STATUS " << rss << std::endl;
+
+	if (rss >= torasu::ResultSegmentStatus::ResultSegmentStatus_OK) {
+		torasu::tstd::Dbimg* bimg = castedRes.getResult();
+
+		unsigned error = lodepng::encode("out.png", bimg->getImageData(), bimg->getWidth(), bimg->getHeight());
+
+		std::cout << "ENCODE STAT " << error << std::endl;
+	}
+
+
+
+
+	delete result;
+	*/
+
+	delete ei;
+	delete runner;
+}
+
 }  // namespace imgc::examples
 
 int main(int argc, char** argv) {
@@ -668,8 +770,8 @@ int main(int argc, char** argv) {
 	// examples::cropdataExample();
 	// examples::cropExample();
 	// examples::encodeExample();
-	examples::encodeTorasu();
-
+	// examples::encodeTorasu();
+	examples::graphicsExample();
 
 	return 0;
 }
