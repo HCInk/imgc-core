@@ -1,5 +1,6 @@
 #include "../include/torasu/mod/imgc/ShapeRenderer.hpp"
 
+#include <torasu/log_tools.hpp>
 #include <torasu/std/pipeline_names.hpp>
 #include <torasu/std/Dbimg.hpp>
 
@@ -176,13 +177,15 @@ inline std::string setostr(const InterpStackElem& elem) {
 
 namespace imgc {
 
-torasu::tstd::Dbimg* ShapeRenderer::render(torasu::tstd::Dbimg_FORMAT fmt, Dgraphics::GShape shape) {
+torasu::tstd::Dbimg* ShapeRenderer::render(torasu::tstd::Dbimg_FORMAT fmt, Dgraphics::GShape shape, torasu::LogInstruction li) {
 
 	torasu::tstd::Dbimg* base = new torasu::tstd::Dbimg(fmt);
 
 	uint32_t width = base->getWidth();
 	uint32_t height = base->getHeight();
 	uint8_t* data = base->getImageData();
+
+	bool logPerformance = li.level <= torasu::LogLevel::DEBUG;
 
 
 	//
@@ -207,7 +210,7 @@ torasu::tstd::Dbimg* ShapeRenderer::render(torasu::tstd::Dbimg_FORMAT fmt, Dgrap
 	ScanlineParticleStorage lineMapping(height);
 
 	for (auto& section : shape.sections) {
-		bench = std::chrono::steady_clock::now();
+		if (logPerformance) bench = std::chrono::steady_clock::now();
 
 		std::vector<InterpStackElem> result;
 
@@ -273,13 +276,16 @@ torasu::tstd::Dbimg* ShapeRenderer::render(torasu::tstd::Dbimg_FORMAT fmt, Dgrap
 			}
 		}
 
-		std::cout << "Subdivision = " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - bench).count() << "[ms]" << std::endl;
-		
+		if (logPerformance)  {
+			li.logger->log(torasu::LogLevel::DEBUG, 
+				std::string("RGraphics-perf: Subdivision = ") + std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - bench).count()) + "[ms]");
+			
+			bench = std::chrono::steady_clock::now();
+		}
+
 		//
 		// Remapping
 		//
-
-		bench = std::chrono::steady_clock::now();
 		
 		AbsoluteCoordinate prevCord;
 		bool hasPrev = false;
@@ -377,8 +383,12 @@ torasu::tstd::Dbimg* ShapeRenderer::render(torasu::tstd::Dbimg_FORMAT fmt, Dgrap
 		}
 
 
-		std::cout << "Remapping = " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - bench).count() << "[ms]" << std::endl;
-		bench = std::chrono::steady_clock::now();
+		if (logPerformance)  {
+			li.logger->log(torasu::LogLevel::DEBUG, 
+				std::string("RGraphics-perf: Remapping = ") + std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - bench).count()) + "[ms]");
+			
+			bench = std::chrono::steady_clock::now();
+		}
 			
 	}
 
@@ -599,15 +609,18 @@ torasu::tstd::Dbimg* ShapeRenderer::render(torasu::tstd::Dbimg_FORMAT fmt, Dgrap
 
 	}
 
-	std::cout << "Raster = " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - bench).count() << "[ms]" << std::endl;
 
+	if (logPerformance)  {
+		li.logger->log(torasu::LogLevel::DEBUG, 
+			std::string("RGraphics-perf: Raster = ") + std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - bench).count()) + "[ms]");
+	}
 
-	std::cout << "Drawn " << vertCount << " verts" << std::endl;
+	torasu::tools::log_checked(li, torasu::LogLevel::DEBUG, std::string() + "Drawn " + std::to_string(vertCount) + " verts");
 
 #if IMGC_RGRAPHICS_DBG_BENCH_LOOP != 0
 	}
 #endif
-		
+
 	return base;
 
 }

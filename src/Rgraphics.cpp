@@ -48,7 +48,7 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 					throw std::runtime_error("Rendering multiple objects is currently unsupported!");
 				}
 				auto& object = *graphics->getObjects().begin();
-				base = ShapeRenderer::render(*fmt, object.shape);
+				base = ShapeRenderer::render(*fmt, object.shape, ri->getLogInstruction());
 			} else {
 				base = new torasu::tstd::Dbimg(*fmt);
 				uint32_t* data = reinterpret_cast<uint32_t*>(base->getImageData());

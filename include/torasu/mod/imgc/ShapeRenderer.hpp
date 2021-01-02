@@ -1,6 +1,7 @@
 #ifndef INCLUDE_TORASU_MOD_IMGC_GRAPHICSRENDERER_HPP_
 #define INCLUDE_TORASU_MOD_IMGC_GRAPHICSRENDERER_HPP_
 
+#include <torasu/torasu.hpp>
 #include <torasu/std/Dbimg.hpp>
 
 #include <torasu/mod/imgc/Dgraphics.hpp>
@@ -10,7 +11,7 @@ class ShapeRenderer {
 
 public:
 
-	static torasu::tstd::Dbimg* render(torasu::tstd::Dbimg_FORMAT fmt, Dgraphics::GShape shape);
+	static torasu::tstd::Dbimg* render(torasu::tstd::Dbimg_FORMAT fmt, Dgraphics::GShape shape, torasu::LogInstruction li);
 };
 
 } // namespace imgc
