@@ -20,7 +20,8 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -yq \
 
 
 WORKDIR /build
-RUN git clone https://gitlab.com/HCInk/torasu/torasu-cpp.git
+# XXX Cloning logging-system branch for preperation to logging system implementation
+RUN git clone --branch logging-system https://gitlab.com/HCInk/torasu/torasu-cpp.git
 WORKDIR /build/torasu-cpp
 RUN git submodule update --init
 ARG build_hash

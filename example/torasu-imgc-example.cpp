@@ -11,6 +11,7 @@
 #include <torasu/std/context_names.hpp>
 #include <torasu/std/property_names.hpp>
 #include <torasu/std/EIcore_runner.hpp>
+#include <torasu/std/LIcore_logger.hpp>
 #include <torasu/std/Dstring.hpp>
 #include <torasu/std/Dbimg.hpp>
 #include <torasu/std/Daudio_buffer.hpp>
@@ -80,8 +81,9 @@ void netImageTest() {
 	Rimg_file tree(&file);
 
 
+	torasu::tstd::LIcore_logger logger;
+	torasu::LogInstruction li(&logger);
 	auto* runner = new torasu::tstd::EIcore_runner();
-
 	torasu::ExecutionInterface* ei = runner->createInterface();
 
 	torasu::tools::RenderInstructionBuilder rib;
@@ -102,7 +104,7 @@ void netImageTest() {
 
 	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
-	auto result = rib.runRender(&tree, NULL, ei);
+	auto result = rib.runRender(&tree, NULL, ei, li);
 
 	std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 	std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
@@ -256,6 +258,8 @@ void yetAnotherIMGCTest() {
 
 	// Creating Engine
 
+	torasu::tstd::LIcore_logger logger;
+	torasu::LogInstruction li(&logger);
 	torasu::tstd::EIcore_runner* runner = new torasu::tstd::EIcore_runner();
 	torasu::ExecutionInterface* ei = runner->createInterface();
 
@@ -263,7 +267,7 @@ void yetAnotherIMGCTest() {
 
 	torasu::RenderableProperties* props = torasu::tools::getProperties(&video,
 	{TORASU_STD_PROP_DURATION, TORASU_STD_PROP_IMG_WIDTH, TORASU_STD_PROP_IMG_HEIGHT, TORASU_STD_PROP_IMG_RAITO},
-	ei);
+	ei, li);
 
 	auto* dataDuration = torasu::tools::getPropertyValue<torasu::tstd::Dnum>(props, TORASU_STD_PROP_DURATION);
 	double videoDuration = dataDuration ? dataDuration->getNum() : 0;
@@ -314,7 +318,7 @@ void yetAnotherIMGCTest() {
 		rctx[TORASU_STD_CTX_TIME] = &timeBuf;
 
 		// Render Result
-		auto result = rib.runRender(&tree, &rctx, ei);
+		auto result = rib.runRender(&tree, &rctx, ei, li);
 
 		// Evaluate Result
 
@@ -396,8 +400,9 @@ void cropdataExample() {
 
 	// Creating the runner
 
+	torasu::tstd::LIcore_logger logger;
+	torasu::LogInstruction li(&logger);
 	torasu::tstd::EIcore_runner runner;
-
 	torasu::ExecutionInterface* ei = runner.createInterface();
 
 	// Creating instruction
@@ -410,7 +415,7 @@ void cropdataExample() {
 
 	torasu::RenderContext rctx;
 
-	torasu::RenderResult* rr = rib.runRender(&tree, &rctx, ei);
+	torasu::RenderResult* rr = rib.runRender(&tree, &rctx, ei, li);
 
 	// Finding results
 
@@ -446,8 +451,9 @@ void cropExample() {
 
 	// Creating the runner
 
+	torasu::tstd::LIcore_logger logger;
+	torasu::LogInstruction li(&logger);
 	torasu::tstd::EIcore_runner runner;
-
 	torasu::ExecutionInterface* ei = runner.createInterface();
 
 	// Creating instruction
@@ -468,7 +474,7 @@ void cropExample() {
 
 	// Running render based on instruction
 
-	torasu::RenderResult* rr = rib.runRender(&tree, &rctx, ei);
+	torasu::RenderResult* rr = rib.runRender(&tree, &rctx, ei, li);
 
 	// Finding results
 
@@ -632,6 +638,8 @@ void encodeTorasu() {
 
 	// Creating Engine
 
+	torasu::tstd::LIcore_logger logger;
+	torasu::LogInstruction li(&logger);
 	torasu::tstd::EIcore_runner* runner = new torasu::tstd::EIcore_runner();
 	torasu::ExecutionInterface* ei = runner->createInterface();
 
@@ -639,7 +647,7 @@ void encodeTorasu() {
 	auto handle = rib.addSegmentWithHandle<torasu::tstd::Dfile>(TORASU_STD_PL_FILE, nullptr);
 
 	torasu::RenderContext rctx;
-	std::unique_ptr<torasu::RenderResult> rr(rib.runRender(tree, &rctx, ei));
+	std::unique_ptr<torasu::RenderResult> rr(rib.runRender(tree, &rctx, ei, li));
 
 	auto seg = handle.getFrom(rr.get());
 
@@ -686,8 +694,9 @@ void graphicsExample() {
 	
 	imgc::Rmedia_creator encoded(&premulMaybe, "mp4", 0., 36, 30, 1080*2, 1080*2, 4000*100);
 
+	torasu::tstd::LIcore_logger logger;
+	torasu::LogInstruction li(&logger, torasu::LogLevel::DEBUG);
 	auto* runner = new torasu::tstd::EIcore_runner();
-
 	torasu::ExecutionInterface* ei = runner->createInterface();
 
 	torasu::tools::RenderInstructionBuilder rib;
@@ -696,7 +705,7 @@ void graphicsExample() {
 	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
 	torasu::RenderContext rctx;
-	std::unique_ptr<torasu::RenderResult> rr(rib.runRender(&encoded, &rctx, ei));
+	std::unique_ptr<torasu::RenderResult> rr(rib.runRender(&encoded, &rctx, ei, li));
 
 	auto seg = handle.getFrom(rr.get());
 

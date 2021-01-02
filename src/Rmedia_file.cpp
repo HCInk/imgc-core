@@ -32,7 +32,7 @@ Rmedia_file::~Rmedia_file() {
 }
 
 
-void Rmedia_file::load(torasu::ExecutionInterface* ei) {
+void Rmedia_file::load(torasu::ExecutionInterface* ei, torasu::LogInstruction li) {
 
 	ei->lock();
 
@@ -56,7 +56,7 @@ void Rmedia_file::load(torasu::ExecutionInterface* ei) {
 	auto handle = rib.addSegmentWithHandle<torasu::tstd::Dfile>(TORASU_STD_PL_FILE, NULL);
 
 	torasu::RenderContext rctx;
-	srcRendRes = rib.runRender(srcRnd.get(), &rctx, ei);
+	srcRendRes = rib.runRender(srcRnd.get(), &rctx, ei, li);
 
 	auto castedResultSeg = handle.getFrom(srcRendRes);
 
@@ -76,7 +76,8 @@ void Rmedia_file::load(torasu::ExecutionInterface* ei) {
 
 torasu::RenderResult* Rmedia_file::render(torasu::RenderInstruction* ri) {
 	torasu::ExecutionInterface* ei = ri->getExecutionInterface();
-	load(ei);
+	torasu::LogInstruction li = ri->getLogInstruction();
+	load(ei, li);
 
 	std::map<std::string, torasu::ResultSegment*>* results = new std::map<std::string, torasu::ResultSegment*>();
 
