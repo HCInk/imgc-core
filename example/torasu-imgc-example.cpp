@@ -606,7 +606,7 @@ void encodeTorasu() {
 
 	imgc::Rmedia_file video1(&videoFile1);
 	imgc::Rmedia_file video2(&videoFile2);
-	
+
 	// Remap time to speed it up and then loop it from the 2nd to 4th second
 	torasu::tstd::Rnum speed(2);
 	torasu::tstd::Rnum loop(2);
@@ -691,7 +691,7 @@ void graphicsExample() {
 	torasu::tstd::Rnet_file whiteFile("https://cdn.discordapp.com/attachments/217933179992932354/784853530628194304/unknown.png");
 	imgc::Rimg_file white(&whiteFile);
 	torasu::tstd::Rsubtract premulMaybe(&white, &comp);
-	
+
 	imgc::Rmedia_creator encoded(&premulMaybe, "mp4", 0., 36, 30, 1080*2, 1080*2, 4000*100);
 
 	torasu::tstd::LIcore_logger logger;
@@ -710,7 +710,7 @@ void graphicsExample() {
 	auto seg = handle.getFrom(rr.get());
 
 	auto* resFile = seg.getResult();
-	
+
 	std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 	std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
 

@@ -11,16 +11,16 @@
 
 namespace imgc {
 
-Rrothumbus::Rrothumbus(Renderable* roundVal) 
+Rrothumbus::Rrothumbus(Renderable* roundVal)
 	: SimpleRenderable("IMGC::RROTHUMBUS", false, true),
-	roundValRnd(roundVal) {}
+	  roundValRnd(roundVal) {}
 
 Rrothumbus::~Rrothumbus() {}
 
 torasu::ResultSegment* Rrothumbus::renderSegment(torasu::ResultSegmentSettings* resSettings, torasu::RenderInstruction* ri) {
 	std::string pipeline = resSettings->getPipeline();
 	if (pipeline == TORASU_STD_PL_VIS) {
-		
+
 		if (!(dynamic_cast<Dgraphics_FORMAT*>(resSettings->getResultFormatSettings()))) {
 			return new torasu::ResultSegment(torasu::ResultSegmentStatus_INVALID_FORMAT);
 		}
@@ -43,7 +43,7 @@ torasu::ResultSegment* Rrothumbus::renderSegment(torasu::ResultSegmentSettings* 
 			std::unique_ptr<torasu::RenderResult> rndRes(ei->fetchRenderResult(renderId));
 
 			auto fetchedRes = segHandle.getFrom(rndRes.get());
-			
+
 			if (fetchedRes.getResult() != nullptr) {
 				rounding = fetchedRes.getResult()->getNum();
 			} else {
@@ -60,7 +60,7 @@ torasu::ResultSegment* Rrothumbus::renderSegment(torasu::ResultSegmentSettings* 
 
 		auto* graphics = new Dgraphics({
 			Dgraphics::GObject(
-			Dgraphics::GShape(
+				Dgraphics::GShape(
 			Dgraphics::GSection({
 				{
 					{.5-radius,.5},
@@ -90,11 +90,11 @@ torasu::ResultSegment* Rrothumbus::renderSegment(torasu::ResultSegmentSettings* 
 			{
 				{0,0}, {0,1}, {1,1}, {1,0}
 			}
-		))});
+				))});
 
 		return new torasu::ResultSegment(
-			!failGetRounding ? torasu::ResultSegmentStatus_OK :torasu::ResultSegmentStatus_OK_WARN, 
-			graphics, true);
+				   !failGetRounding ? torasu::ResultSegmentStatus_OK :torasu::ResultSegmentStatus_OK_WARN,
+				   graphics, true);
 
 	} else {
 		return new torasu::ResultSegment(torasu::ResultSegmentStatus_INVALID_SEGMENT);

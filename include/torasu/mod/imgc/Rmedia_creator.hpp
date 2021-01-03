@@ -28,10 +28,10 @@ protected:
 	torasu::ResultSegment* renderSegment(torasu::ResultSegmentSettings* resSettings, torasu::RenderInstruction* ri) override;
 
 public:
-	Rmedia_creator(torasu::tools::RenderableSlot src, torasu::tstd::StringSlot format, 
-		torasu::tstd::NumSlot begin, torasu::tstd::NumSlot end, torasu::tstd::NumSlot fps = 0.0, 
-		torasu::tstd::NumSlot width = 0.0, torasu::tstd::NumSlot height = 0.0, 
-		torasu::tstd::NumSlot videoBitrate = 0.0, torasu::tstd::NumSlot audioMinSampleRate = -1);
+	Rmedia_creator(torasu::tools::RenderableSlot src, torasu::tstd::StringSlot format,
+				   torasu::tstd::NumSlot begin, torasu::tstd::NumSlot end, torasu::tstd::NumSlot fps = 0.0,
+				   torasu::tstd::NumSlot width = 0.0, torasu::tstd::NumSlot height = 0.0,
+				   torasu::tstd::NumSlot videoBitrate = 0.0, torasu::tstd::NumSlot audioMinSampleRate = -1);
 	~Rmedia_creator();
 
 	torasu::ElementMap getElements() override;

@@ -16,13 +16,13 @@
 namespace imgc {
 
 
-Rmedia_creator::Rmedia_creator(torasu::tools::RenderableSlot src, torasu::tstd::StringSlot format, 
-		torasu::tstd::NumSlot begin, torasu::tstd::NumSlot end, torasu::tstd::NumSlot fps, 
-		torasu::tstd::NumSlot width, torasu::tstd::NumSlot height, 
-		torasu::tstd::NumSlot videoBitrate, torasu::tstd::NumSlot audioMinSampleRate)
+Rmedia_creator::Rmedia_creator(torasu::tools::RenderableSlot src, torasu::tstd::StringSlot format,
+							   torasu::tstd::NumSlot begin, torasu::tstd::NumSlot end, torasu::tstd::NumSlot fps,
+							   torasu::tstd::NumSlot width, torasu::tstd::NumSlot height,
+							   torasu::tstd::NumSlot videoBitrate, torasu::tstd::NumSlot audioMinSampleRate)
 	: SimpleRenderable("IMGC::RMEDIA_CREATOR", false, true),
-	  srcRnd(src), formatRnd(format), beginRnd(begin), endRnd(end), fpsRnd(fps), 
-	  widthRnd(width), heightRnd(height), 
+	  srcRnd(src), formatRnd(format), beginRnd(begin), endRnd(end), fpsRnd(fps),
+	  widthRnd(width), heightRnd(height),
 	  videoBitrateRnd(videoBitrate), audioMinSampleRateRnd(audioMinSampleRate) {}
 
 Rmedia_creator::~Rmedia_creator() {}

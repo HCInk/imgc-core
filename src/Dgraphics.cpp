@@ -1,7 +1,7 @@
 #include "../include/torasu/mod/imgc/Dgraphics.hpp"
 
 namespace imgc {
-	
+
 Dgraphics::Dgraphics(std::string jsonStripped) : DataPackable(jsonStripped) {}
 Dgraphics::Dgraphics(torasu::json jsonParsed) : DataPackable(jsonParsed) {}
 
@@ -32,7 +32,7 @@ Dgraphics* Dgraphics::clone() {
 
 void Dgraphics::load() {
 	torasu::json json = getJson();
-	
+
 	// TODO Dgraphics: load data
 }
 
@@ -49,13 +49,13 @@ std::vector<Dgraphics::GObject>& Dgraphics::getObjects() {
 	return objects;
 }
 
-Dgraphics::GSection::GSection(std::vector<GSegment> segments) 
+Dgraphics::GSection::GSection(std::vector<GSegment> segments)
 	: segments(segments) {}
 
-Dgraphics::GShape::GShape(std::vector<GSection> sections, std::vector<GCoordinate> bounds) 
+Dgraphics::GShape::GShape(std::vector<GSection> sections, std::vector<GCoordinate> bounds)
 	: sections(sections), bounds(bounds) {}
 
-Dgraphics::GShape::GShape(GSection section, std::vector<GCoordinate> bounds) 
+Dgraphics::GShape::GShape(GSection section, std::vector<GCoordinate> bounds)
 	: sections({section}), bounds(bounds) {}
 
 Dgraphics::GObject::GObject(GShape shape)

@@ -18,8 +18,8 @@ class Dgraphics : public torasu::DataPackable {
 public:
 
 	/**
-	 * @brief  Graphics-Coordinate 
-	 * (0,0): top-left 
+	 * @brief  Graphics-Coordinate
+	 * (0,0): top-left
 	 * (1,1): bottom-right
 	 */
 	struct GCoordinate {
@@ -34,7 +34,7 @@ public:
 	};
 
 	/**
-	 * @brief  A section which is made out of segments 
+	 * @brief  A section which is made out of segments
 	 * which enclose the area the section defines
 	 */
 	class GSection {
@@ -87,7 +87,7 @@ public:
 
 	std::vector<GObject>& getObjects();
 };
-	
+
 } // namespace imgc
 
 #endif // INCLUDE_TORASU_MOD_IMGC_DGRAPHICS_HPP_

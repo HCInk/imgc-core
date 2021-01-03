@@ -8,14 +8,14 @@
 
 namespace imgc {
 
-Rgraphics::Rgraphics(Dgraphics* graphics) 
+Rgraphics::Rgraphics(Dgraphics* graphics)
 	: SimpleRenderable("IMGC::RGRAPHICS", true, true),
-	graphics(graphics), source(this) {}
+	  graphics(graphics), source(this) {}
 
 
-Rgraphics::Rgraphics(Renderable* graphics) 
+Rgraphics::Rgraphics(Renderable* graphics)
 	: SimpleRenderable("IMGC::RGRAPHICS", true, true),
-	graphics(nullptr), source(graphics) {}
+	  graphics(nullptr), source(graphics) {}
 
 Rgraphics::~Rgraphics() {}
 
@@ -52,9 +52,9 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* r
 			} else {
 				base = new torasu::tstd::Dbimg(*fmt);
 				uint32_t* data = reinterpret_cast<uint32_t*>(base->getImageData());
-				std::fill(data, 
-						data+(base->getWidth()*base->getHeight()),
-						0x000000);
+				std::fill(data,
+						  data+(base->getWidth()*base->getHeight()),
+						  0x000000);
 			}
 
 			return new torasu::ResultSegment(torasu::ResultSegmentStatus_OK, base, true);
