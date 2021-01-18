@@ -121,7 +121,7 @@ public:
 		 * - "date": Format "yyyy-mm-dd hh:mm:ss"
 		 * - "description": Free multi-line text
 		 */
-		std::map<std::string, std::string>* metadata = nullptr;
+		const std::map<std::string, std::string>* metadata = nullptr;
 	};
 
 	typedef std::function<int(FrameRequest*)> FrameCallbackFunc;
