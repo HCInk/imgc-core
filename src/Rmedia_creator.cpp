@@ -35,6 +35,8 @@ torasu::ResultSegment* Rmedia_creator::renderSegment(torasu::ResultSegmentSettin
 		auto li = ri->getLogInstruction();
 		auto* rctx = ri->getRenderContext();
 
+		std::map<std::string, std::string> metadata;
+
 		MediaEncoder::EncodeRequest req;
 
 		{
@@ -99,6 +101,12 @@ torasu::ResultSegment* Rmedia_creator::renderSegment(torasu::ResultSegmentSettin
 			if (req.minSampleRate >= 0) {
 				req.doAudio = true;
 			}
+
+			metadata["title"] = "New test title";
+			metadata["artist"] = "New test artist";
+			metadata["date"] = "2014-05-02 22:01:04";
+			metadata["description"] = "Blablabla new test description\ntest dis is second line, such wow!";
+			req.metadata = &metadata;
 		}
 
 		torasu::tstd::Dnum frameRatio((double) req.width / req.height);

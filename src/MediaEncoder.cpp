@@ -381,12 +381,11 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
 		}
 	}
 
-	{
-		if (av_dict_set(&formatCtx->metadata, "title", "Test title", 0) < 0) throw std::runtime_error("Failed to set title!");
-		if (av_dict_set(&formatCtx->metadata, "artist", "Test artist", 0) < 0) throw std::runtime_error("Failed to set artist!");
-		if (av_dict_set(&formatCtx->metadata, "date", "2013-05-02 22:01:04", 0) < 0) throw std::runtime_error("Failed to set date!");
-
-		if (av_dict_set(&formatCtx->metadata, "description", "Blablabla test description\ntest dis is second line", 0) < 0) throw std::runtime_error("Failed to set description!");
+	if (request.metadata != nullptr) {
+		for (auto entry : *request.metadata) {
+			if (av_dict_set(&formatCtx->metadata, entry.first.c_str(), entry.second.c_str(), 0) < 0)
+				throw std::runtime_error("Failed to set metadata-field \"" + entry.first + "\"!");
+		}
 	}
 
 	if (doAudio) {
