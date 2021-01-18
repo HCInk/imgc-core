@@ -10,6 +10,7 @@
 #include <torasu/std/Dbimg.hpp>
 #include <torasu/std/Dnum.hpp>
 #include <torasu/std/Dstring.hpp>
+#include <torasu/std/Dstring_map.hpp>
 
 #include <torasu/mod/imgc/MediaEncoder.hpp>
 
@@ -19,11 +20,13 @@ namespace imgc {
 Rmedia_creator::Rmedia_creator(torasu::tools::RenderableSlot src, torasu::tstd::StringSlot format,
 							   torasu::tstd::NumSlot begin, torasu::tstd::NumSlot end, torasu::tstd::NumSlot fps,
 							   torasu::tstd::NumSlot width, torasu::tstd::NumSlot height,
-							   torasu::tstd::NumSlot videoBitrate, torasu::tstd::NumSlot audioMinSampleRate)
+							   torasu::tstd::NumSlot videoBitrate, torasu::tstd::NumSlot audioMinSampleRate,
+							   torasu::tools::RenderableSlot metadata)
 	: SimpleRenderable("IMGC::RMEDIA_CREATOR", false, true),
 	  srcRnd(src), formatRnd(format), beginRnd(begin), endRnd(end), fpsRnd(fps),
 	  widthRnd(width), heightRnd(height),
-	  videoBitrateRnd(videoBitrate), audioMinSampleRateRnd(audioMinSampleRate) {}
+	  videoBitrateRnd(videoBitrate), audioMinSampleRateRnd(audioMinSampleRate),
+	  metadataSlot(metadata) {}
 
 Rmedia_creator::~Rmedia_creator() {}
 
@@ -35,15 +38,19 @@ torasu::ResultSegment* Rmedia_creator::renderSegment(torasu::ResultSegmentSettin
 		auto li = ri->getLogInstruction();
 		auto* rctx = ri->getRenderContext();
 
+		std::unique_ptr<torasu::RenderResult> rrMetadata;
 		std::map<std::string, std::string> metadata;
 
 		MediaEncoder::EncodeRequest req;
 
 		{
+			bool doMetadata = metadataSlot.get() != nullptr;
 			torasu::tools::RenderInstructionBuilder textRib;
 			auto textHandle = textRib.addSegmentWithHandle<torasu::tstd::Dstring>(TORASU_STD_PL_STRING, nullptr);
 			torasu::tools::RenderInstructionBuilder numRib;
 			auto numHandle = numRib.addSegmentWithHandle<torasu::tstd::Dnum>(TORASU_STD_PL_NUM, nullptr);
+			torasu::tools::RenderInstructionBuilder metadataRib;
+			auto metdadataHandle = metadataRib.addSegmentWithHandle<torasu::tstd::Dstring_map>(TORASU_STD_PL_MAP, nullptr);
 
 			auto formatRid = textRib.enqueueRender(formatRnd, rctx, ei, li);
 			auto beginRid = numRib.enqueueRender(beginRnd, rctx, ei, li);
@@ -53,6 +60,7 @@ torasu::ResultSegment* Rmedia_creator::renderSegment(torasu::ResultSegmentSettin
 			auto heightRid = numRib.enqueueRender(heightRnd, rctx, ei, li);
 			auto vbrRid = numRib.enqueueRender(videoBitrateRnd, rctx, ei, li);
 			auto amsrRid = numRib.enqueueRender(audioMinSampleRateRnd, rctx, ei, li);
+			auto metaRid = doMetadata ? metadataRib.enqueueRender(metadataSlot, rctx, ei, li) : 0;
 
 			std::unique_ptr<torasu::RenderResult> rrFormat(ei->fetchRenderResult(formatRid));
 			std::unique_ptr<torasu::RenderResult> rrBegin(ei->fetchRenderResult(beginRid));
@@ -62,6 +70,7 @@ torasu::ResultSegment* Rmedia_creator::renderSegment(torasu::ResultSegmentSettin
 			std::unique_ptr<torasu::RenderResult> rrHeight(ei->fetchRenderResult(heightRid));
 			std::unique_ptr<torasu::RenderResult> rrVbr(ei->fetchRenderResult(vbrRid));
 			std::unique_ptr<torasu::RenderResult> rrAmsr(ei->fetchRenderResult(amsrRid));
+			if (doMetadata) rrMetadata = std::unique_ptr<torasu::RenderResult>(ei->fetchRenderResult(metaRid));
 
 			auto* dFormat = textHandle.getFrom(rrFormat.get()).getResult();
 			auto* dBegin = numHandle.getFrom(rrBegin.get()).getResult();
@@ -71,6 +80,7 @@ torasu::ResultSegment* Rmedia_creator::renderSegment(torasu::ResultSegmentSettin
 			auto* dHeight = numHandle.getFrom(rrHeight.get()).getResult();
 			auto* dVbr = numHandle.getFrom(rrVbr.get()).getResult();
 			auto* dAmsr = numHandle.getFrom(rrAmsr.get()).getResult();
+			auto* dMeta = doMetadata ? metdadataHandle.getFrom(rrMetadata.get()).getResult() : nullptr;
 
 			if (!dFormat) throw std::runtime_error("Failed to retrieve format-key");
 			if (!dBegin) throw std::runtime_error("Failed to retrieve begin-timestamp");
@@ -102,11 +112,10 @@ torasu::ResultSegment* Rmedia_creator::renderSegment(torasu::ResultSegmentSettin
 				req.doAudio = true;
 			}
 
-			metadata["title"] = "New test title";
-			metadata["artist"] = "New test artist";
-			metadata["date"] = "2014-05-02 22:01:04";
-			metadata["description"] = "Blablabla new test description\ntest dis is second line, such wow!";
-			req.metadata = &metadata;
+			if (doMetadata) {
+				if (!dMeta) throw std::runtime_error("Failed to retrieve metadata!");
+				req.metadata = &dMeta->getMap(); // dMeta, shall be kept until encode is finished
+			}
 		}
 
 		torasu::tstd::Dnum frameRatio((double) req.width / req.height);
@@ -185,6 +194,7 @@ torasu::ElementMap Rmedia_creator::getElements() {
 	elems["height"] = heightRnd.get();
 	elems["vbr"] = videoBitrateRnd.get();
 	elems["amsr"] = audioMinSampleRateRnd.get();
+	elems["meta"] = metadataSlot.get();
 	return elems;
 }
 
@@ -197,6 +207,7 @@ void Rmedia_creator::setElement(std::string key, torasu::Element* elem) {
 	if (torasu::tools::trySetRenderableSlot("height", &heightRnd, false, key, elem)) return;
 	if (torasu::tools::trySetRenderableSlot("vbr", &videoBitrateRnd, false, key, elem)) return;
 	if (torasu::tools::trySetRenderableSlot("amsr", &audioMinSampleRateRnd, false, key, elem)) return;
+	if (torasu::tools::trySetRenderableSlot("meta", &metadataSlot, true, key, elem)) return;
 	throw torasu::tools::makeExceptSlotDoesntExist(key);
 }
 
