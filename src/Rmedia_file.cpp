@@ -34,9 +34,11 @@ Rmedia_file::~Rmedia_file() {
 
 void Rmedia_file::load(torasu::ExecutionInterface* ei, torasu::LogInstruction li) {
 
+	if (decoder != nullptr) return;
+
 	ei->lock();
 
-	if (decoder != NULL) {
+	if (decoder != nullptr) {
 		ei->unlock();
 		return;
 	}
