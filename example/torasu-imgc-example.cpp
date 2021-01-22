@@ -716,11 +716,11 @@ void graphicsExample() {
 		}
 	});
 
-	imgc::Rmedia_creator encoded(&premulMaybe, "mp4", 0., 1, 30, 1080*2, 1080*2, 4000*100, -1, &metadata);
+	imgc::Rmedia_creator encoded(&premulMaybe, "mp4", 0., 10, 30, 1080*2, 1080*2, 4000*100, -1, &metadata);
 
 	torasu::tstd::LIcore_logger logger;
 	torasu::LogInstruction li(&logger, torasu::LogLevel::DEBUG);
-	auto* runner = new torasu::tstd::EIcore_runner();
+	auto* runner = new torasu::tstd::EIcore_runner((size_t)8);
 	torasu::ExecutionInterface* ei = runner->createInterface();
 
 	torasu::tools::RenderInstructionBuilder rib;

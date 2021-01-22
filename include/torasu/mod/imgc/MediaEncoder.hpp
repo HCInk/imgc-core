@@ -19,22 +19,41 @@ extern "C" {
 #include <torasu/std/Dbimg.hpp>
 #include <torasu/std/Daudio_buffer.hpp>
 
+namespace {
+class StreamContainer;
+} // namespace
+
 namespace imgc {
 
 class MediaEncoder {
 public:
 	class FrameRequest {
+	public:
+		bool needsNow = false;
 	private:
 		std::function<void()> freeCallback;
+		std::function<int()> finishCallback;
 	protected:
 		FrameRequest() {}
+		int finish() {
+			if (finishCallback) {
+				return finishCallback();
+			} else {
+				return 0;
+			}
+		}
+	public:
 		virtual ~FrameRequest() {
 			freeCallback();
 		}
-	public:
 		inline void setFree(std::function<void()> freeCallback) {
 			this->freeCallback = freeCallback;
 		}
+		inline void setFinish(std::function<int()> finishCallback) {
+			this->finishCallback = finishCallback;
+		}
+
+		friend StreamContainer;
 	};
 
 	class VideoFrameRequest : public FrameRequest {
@@ -43,11 +62,12 @@ public:
 		torasu::tstd::Dbimg* result;
 		torasu::tstd::Dbimg_FORMAT* format;
 
-		// protected:
-	public:
+	protected:
 		VideoFrameRequest(double time, torasu::tstd::Dbimg_FORMAT* format)
 			: time(time), format(format) {}
-		~VideoFrameRequest() {}
+		~VideoFrameRequest() {
+			delete format;
+		}
 
 		inline torasu::tstd::Dbimg* getResult() {
 			return result;
@@ -64,6 +84,8 @@ public:
 		inline torasu::tstd::Dbimg_FORMAT* getFormat() {
 			return format;
 		}
+
+		friend StreamContainer;
 	};
 
 	class AudioFrameRequest : public FrameRequest {
@@ -76,7 +98,9 @@ public:
 	public:
 		AudioFrameRequest(double start, double duration, torasu::tstd::Daudio_buffer_FORMAT* format)
 			: start(start), duration(duration), format(format) {}
-		~AudioFrameRequest() {}
+		~AudioFrameRequest() {
+			delete format;
+		}
 
 		inline torasu::tstd::Daudio_buffer* getResult() {
 			return result;
@@ -125,6 +149,7 @@ public:
 	};
 
 	typedef std::function<int(FrameRequest*)> FrameCallbackFunc;
+	typedef std::function<int(void)> FrameResultFetchFunc;
 
 private:
 	FrameCallbackFunc frameCallbackFunc;

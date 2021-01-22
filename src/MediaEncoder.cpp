@@ -5,6 +5,7 @@
 #include <iostream>
 #include <fstream>
 #include <list>
+#include <queue>
 
 #define ENCODER_SANITY_CHECKS true
 
@@ -92,6 +93,11 @@ public:
 	AVPacket* queuedPacket = nullptr;
 	AVFrame* frame = nullptr;
 	SwsContext* swsCtx = nullptr;
+
+	// Fetch data
+	int64_t fetchPlayhead = 0;
+	std::queue<imgc::MediaEncoder::FrameRequest*> fetchQueue;
+	imgc::MediaEncoder::FrameRequest* pendingRequest = nullptr;
 
 	StreamContainer() {}
 
@@ -211,13 +217,50 @@ public:
 
 	}
 
-	inline int64_t writeFrame(imgc::MediaEncoder::FrameCallbackFunc callback, double offset, double maxDuration) {
+private:
+
+	/**
+	 * @brief  Will generate next frame request for the given stream
+	 * @param  offset: The offset of the stream to the source
+	 * @retval The created FrameRequest (has to be cleaned up by caller)
+	 */
+	inline imgc::MediaEncoder::FrameRequest* nextFrameRequest(double offset) {
+
+		double reqTs = (double) fetchPlayhead*time_base.num/time_base.den + offset;
+
+		switch (ctx->codec_type) {
+		case AVMEDIA_TYPE_VIDEO: {
+				fetchPlayhead += 1;
+
+				auto* bimgFmt = new torasu::tstd::Dbimg_FORMAT(frame->width, frame->height);
+				return new imgc::MediaEncoder::VideoFrameRequest(reqTs, bimgFmt);
+			}
+
+		case AVMEDIA_TYPE_AUDIO: {
+				fetchPlayhead += frame_size;
+
+				auto* fmt = new torasu::tstd::Daudio_buffer_FORMAT(frame->sample_rate, torasu::tstd::Daudio_buffer_CHFMT::FLOAT32);
+				return new imgc::MediaEncoder::AudioFrameRequest(reqTs, (double) frame->nb_samples/frame->sample_rate, fmt);
+			}
+
+		default:
+			throw std::runtime_error("Can't write frame for codec-type: " + std::to_string(ctx->codec_type));
+		}
+	}
+
+	inline int64_t writeFrame(imgc::MediaEncoder::FrameRequest* frameRequest, double maxDuration) {		
+		std::unique_ptr<imgc::MediaEncoder::FrameRequest> fr(frameRequest);
+
 		if (state != OPEN) {
 			throw std::logic_error("Can only write frame in OPEN-state!");
 		}
 
-		// Timestamp to be requested via callback
-		double reqTs = (double) playhead*time_base.num/time_base.den + offset;
+		{
+			int finishStat = fr->finish();
+			if (finishStat != 0) {
+				std::cerr << "Frame-finish callback exited with non-zero return code (" << finishStat << ")!" << std::endl;
+			}
+		}
 
 		switch (ctx->codec_type) {
 		case AVMEDIA_TYPE_VIDEO: {
@@ -231,21 +274,12 @@ public:
 						throw std::runtime_error("Failed to create sws_scaler_ctx!");
 				}
 
-				torasu::tstd::Dbimg_FORMAT bimgFmt(width, height);
-				imgc::MediaEncoder::VideoFrameRequest req(reqTs, &bimgFmt);
+				torasu::tstd::Dbimg* bimg = ((imgc::MediaEncoder::VideoFrameRequest*) frameRequest)->getResult();
 
-				int callbackStat = callback(&req);
-
-				if (callbackStat != 0) {
-					std::cerr << "Frame callback exited with non-zero return code (" << callbackStat << ")!" << std::endl;
-				} else {
-					torasu::tstd::Dbimg* bimg = req.getResult();
-
-					uint8_t* dst[4] = {bimg->getImageData(), nullptr, nullptr, nullptr};
-					int dest_linesize[4] = {width * 4, 0, 0, 0};
-					sws_scale(swsCtx, dst, dest_linesize, 0, frame->height,
-							  frame->data, frame->linesize);
-				}
+				uint8_t* src[4] = {bimg->getImageData(), nullptr, nullptr, nullptr};
+				int src_linesize[4] = {width * 4, 0, 0, 0};
+				sws_scale(swsCtx, src, src_linesize, 0, frame->height,
+							frame->data, frame->linesize);
 
 				return 1;
 			}
@@ -257,29 +291,22 @@ public:
 				} else {
 					frame->nb_samples = frame_size;
 				}
-				torasu::tstd::Daudio_buffer_FORMAT fmt(frame->sample_rate, torasu::tstd::Daudio_buffer_CHFMT::FLOAT32);
-				imgc::MediaEncoder::AudioFrameRequest req(reqTs, (double) frame->nb_samples/frame->sample_rate, &fmt);
-				int callbackStat = callback(&req);
 
-				if (callbackStat != 0) {
-					std::cerr << "Frame callback exited with non-zero return code (" << callbackStat << ")!" << std::endl;
-				} else {
-					torasu::tstd::Daudio_buffer* audioSeq = req.getResult();
+				torasu::tstd::Daudio_buffer* audioSeq = ((imgc::MediaEncoder::AudioFrameRequest*) frameRequest)->getResult();
 
-					size_t chCount = audioSeq->getChannelCount();
-					auto* channels = audioSeq->getChannels();
-					for (size_t ci = 0; ci < chCount; ci++) {
-						uint8_t* srcData = channels[ci].data;
-						uint8_t* destData = frame->data[ci];
+				size_t chCount = audioSeq->getChannelCount();
+				auto* channels = audioSeq->getChannels();
+				for (size_t ci = 0; ci < chCount; ci++) {
+					uint8_t* srcData = channels[ci].data;
+					uint8_t* destData = frame->data[ci];
 #if ENCODER_SANITY_CHECKS
-						if (channels[ci].dataSize > (size_t) frame->nb_samples*4) {
-							throw std::runtime_error("Sanity-Panic: Recieved frame is bigger then expected!");
-						}
+					if (channels[ci].dataSize > (size_t) frame->nb_samples*4) {
+						throw std::runtime_error("Sanity-Panic: Recieved frame is bigger then expected!");
+					}
 #endif
-						std::copy(srcData, srcData+channels[ci].dataSize, destData);
-						if (crop) {
-							std::fill(destData+(frame->nb_samples*4), destData+(frame_size*4), 0x00);
-						}
+					std::copy(srcData, srcData+channels[ci].dataSize, destData);
+					if (crop) {
+						std::fill(destData+(frame->nb_samples*4), destData+(frame_size*4), 0x00);
 					}
 				}
 
@@ -289,6 +316,69 @@ public:
 		default:
 			throw std::runtime_error("Can't write frame for codec-type: " + std::to_string(ctx->codec_type));
 		}
+	}
+
+public:
+
+	/**
+	 * @brief  Updates to next frame, and fills up the buffer
+	 * @param  callback: The callback that should be used to retrive the frames 
+	 * @param  duration: The duration of the stream 
+	 * @param  offset: The offset of the stream to the source
+	 * @retval true, if there is a frame to fetch; false, if the are no frames to fetch left
+	 */
+	bool updateFrameBuffer(imgc::MediaEncoder::FrameCallbackFunc callback, double duration, double offset) {
+		bool needsNewFrame = fetchQueue.empty();
+		for (;;) {
+			if (pendingRequest != nullptr) {
+				if (needsNewFrame) {
+					// Signalize it can't be postponed
+					pendingRequest->needsNow = true;
+				}
+
+				int callbackStat = callback(pendingRequest);
+				if (callbackStat == 0) {
+					// Callback successful - psuh into queue to be fetched
+					fetchQueue.push(pendingRequest);
+					needsNewFrame = false;
+				} else if (callbackStat == 1) {
+					if (needsNewFrame) throw std::runtime_error("Frame callback exited with postpone-code (1), but the flag needsNow is set");
+					// Postponed processing - try again later, exit buffering
+					break;
+				} else {
+					// Callback error - drop request
+					delete pendingRequest;
+					if (callbackStat < 0) {
+						std::cerr << "Frame callback exited with negative return code (" << callbackStat << ")!" << std::endl;
+					} else {
+						std::cerr << "Frame callback exited with invalid return code (" << callbackStat << ")!" << std::endl;
+					}
+				} 
+
+			}
+
+			if (duration - (fetchPlayhead*time_base.num/time_base.den) > 0) {
+				// Go to next request
+				pendingRequest = nextFrameRequest(offset);
+			} else {
+				// Reached end
+				pendingRequest = nullptr;
+				break;
+			}
+		}
+
+		// End of stream reached if queue is still empty
+		if (needsNewFrame) return false;
+
+		auto timeLeft = duration - (playhead*time_base.num/time_base.den);
+
+		auto written = writeFrame(fetchQueue.front(), timeLeft);
+		fetchQueue.pop();
+		frame->pts = playhead;
+		playhead += written;
+
+		return true;
+
 	}
 
 };
@@ -499,15 +589,11 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
 		}
 		StreamContainer& stream = *selectedStream;
 
-		double translatedPh = ((double)stream.playhead)*stream.time_base.num/stream.time_base.den;
-
-		AVFrame* frame = nullptr;
-		double duationLeft = duration - translatedPh;
-		if (duationLeft > 0) {
-			auto written = stream.writeFrame(frameCallbackFunc, begin, duationLeft);
+		AVFrame* frame;
+		if (stream.updateFrameBuffer(frameCallbackFunc, duration, begin)) {
 			frame = stream.frame;
-			frame->pts = stream.playhead;
-			stream.playhead += written;
+		} else {
+			frame = nullptr;
 		}
 
 		if (stream.hasQueuedPacket) {
