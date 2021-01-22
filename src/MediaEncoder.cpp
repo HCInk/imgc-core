@@ -381,6 +381,13 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
 		}
 	}
 
+	if (request.metadata != nullptr) {
+		for (auto entry : *request.metadata) {
+			if (av_dict_set(&formatCtx->metadata, entry.first.c_str(), entry.second.c_str(), 0) < 0)
+				throw std::runtime_error("Failed to set metadata-field \"" + entry.first + "\"!");
+		}
+	}
+
 	if (doAudio) {
 		if (oformat.audio_codec == AV_CODEC_ID_NONE) {
 			throw std::runtime_error("No audio-codec available for the format '" + formatName + "'");

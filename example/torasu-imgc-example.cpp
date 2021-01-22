@@ -31,6 +31,8 @@
 #include <torasu/std/Radd.hpp>
 #include <torasu/std/Rsin.hpp>
 #include <torasu/std/Rsubtract.hpp>
+#include <torasu/std/Rstring_map.hpp>
+#include <torasu/std/Rstring_replace.hpp>
 
 #include <torasu/mod/imgc/pipeline_names.hpp>
 #include <torasu/mod/imgc/Rimg_file.hpp>
@@ -667,6 +669,8 @@ void encodeTorasu() {
 
 }
 
+auto& IR = torasu::tools::inlineRenderable;
+
 void graphicsExample() {
 
 	torasu::tstd::Rrctx_value time(TORASU_STD_CTX_TIME, TORASU_STD_PL_NUM);
@@ -692,7 +696,27 @@ void graphicsExample() {
 	imgc::Rimg_file white(&whiteFile);
 	torasu::tstd::Rsubtract premulMaybe(&white, &comp);
 
-	imgc::Rmedia_creator encoded(&premulMaybe, "mp4", 0., 36, 30, 1080*2, 1080*2, 4000*100);
+
+	torasu::tstd::Rstring artist("John Doe");
+
+	torasu::tstd::Rstring_map metadata({
+		{"title", "Yet another test-title"},
+		{"artist", &artist},
+		{"date", "2021-01-18 13:33:33"},
+		{
+			"description", IR(
+				new torasu::tstd::Rstring_replace(
+					"This is a multiline description!\n"
+					"(It's here as an example)\n"
+					"The track is by \"%{artist}\".",
+					"%{artist}",
+					&artist
+				)
+			)
+		}
+	});
+
+	imgc::Rmedia_creator encoded(&premulMaybe, "mp4", 0., 1, 30, 1080*2, 1080*2, 4000*100, -1, &metadata);
 
 	torasu::tstd::LIcore_logger logger;
 	torasu::LogInstruction li(&logger, torasu::LogLevel::DEBUG);

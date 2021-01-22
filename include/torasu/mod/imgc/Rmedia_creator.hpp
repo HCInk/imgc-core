@@ -23,6 +23,7 @@ private:
 	torasu::tools::ManagedSlot<torasu::tstd::NumSlot> heightRnd; // NUM - Height of video in pixels
 	torasu::tools::ManagedSlot<torasu::tstd::NumSlot> videoBitrateRnd; // NUM - Bitrate of video
 	torasu::tools::ManagedSlot<torasu::tstd::NumSlot> audioMinSampleRateRnd; // NUM - Minimum sample-rate of audio (-1 for no audio)
+	torasu::tools::ManagedRenderableSlot metadataSlot; // MAP - Metadata-map
 
 protected:
 	torasu::ResultSegment* renderSegment(torasu::ResultSegmentSettings* resSettings, torasu::RenderInstruction* ri) override;
@@ -31,7 +32,8 @@ public:
 	Rmedia_creator(torasu::tools::RenderableSlot src, torasu::tstd::StringSlot format,
 				   torasu::tstd::NumSlot begin, torasu::tstd::NumSlot end, torasu::tstd::NumSlot fps = 0.0,
 				   torasu::tstd::NumSlot width = 0.0, torasu::tstd::NumSlot height = 0.0,
-				   torasu::tstd::NumSlot videoBitrate = 0.0, torasu::tstd::NumSlot audioMinSampleRate = -1);
+				   torasu::tstd::NumSlot videoBitrate = 0.0, torasu::tstd::NumSlot audioMinSampleRate = -1,
+				   torasu::tools::RenderableSlot metadata = nullptr);
 	~Rmedia_creator();
 
 	torasu::ElementMap getElements() override;
