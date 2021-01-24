@@ -193,7 +193,8 @@ torasu::RenderResult* Rmedia_file::render(torasu::RenderInstruction* ri) {
 				(*results)[videoKey.value()] = new torasu::ResultSegment(torasu::ResultSegmentStatus_OK, resultFrame, true);
 			} else {
 				if (li.level <= torasu::LogLevel::WARN)
-					li.logger->log(torasu::LogLevel::WARN, "DECODER RETURNED NO FRAME!");
+					li.logger->log(torasu::LogLevel::WARN, "DECODER RETURNED NO FRAME! "
+						"(TIME: " + std::to_string(time) + "-" + std::to_string(time+duration) + ")");
 				(*results)[videoKey.value()] = new torasu::ResultSegment(torasu::ResultSegmentStatus_OK_WARN, new torasu::tstd::Dbimg(*videoFormat), true);
 			}
 		}
