@@ -298,16 +298,15 @@ private:
 				auto* channels = audioSeq->getChannels();
 				for (size_t ci = 0; ci < chCount; ci++) {
 					uint8_t* srcData = channels[ci].data;
+					auto dataSize = channels[ci].dataSize;
 					uint8_t* destData = frame->data[ci];
 #if ENCODER_SANITY_CHECKS
-					if (channels[ci].dataSize > (size_t) frame->nb_samples*4) {
+					if (dataSize > (size_t) frame->nb_samples*4) {
 						throw std::runtime_error("Sanity-Panic: Recieved frame is bigger then expected!");
 					}
 #endif
-					std::copy(srcData, srcData+channels[ci].dataSize, destData);
-					if (crop) {
-						std::fill(destData+(frame->nb_samples*4), destData+(frame_size*4), 0x00);
-					}
+					std::copy(srcData, srcData+dataSize, destData);
+					std::fill(destData+dataSize, destData+(frame_size*4), 0x00);
 				}
 
 				return frame_size;

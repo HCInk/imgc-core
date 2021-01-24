@@ -337,10 +337,10 @@ void MediaDecoder::handleFrame(StreamEntry* stream, DecodingState* decodingState
 	int64_t targetPosition = toBaseTime(decodingState->requestStart, stream->base_time);
 	int64_t targetPositionEnd = toBaseTime(decodingState->requestEnd, stream->base_time);
 
-	if(targetPositionEnd > stream->duration) {
+	/* if(targetPositionEnd > stream->duration) {
 		// FAIL safe, forced the wanted end pos to the start of last available frame of the stream
 		targetPositionEnd = stream->duration - stream->frame->pkt_duration;
-	}
+	} */
 
 	if (!decodingState->videoDone && stream->index == video_stream_index) {
 		if (checkFrameTargetBound(stream->frame, targetPosition, targetPositionEnd)) {
@@ -533,6 +533,7 @@ void MediaDecoder::drainStream(StreamEntry* stream, DecodingState* decodingState
 		}
 
 		if (response == AVERROR_EOF) {
+			stream->frameIsPresent = false;
 			break;
 		}
 
