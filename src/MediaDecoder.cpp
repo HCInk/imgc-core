@@ -494,7 +494,24 @@ void MediaDecoder::initializePosition(DecodingState* decodingState) {
 
 	if (videoSeekBack || audioSeekBack || videoSeekForward) {
 		// std::cout << "SEEK VB " << videoSeekBack << " AB " << audioSeekBack << " VF " << videoSeekForward << std::endl;
-		av_seek_frame(av_format_ctx, -1, decodingState->requestStart * AV_TIME_BASE,
+
+		double position = decodingState->requestStart;
+
+		// Seek to 
+		if (decodingState->audioAvailable) {
+			auto audStream = getStreamEntryByIndex(audio_stream_index);
+			// For some reason the audStream->ctx_params->seek_preroll was not enough in practice
+			// This is we also seek back two frames more, which seemd to fix the issue on testing with a mp3
+			// Is audStream->ctx_params->seek_preroll maybe not set correctly? - If someone finds a better solution, help is appreciated!
+			double audioSeekPadding = (double)(audStream->ctx_params->frame_size*2 + audStream->ctx_params->seek_preroll +1) / audStream->ctx_params->sample_rate;
+			if (position > audioSeekPadding) {
+				position -= audioSeekPadding;
+			} else {
+				position = 0;
+			}
+		}
+
+		av_seek_frame(av_format_ctx, -1, position * AV_TIME_BASE,
 					  AVSEEK_FLAG_BACKWARD); //Assuming the -1 includes all streams
 		for (auto& stream : streams) {
 			stream->flushCount = stream->cachedFrames.size();
