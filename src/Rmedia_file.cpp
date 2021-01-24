@@ -169,12 +169,14 @@ torasu::RenderResult* Rmedia_file::render(torasu::RenderInstruction* ri) {
 		ei->unlock();
 
 		if (videoKey.has_value()) {
-			auto& frames = vidBuff->getFrames();
+			std::unique_ptr<torasu::tstd::Dbimg_sequence> vidSeq(vidBuff);
+			auto& frames = vidSeq->getFrames();
 			if (frames.size() > 0) {
 
-				auto firstFrame = vidBuff->getFrames().begin();
-				vidBuff->getFrames().erase(firstFrame);
-				delete vidBuff;
+				auto firstFrame = frames.begin();
+				frames.erase(firstFrame);
+
+				vidSeq.reset();
 
 				torasu::tstd::Dbimg* resultFrame = firstFrame->second;
 
