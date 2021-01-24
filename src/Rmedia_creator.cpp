@@ -136,7 +136,7 @@ torasu::ResultSegment* Rmedia_creator::renderSegment(torasu::ResultSegmentSettin
 				return 1; // Postpone
 			}
 			(*countPendingRef)++;
-			if (li.level <= torasu::LogLevel::DEBUG) li.logger->log(torasu::LogLevel::DEBUG, "Sym-req counter: " + std::to_string(*countPendingRef)); 
+			if (li.level <= torasu::LogLevel::DEBUG) li.logger->log(torasu::LogLevel::DEBUG, "Sym-req counter: " + std::to_string(*countPendingRef));
 
 			auto* modRctx = new torasu::RenderContext(*rctx);
 			if (auto* vidReq = dynamic_cast<MediaEncoder::VideoFrameRequest*>(fr)) {
@@ -177,7 +177,7 @@ torasu::ResultSegment* Rmedia_creator::renderSegment(torasu::ResultSegmentSettin
 				auto* audHandle = new auto(audRib->addSegmentWithHandle<torasu::tstd::Daudio_buffer>(TORASU_STD_PL_AUDIO, audReq->getFormat()));
 
 				auto rid = audRib->enqueueRender(srcRnd.get(), modRctx, ei, li);
-				
+
 				fr->setFinish([rid, ei, audRib, audHandle, audReq, modRctx, timeRctxVal, durRctxVal, countPendingRef] {
 					(*countPendingRef)--;
 

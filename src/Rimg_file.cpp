@@ -78,7 +78,7 @@ ResultSegment* Rimg_file::renderSegment(ResultSegmentSettings* resSettings, Rend
 			if (auto* bimgFormat = dynamic_cast<Dbimg_FORMAT*>(format)) {
 				rWidth = bimgFormat->getWidth();
 				rHeight = bimgFormat->getHeight();
-				cout << "RIMG RENDER " << rWidth << "x" << rHeight << endl;
+				// cout << "RIMG RENDER " << rWidth << "x" << rHeight << endl;
 			} else {
 				return new ResultSegment(ResultSegmentStatus_INVALID_FORMAT);
 			}

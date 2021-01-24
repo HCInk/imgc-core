@@ -355,7 +355,7 @@ void MediaDecoder::handleFrame(StreamEntry* stream, DecodingState* decodingState
 								  torasu::tstd::Dbimg_FORMAT(rWidth, rHeight))->getImageData();
 			// For testing purposes
 			// std::fill(target, target+rWidth*rHeight*4, 0x00);
-			std::cout << "extracting video frame to " << ((void*)target) << " - " << ((void*)(target+rWidth*rHeight*4-1)) << std::endl;
+			// std::cout << "extracting video frame to " << ((void*)target) << " - " << ((void*)(target+rWidth*rHeight*4-1)) << std::endl;
 			extractVideoFrame(stream, target);
 
 			decodingState->videoReadUntil = stream->frame->pts + stream->frame->pkt_duration;
@@ -497,7 +497,7 @@ void MediaDecoder::initializePosition(DecodingState* decodingState) {
 
 		double position = decodingState->requestStart;
 
-		// Seek to 
+		// Seek to
 		if (decodingState->audioAvailable) {
 			auto audStream = getStreamEntryByIndex(audio_stream_index);
 			// For some reason the audStream->ctx_params->seek_preroll was not enough in practice

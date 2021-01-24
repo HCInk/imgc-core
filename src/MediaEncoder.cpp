@@ -32,7 +32,8 @@ int WriteFunc(void* opaque, uint8_t* buf, int buf_size) {
 }
 
 int64_t SeekFunc(void* opaque, int64_t offset, int whence) {
-	std::cout << "SeekOp O " << offset << " W " << whence << std::endl;
+	// TODO Log this message w/ logger
+	// std::cout << "SeekOp O " << offset << " W " << whence << std::endl;
 
 	auto* ioop = reinterpret_cast<IOOpaque*>(opaque);
 	// std::ofstream* stream = ioop->ofstream;
@@ -117,7 +118,8 @@ public:
 	}
 
 	~StreamContainer() {
-		std::cout << " FREE STREAM " << this << std::endl;
+		// TODO Log this message w/ logger
+		// std::cout << " FREE STREAM " << this << std::endl;
 		if (stream != nullptr) {
 			avcodec_free_context(&stream->codec);
 		}
@@ -162,7 +164,8 @@ public:
 			throw std::logic_error("Can only be open in INITIALIZED-state!");
 		}
 
-		std::cout << " OPEN STREAM " << this << std::endl;
+		// TODO Log this message w/ logger
+		// std::cout << " OPEN STREAM " << this << std::endl;
 
 		stream->time_base = time_base;
 		ctx->time_base = time_base;
@@ -248,7 +251,7 @@ private:
 		}
 	}
 
-	inline int64_t writeFrame(imgc::MediaEncoder::FrameRequest* frameRequest, double maxDuration) {		
+	inline int64_t writeFrame(imgc::MediaEncoder::FrameRequest* frameRequest, double maxDuration) {
 		std::unique_ptr<imgc::MediaEncoder::FrameRequest> fr(frameRequest);
 
 		if (state != OPEN) {
@@ -279,7 +282,7 @@ private:
 				uint8_t* src[4] = {bimg->getImageData(), nullptr, nullptr, nullptr};
 				int src_linesize[4] = {width * 4, 0, 0, 0};
 				sws_scale(swsCtx, src, src_linesize, 0, frame->height,
-							frame->data, frame->linesize);
+						  frame->data, frame->linesize);
 
 				return 1;
 			}
@@ -321,8 +324,8 @@ public:
 
 	/**
 	 * @brief  Updates to next frame, and fills up the buffer
-	 * @param  callback: The callback that should be used to retrive the frames 
-	 * @param  duration: The duration of the stream 
+	 * @param  callback: The callback that should be used to retrive the frames
+	 * @param  duration: The duration of the stream
 	 * @param  offset: The offset of the stream to the source
 	 * @retval true, if there is a frame to fetch; false, if the are no frames to fetch left
 	 */
@@ -352,7 +355,7 @@ public:
 					} else {
 						std::cerr << "Frame callback exited with invalid return code (" << callbackStat << ")!" << std::endl;
 					}
-				} 
+				}
 
 			}
 
@@ -493,6 +496,7 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
 		oformat.video_codec = AV_CODEC_ID_NONE;
 	}
 
+	// TODO Log this message w/ logger
 	std::cout << "FMT SELECTED:" << std::endl
 			  << "	name: " << oformat.name << std::endl
 			  << "	video_codec: " << avcodec_get_name(oformat.video_codec) << std::endl
@@ -537,9 +541,9 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
 		audStream.open();
 	}
 
-	for (auto& current : streams) {
-		std::cout << " STR " << &current << std::endl;
-	}
+	// for (auto& current : streams) {
+	// 	std::cout << " STR " << &current << std::endl;
+	// }
 
 	// Writing Header
 
@@ -570,7 +574,8 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
 				// Directly process streams which dont have a packet yet
 				if (!current.hasQueuedPacket) {
 					selectedStream = &current;
-					std::cout << " DIRECT INIT QUEUE PACK" << std::endl;
+					// TODO Log this message w/ logger
+					// std::cout << " DIRECT INIT QUEUE PACK" << std::endl;
 					break;
 				}
 				// If all streams already have a packet, then pick the stream which the lowest dts in the queue
@@ -583,7 +588,8 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
 
 		// No Streams returned: All streams are done.
 		if (selectedStream == nullptr) {
-			std::cout << "Enocding finished." << std::endl;
+			// TODO Log this message w/ logger
+			// std::cout << "Enocding finished." << std::endl;
 			break;
 		}
 		StreamContainer& stream = *selectedStream;
@@ -632,9 +638,11 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
 		callStat = avcodec_receive_packet(stream.ctx, stream.queuedPacket);
 		if (callStat != 0) {
 			if (callStat == AVERROR(EAGAIN)) {
-				std::cout << "codec-recieve: EGAIN" << std::endl;
+				// TODO Log this message w/ logger
+				// std::cout << "codec-recieve: EGAIN" << std::endl;
 			} else if (callStat == AVERROR_EOF) {
-				std::cout << "codec-recieve: EOF" << std::endl;
+				// TODO Log this message w/ logger
+				// std::cout << "codec-recieve: EOF" << std::endl;
 				stream.state = StreamContainer::FLUSHED;
 			} else {
 				throw std::runtime_error("Error while recieving packet from codec: " + avErrStr(callStat));

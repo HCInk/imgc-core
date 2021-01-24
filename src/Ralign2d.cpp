@@ -3,7 +3,6 @@
 #include <chrono>
 #include <cmath>
 #include <stdexcept>
-#include <iostream>
 
 #include <torasu/render_tools.hpp>
 
@@ -173,8 +172,10 @@ torasu::ResultSegment* Ralign2d::renderSegment(torasu::ResultSegmentSettings* re
 			align(a.getResult(), result, &cropData);
 
 			auto benchEnd = std::chrono::steady_clock::now();
-			std::cout << "  Align Time = " << std::chrono::duration_cast<std::chrono::milliseconds>(benchEnd - benchBegin).count() << "[ms] " << std::chrono::duration_cast<std::chrono::microseconds>(benchEnd - benchBegin).count() << "[us]" << std::endl;
-
+			if (li.level <= torasu::LogLevel::DEBUG)
+				li.logger->log(torasu::LogLevel::DEBUG, " Align Time = "
+							   + std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(benchEnd - benchBegin).count()) + "[ms] "
+							   + std::to_string(std::chrono::duration_cast<std::chrono::microseconds>(benchEnd - benchBegin).count()) + "[us]");
 		}
 
 		delete srcRes;
