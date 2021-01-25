@@ -663,6 +663,8 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
 	// Cleanup
 	//
 
+	streams.clear();
+
 	avformat_free_context(formatCtx);
 	avio_context_free(&avioCtx);
 	av_free(alloc_buf);
