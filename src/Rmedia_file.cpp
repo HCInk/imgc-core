@@ -174,18 +174,18 @@ torasu::RenderResult* Rmedia_file::render(torasu::RenderInstruction* ri) {
 			if (frames.size() > 0) {
 
 				auto firstFrame = frames.begin();
+				torasu::tstd::Dbimg* resultFrame = firstFrame->second;
 				frames.erase(firstFrame);
 
 				vidSeq.reset();
 
-				torasu::tstd::Dbimg* resultFrame = firstFrame->second;
 
 				if (videoFormat != NULL) {
 
-					auto* scaled = scaler::scaleImg(firstFrame->second, videoFormat);
+					auto* scaled = scaler::scaleImg(resultFrame, videoFormat);
 
 					if (scaled != NULL) {
-						delete firstFrame->second;
+						delete resultFrame;
 						resultFrame = scaled;
 					}
 				}
