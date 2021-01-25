@@ -343,7 +343,9 @@ void MediaDecoder::handleFrame(StreamEntry* stream, DecodingState* decodingState
 	} */
 
 	if (!decodingState->videoDone && stream->index == video_stream_index) {
-		if (checkFrameTargetBound(stream->frame, targetPosition, targetPositionEnd)) {
+		// Check if frame is inside of range or in the case of a requesting contents after the stream-limit, if the frame is the last one 
+		if (checkFrameTargetBound(stream->frame, targetPosition, targetPositionEnd) 
+			|| ( (targetPosition >= stream->duration) && (stream->frame->pts+stream->frame->pkt_duration) == stream->duration) ) {
 			if (decodingState->videoReadUntil > stream->frame->pts) {
 				return;
 			}
