@@ -29,6 +29,7 @@ int ReadFunc(void* ptr, uint8_t* buf, int buf_size) {
 		nextPos = reader->size;
 		read = nextPos - reader->pos;
 	}
+	// std::cout << "READ TO " << ((void*)buf) << "-" << ((void*)(buf+read)) << " (SIZE " << read << ")" << std::endl;
 	memcpy(buf, reader->data + reader->pos, read);
 	reader->pos += read;
 	if (read > 0) {
@@ -42,15 +43,19 @@ int64_t SeekFunc(void* ptr, int64_t pos, int whence) {
 	imgc::MediaDecoder::FileReader* reader = reinterpret_cast<imgc::MediaDecoder::FileReader*>(ptr);
 	switch (whence) {
 	case SEEK_SET:
+		// std::cout << "SEEK SET " << pos << std::endl;
 		reader->pos = pos;
 		break;
 	case SEEK_CUR:
+		// std::cout << "SEEK CUR " << reader->pos << " + " << pos << " = " << (reader->pos+pos) << std::endl;
 		reader->pos += pos;
 		break;
 	case SEEK_END:
+		// std::cout << "SEEK END " << reader->size << " + " << pos << " = " << (reader->size+pos) << std::endl;
 		reader->pos = reader->size + pos;
 		break;
 	case AVSEEK_SIZE:
+		// std::cout << "SEEK SIZE -> " << reader->size << std::endl;
 		return reader->size;
 	default:
 		break;
@@ -89,6 +94,7 @@ MediaDecoder::MediaDecoder(uint8_t* dataP, size_t len) {
 
 void MediaDecoder::prepare() {
 	uint8_t* alloc_buf = (uint8_t*) av_malloc(32 * 1024);
+	// std::cout << "IOB-ALOC: " << ((void*)alloc_buf) << std::endl;
 	av_format_ctx = avformat_alloc_context();
 	if (!av_format_ctx) {
 		throw runtime_error("Failed allocating av_format_ctx!");
@@ -109,6 +115,7 @@ void MediaDecoder::prepare() {
 		throw runtime_error("Failed to find audio_out_stream info");
 	}
 	av_packet = av_packet_alloc();
+	// std::cout << "PKT-ALOC: " << av_packet << std::endl;
 
 	for (unsigned int stream_index = 0; stream_index < av_format_ctx->nb_streams; stream_index++) {
 		AVStream* stream = av_format_ctx->streams[stream_index];
@@ -177,6 +184,7 @@ MediaDecoder::~MediaDecoder() {
 		delete stream;
 	}
 
+	// std::cout << "PKT-FREE: " << av_packet << std::endl;
 	av_packet_free(&av_packet);
 	if (av_format_ctx->pb) {
 		av_free(av_format_ctx->pb->buffer);
@@ -228,6 +236,9 @@ void MediaDecoder::removeCacheFrame(int64_t pos, std::vector<BufferedFrame>* lis
 	std::cerr << "Missing frame that should've been added" << std::endl;
 }
 
+// First convert frame into libav-buffer (with a padding for swsscale) and then into the destination-buffer, instead doing a direct conversion into 
+#define VID_FRAME_SCALE_INDIRECT true
+
 void MediaDecoder::extractVideoFrame(StreamEntry* stream, uint8_t* outPt) {
 	int32_t rWidth = stream->frame->width;
 	int32_t rHeight = stream->frame->height;
@@ -240,11 +251,28 @@ void MediaDecoder::extractVideoFrame(StreamEntry* stream, uint8_t* outPt) {
 	if (!sws_scaler_ctx) {
 		throw runtime_error("Failed to create sws_scaler_ctx!");
 	}
+
+	
+
+#if VID_FRAME_SCALE_INDIRECT
+	size_t bufferSize = rWidth*rHeight*4;
+	// A padding for sws scale, since it seems to write outside of the designated are
+	// Issue was found on a conversion from 1000x1200 AV_PIX_FMT_YUV420P -> 1000x1200 AV_PIX_FMT_RGB0
+	constexpr int SWS_BOUND = 1;
+	uint8_t* writeBuffer = reinterpret_cast<uint8_t*>( av_malloc(bufferSize + rWidth*SWS_BOUND + (rHeight+SWS_BOUND)*SWS_BOUND) );
+	uint8_t* dst[4] = {writeBuffer, NULL, NULL, NULL};
+#else
 	uint8_t* dst[4] = {outPt, NULL, NULL, NULL};
+#endif
 	int dest_linesize[4] = {rWidth * 4, 0, 0, 0};
 	sws_scale(sws_scaler_ctx, stream->frame->data, stream->frame->linesize, 0, stream->frame->height, dst,
 			  dest_linesize);
 
+
+#if VID_FRAME_SCALE_INDIRECT
+	std::copy(writeBuffer, writeBuffer+bufferSize, outPt);
+	av_free(writeBuffer);
+#endif
 
 }
 
@@ -264,8 +292,10 @@ void MediaDecoder::getSegment(SegmentRequest request) {
 		if ((decodingState->videoDone||!decodingState->videoAvailable) && (decodingState->audioDone || !decodingState->audioAvailable)) {
 			break;
 		}
+		// std::cout << "PKT-UREF: " << av_packet << " DAT: " << ((void*)av_packet->data) << std::endl;
 		av_packet_unref(av_packet);
 		int nextFrameStat = av_read_frame(av_format_ctx, av_packet);
+		// std::cout << "PKT-READ: " << av_packet << " DAT: " << ((void*)av_packet->data) << std::endl;
 		auto stream = getStreamEntryByIndex(av_packet->stream_index);
 		if (nextFrameStat == AVERROR_EOF) {
 			for(unsigned long i = 0; i < streams.size(); i++) {
