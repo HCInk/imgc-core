@@ -173,6 +173,10 @@ MediaDecoder::~MediaDecoder() {
 		sws_freeContext(sws_scaler_ctx);
 	}
 
+	if (scaled_frame != nullptr) {
+		av_frame_free(&scaled_frame);
+	}
+
 	for (unsigned long i = 0; i < streams.size(); ++i) {
 		auto stream = streams[i];
 		if (stream->frame != nullptr) {
@@ -236,30 +240,54 @@ void MediaDecoder::removeCacheFrame(int64_t pos, std::vector<BufferedFrame>* lis
 	std::cerr << "Missing frame that should've been added" << std::endl;
 }
 
+// Use AVFrane for scaling, instead of using manual parameters
+#define VID_FRAME_SCALE_AVFRAME true
 // First convert frame into libav-buffer (with a padding for swsscale) and then into the destination-buffer, instead doing a direct conversion into 
 #define VID_FRAME_SCALE_INDIRECT true
 
 void MediaDecoder::extractVideoFrame(StreamEntry* stream, uint8_t* outPt) {
 	int32_t rWidth = stream->frame->width;
 	int32_t rHeight = stream->frame->height;
-	if (sws_scaler_ctx == NULL) {
+	if (sws_scaler_ctx == nullptr) {
 		sws_scaler_ctx = sws_getContext(stream->frame->width, stream->frame->height, stream->ctx->pix_fmt,
 										rWidth, rHeight, AV_PIX_FMT_RGB0,
 										SWS_FAST_BILINEAR, NULL, NULL, NULL);
-	}
 
-	if (!sws_scaler_ctx) {
-		throw runtime_error("Failed to create sws_scaler_ctx!");
+		if (!sws_scaler_ctx) throw runtime_error("Failed to create sws_scaler_ctx!");
 	}
-
 	
+#if VID_FRAME_SCALE_AVFRAME
+	int status;
+	if (scaled_frame == nullptr) {
+		scaled_frame = av_frame_alloc();
+		if (!scaled_frame) throw std::runtime_error("Failed to allocate scaled-frame!");
 
+		scaled_frame->format = AV_PIX_FMT_RGB0;
+		scaled_frame->width  = rWidth;
+		scaled_frame->height = rHeight;
+		status = av_frame_get_buffer(scaled_frame, 0);
+		if (status != 0) throw std::runtime_error("Error allocating destination frame on scale! (" + std::to_string(status) + ")");
+	}
+
+	status = sws_scale(sws_scaler_ctx, stream->frame->data, stream->frame->linesize, 0, rHeight, scaled_frame->data,
+			  scaled_frame->linesize);
+	if (status < 0) throw std::runtime_error("Error scaling frame! (" + std::to_string(status) + ")");
+
+	uint8_t* linePtr = scaled_frame->data[0];
+	uint8_t* outPtr = outPt;
+	for (int32_t y = 0; y < rHeight; y++) {
+		std::copy(linePtr, linePtr + rWidth*4, outPtr);
+		linePtr += scaled_frame->linesize[0];
+		outPtr += rWidth*4;
+	}
+
+#else
 #if VID_FRAME_SCALE_INDIRECT
 	size_t bufferSize = rWidth*rHeight*4;
 	// A padding for sws scale, since it seems to write outside of the designated are
 	// Issue was found on a conversion from 1000x1200 AV_PIX_FMT_YUV420P -> 1000x1200 AV_PIX_FMT_RGB0
 	constexpr int SWS_BOUND = 1;
-	uint8_t* writeBuffer = reinterpret_cast<uint8_t*>( av_malloc(bufferSize + rWidth*SWS_BOUND + (rHeight+SWS_BOUND)*SWS_BOUND) );
+	uint8_t* writeBuffer = reinterpret_cast<uint8_t*>( av_malloc(bufferSize + rWidth*SWS_BOUND*4 + (rHeight+SWS_BOUND)*SWS_BOUND*4) );
 	uint8_t* dst[4] = {writeBuffer, NULL, NULL, NULL};
 #else
 	uint8_t* dst[4] = {outPt, NULL, NULL, NULL};
@@ -272,6 +300,7 @@ void MediaDecoder::extractVideoFrame(StreamEntry* stream, uint8_t* outPt) {
 #if VID_FRAME_SCALE_INDIRECT
 	std::copy(writeBuffer, writeBuffer+bufferSize, outPt);
 	av_free(writeBuffer);
+#endif
 #endif
 
 }

@@ -117,6 +117,7 @@ private:
 
 	double decoderPosition = -1;
 	SwsContext* sws_scaler_ctx = nullptr;
+	AVFrame* scaled_frame = nullptr;
 
 
 	AVPacket* av_packet;
