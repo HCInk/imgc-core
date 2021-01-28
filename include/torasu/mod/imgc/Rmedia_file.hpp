@@ -25,6 +25,7 @@ private:
 	torasu::tstd::Dfile* srcFile = NULL;
 	MediaDecoder* decoder = NULL;
 
+	torasu::RenderResult* renderSafe(torasu::RenderInstruction* ri);
 	void load(torasu::ExecutionInterface* ei, torasu::LogInstruction li);
 
 public:
