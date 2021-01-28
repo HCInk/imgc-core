@@ -225,9 +225,10 @@ private:
 	/**
 	 * @brief  Will generate next frame request for the given stream
 	 * @param  offset: The offset of the stream to the source
+	 * @param  streamDuration: Duration the stream should have
 	 * @retval The created FrameRequest (has to be cleaned up by caller)
 	 */
-	inline imgc::MediaEncoder::FrameRequest* nextFrameRequest(double offset) {
+	inline imgc::MediaEncoder::FrameRequest* nextFrameRequest(double offset, double streamDuration) {
 
 		double reqTs = (double) fetchPlayhead*time_base.num/time_base.den + offset;
 
@@ -240,10 +241,17 @@ private:
 			}
 
 		case AVMEDIA_TYPE_AUDIO: {
-				fetchPlayhead += frame_size;
+				int64_t maxDuration = streamDuration*frame->sample_rate - fetchPlayhead;
+				int64_t nb_samples;
+				if (frame_size > maxDuration) {
+					nb_samples = maxDuration;
+				} else {
+					nb_samples = frame_size;
+				}
+				fetchPlayhead += nb_samples;
 
 				auto* fmt = new torasu::tstd::Daudio_buffer_FORMAT(frame->sample_rate, torasu::tstd::Daudio_buffer_CHFMT::FLOAT32);
-				return new imgc::MediaEncoder::AudioFrameRequest(reqTs, (double) frame->nb_samples/frame->sample_rate, fmt);
+				return new imgc::MediaEncoder::AudioFrameRequest(reqTs, (double) nb_samples/frame->sample_rate, fmt);
 			}
 
 		default:
@@ -359,9 +367,9 @@ public:
 
 			}
 
-			if (duration - (fetchPlayhead*time_base.num/time_base.den) > 0) {
+			if ((int64_t)(duration*time_base.den - fetchPlayhead*time_base.num) > 0) {
 				// Go to next request
-				pendingRequest = nextFrameRequest(offset);
+				pendingRequest = nextFrameRequest(offset, duration);
 			} else {
 				// Reached end
 				pendingRequest = nullptr;
@@ -373,7 +381,6 @@ public:
 		if (needsNewFrame) return false;
 
 		auto timeLeft = duration - (playhead*time_base.num/time_base.den);
-
 		auto written = writeFrame(fetchQueue.front(), timeLeft);
 		fetchQueue.pop();
 		frame->pts = playhead;
