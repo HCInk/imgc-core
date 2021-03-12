@@ -675,16 +675,12 @@ void graphicsExample() {
 
 	torasu::tstd::Rrctx_value time(TORASU_STD_CTX_TIME, TORASU_STD_PL_NUM);
 
-	torasu::tstd::Rnum speed(40);
-
-	torasu::tstd::Rmultiply trm(&time, &speed);
+	torasu::tstd::Rmultiply trm(&time, 40);
 
 	torasu::tstd::Rsin sinVal(&trm);
 
-	torasu::tstd::Rnum valRoundFac(9.5);
-	torasu::tstd::Rnum valRoundAdd(-1);
-	torasu::tstd::Rmultiply mul(&sinVal, &valRoundFac);
-	torasu::tstd::Radd round(&mul, &valRoundAdd);
+	torasu::tstd::Rmultiply mul(&sinVal, 9.5);
+	torasu::tstd::Radd round(&mul, -1);
 
 	// torasu::tstd::Rnum round(1);
 
