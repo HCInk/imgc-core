@@ -719,7 +719,7 @@ void graphicsExample() {
 	imgc::Rmedia_creator encoded(&premulMaybe, "mp4", 0., 10, 30, 1080*2, 1080*2, 4000*100, -1, &metadata);
 
 	torasu::tstd::LIcore_logger logger;
-	torasu::LogInstruction li(&logger, torasu::LogLevel::DEBUG);
+	torasu::LogInstruction li(&logger, torasu::LogLevel::INFO, torasu::LogInstruction::OPT_PROGRESS);
 	auto* runner = new torasu::tstd::EIcore_runner((size_t)8);
 	torasu::ExecutionInterface* ei = runner->createInterface();
 

@@ -43,6 +43,9 @@ torasu::ResultSegment* Rmedia_creator::renderSegment(torasu::ResultSegmentSettin
 
 		MediaEncoder::EncodeRequest req;
 
+		bool logProgress = li.options & torasu::LogInstruction::OPT_PROGRESS; 
+		if (logProgress) li.logger->log(new torasu::LogProgress(-1, 0, "Loading video-params..."));
+
 		{
 			bool doMetadata = metadataSlot.get() != nullptr;
 			torasu::tools::RenderInstructionBuilder textRib;
@@ -205,7 +208,7 @@ torasu::ResultSegment* Rmedia_creator::renderSegment(torasu::ResultSegmentSettin
 						);
 
 
-		auto* result = enc.encode(req);
+		auto* result = enc.encode(req, li);
 
 		return new torasu::ResultSegment(torasu::ResultSegmentStatus_OK, result, true);
 	} else {

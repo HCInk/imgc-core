@@ -100,6 +100,9 @@ public:
 	std::queue<imgc::MediaEncoder::FrameRequest*> fetchQueue;
 	imgc::MediaEncoder::FrameRequest* pendingRequest = nullptr;
 
+	// Logging
+	torasu::LogInstruction li = torasu::LogInstruction(nullptr);
+
 	StreamContainer() {}
 
 	StreamContainer(const StreamContainer& src) {
@@ -113,8 +116,8 @@ public:
 	}
 
 
-	StreamContainer(AVCodecID codecId, AVFormatContext* formatCtx) {
-		init(codecId, formatCtx);
+	StreamContainer(AVCodecID codecId, AVFormatContext* formatCtx, torasu::LogInstruction li) {
+		init(codecId, formatCtx, li);
 	}
 
 	~StreamContainer() {
@@ -134,8 +137,8 @@ public:
 		}
 	}
 
-	inline void init(AVCodecID codecId, AVFormatContext* formatCtx) {
-
+	inline void init(AVCodecID codecId, AVFormatContext* formatCtx, torasu::LogInstruction li) {
+		this->li = li;
 		if (state != CREATED) {
 			throw std::logic_error("Can only be initialze in CREATED-state!");
 		}
@@ -338,6 +341,7 @@ public:
 	 * @retval true, if there is a frame to fetch; false, if the are no frames to fetch left
 	 */
 	bool updateFrameBuffer(imgc::MediaEncoder::FrameCallbackFunc callback, double duration, double offset) {
+		bool logProgress = li.options & torasu::LogInstruction::OPT_PROGRESS;
 		bool needsNewFrame = fetchQueue.empty();
 		for (;;) {
 			if (pendingRequest != nullptr) {
@@ -351,6 +355,15 @@ public:
 					// Callback successful - psuh into queue to be fetched
 					fetchQueue.push(pendingRequest);
 					needsNewFrame = false;
+
+					if (logProgress) {
+						int64_t totalFrames = (duration-offset)*time_base.den/time_base.num;
+						int64_t pendingFrames = fetchQueue.size();
+						int64_t currentFrame = fetchPlayhead - pendingFrames;
+						li.logger->log(new torasu::LogProgress( 
+							totalFrames, currentFrame, pendingFrames,
+							"Rendering frame " + std::to_string(fetchPlayhead) + "/" + std::to_string(totalFrames)));
+					}
 				} else if (callbackStat == 1) {
 					if (needsNewFrame) throw std::runtime_error("Frame callback exited with postpone-code (1), but the flag needsNow is set");
 					// Postponed processing - try again later, exit buffering
@@ -386,6 +399,14 @@ public:
 		frame->pts = playhead;
 		playhead += written;
 
+		if (logProgress) {
+			int64_t totalFrames = (duration-offset)*time_base.den/time_base.num;
+			int64_t pendingFrames = fetchQueue.size();
+			int64_t currentFrame = fetchPlayhead - pendingFrames;
+			if (pendingRequest != nullptr) currentFrame -= 1;
+			li.logger->log(new torasu::LogProgress(totalFrames, currentFrame, pendingFrames));
+		}
+
 		return true;
 
 	}
@@ -399,7 +420,7 @@ public:
 
 namespace imgc {
 
-torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
+torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request, torasu::LogInstruction li) {
 
 	//
 	// Configure
@@ -517,10 +538,19 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
 
 	std::list<StreamContainer> streams;
 
+	bool doProgress = li.options & torasu::LogInstruction::OPT_PROGRESS;
 	// Video Stream
 	if (doVideo) {
+		torasu::LogInstruction videoLi = li;
+		if (doProgress) {
+			videoLi.options = videoLi.options | torasu::LogInstruction::OPT_PROGRESS;
+			doProgress = false;
+		} else {
+			videoLi.options = videoLi.options ^ torasu::LogInstruction::OPT_PROGRESS;
+		}
+
 		auto& vidStream = streams.emplace_back();
-		vidStream.init(oformat.video_codec, formatCtx);
+		vidStream.init(oformat.video_codec, formatCtx, videoLi);
 
 		AVCodecParameters* codecParams = vidStream.params;
 		vidStream.time_base = {1, framerate};
@@ -534,8 +564,15 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
 
 	// Audio Stream
 	if (doAudio) {
+		torasu::LogInstruction audioLi = li;
+		if (doProgress) {
+			audioLi.options = audioLi.options | torasu::LogInstruction::OPT_PROGRESS;
+			doProgress = false;
+		} else {
+			audioLi.options = audioLi.options ^ torasu::LogInstruction::OPT_PROGRESS;
+		}
 		auto& audStream = streams.emplace_back();
-		audStream.init(oformat.audio_codec, formatCtx);
+		audStream.init(oformat.audio_codec, formatCtx, audioLi);
 
 		AVCodecParameters* codecParams = audStream.params;
 		audStream.time_base = {1, samplerate};

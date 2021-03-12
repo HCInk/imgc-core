@@ -15,6 +15,7 @@ extern "C" {
 #include <libavutil/frame.h>
 }
 
+#include <torasu/torasu.hpp>
 #include <torasu/std/Dfile.hpp>
 #include <torasu/std/Dbimg.hpp>
 #include <torasu/std/Daudio_buffer.hpp>
@@ -159,7 +160,7 @@ public:
 		: frameCallbackFunc(frameCallbackFunc) {}
 	~MediaEncoder() {}
 
-	torasu::tstd::Dfile* encode(EncodeRequest request);
+	torasu::tstd::Dfile* encode(EncodeRequest request, torasu::LogInstruction li = torasu::LogInstruction(nullptr));
 };
 
 } // namespace imgc
