@@ -576,7 +576,11 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request, torasu::LogInst
 
 		AVCodecParameters* codecParams = audStream.params;
 		audStream.time_base = {1, samplerate};
-		audStream.frame_size = samplerate/framerate;
+		if (framerate > 0) {
+			audStream.frame_size = samplerate/framerate;
+		} else {
+			audStream.frame_size = samplerate;
+		}
 		codecParams->format = AV_SAMPLE_FMT_FLTP;
 		codecParams->sample_rate = samplerate;
 		codecParams->channel_layout = AV_CH_LAYOUT_STEREO;
