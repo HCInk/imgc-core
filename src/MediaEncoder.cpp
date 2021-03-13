@@ -5,6 +5,7 @@
 #include <iostream>
 #include <fstream>
 #include <list>
+#include <queue>
 
 #define ENCODER_SANITY_CHECKS true
 
@@ -31,7 +32,8 @@ int WriteFunc(void* opaque, uint8_t* buf, int buf_size) {
 }
 
 int64_t SeekFunc(void* opaque, int64_t offset, int whence) {
-	std::cout << "SeekOp O " << offset << " W " << whence << std::endl;
+	// TODO Log this message w/ logger
+	// std::cout << "SeekOp O " << offset << " W " << whence << std::endl;
 
 	auto* ioop = reinterpret_cast<IOOpaque*>(opaque);
 	// std::ofstream* stream = ioop->ofstream;
@@ -93,6 +95,14 @@ public:
 	AVFrame* frame = nullptr;
 	SwsContext* swsCtx = nullptr;
 
+	// Fetch data
+	int64_t fetchPlayhead = 0;
+	std::queue<imgc::MediaEncoder::FrameRequest*> fetchQueue;
+	imgc::MediaEncoder::FrameRequest* pendingRequest = nullptr;
+
+	// Logging
+	torasu::LogInstruction li = torasu::LogInstruction(nullptr);
+
 	StreamContainer() {}
 
 	StreamContainer(const StreamContainer& src) {
@@ -106,12 +116,13 @@ public:
 	}
 
 
-	StreamContainer(AVCodecID codecId, AVFormatContext* formatCtx) {
-		init(codecId, formatCtx);
+	StreamContainer(AVCodecID codecId, AVFormatContext* formatCtx, torasu::LogInstruction li) {
+		init(codecId, formatCtx, li);
 	}
 
 	~StreamContainer() {
-		std::cout << " FREE STREAM " << this << std::endl;
+		// TODO Log this message w/ logger
+		// std::cout << " FREE STREAM " << this << std::endl;
 		if (stream != nullptr) {
 			avcodec_free_context(&stream->codec);
 		}
@@ -126,8 +137,8 @@ public:
 		}
 	}
 
-	inline void init(AVCodecID codecId, AVFormatContext* formatCtx) {
-
+	inline void init(AVCodecID codecId, AVFormatContext* formatCtx, torasu::LogInstruction li) {
+		this->li = li;
 		if (state != CREATED) {
 			throw std::logic_error("Can only be initialze in CREATED-state!");
 		}
@@ -156,7 +167,8 @@ public:
 			throw std::logic_error("Can only be open in INITIALIZED-state!");
 		}
 
-		std::cout << " OPEN STREAM " << this << std::endl;
+		// TODO Log this message w/ logger
+		// std::cout << " OPEN STREAM " << this << std::endl;
 
 		stream->time_base = time_base;
 		ctx->time_base = time_base;
@@ -211,13 +223,58 @@ public:
 
 	}
 
-	inline int64_t writeFrame(imgc::MediaEncoder::FrameCallbackFunc callback, double offset, double maxDuration) {
+private:
+
+	/**
+	 * @brief  Will generate next frame request for the given stream
+	 * @param  offset: The offset of the stream to the source
+	 * @param  streamDuration: Duration the stream should have
+	 * @retval The created FrameRequest (has to be cleaned up by caller)
+	 */
+	inline imgc::MediaEncoder::FrameRequest* nextFrameRequest(double offset, double streamDuration) {
+
+		double reqTs = (double) fetchPlayhead*time_base.num/time_base.den + offset;
+
+		switch (ctx->codec_type) {
+		case AVMEDIA_TYPE_VIDEO: {
+				fetchPlayhead += 1;
+
+				auto* bimgFmt = new torasu::tstd::Dbimg_FORMAT(frame->width, frame->height);
+				return new imgc::MediaEncoder::VideoFrameRequest(reqTs, bimgFmt);
+			}
+
+		case AVMEDIA_TYPE_AUDIO: {
+				int64_t maxDuration = streamDuration*frame->sample_rate - fetchPlayhead;
+				int64_t nb_samples;
+				if (frame_size > maxDuration) {
+					nb_samples = maxDuration;
+				} else {
+					nb_samples = frame_size;
+				}
+				fetchPlayhead += nb_samples;
+
+				auto* fmt = new torasu::tstd::Daudio_buffer_FORMAT(frame->sample_rate, torasu::tstd::Daudio_buffer_CHFMT::FLOAT32);
+				return new imgc::MediaEncoder::AudioFrameRequest(reqTs, (double) nb_samples/frame->sample_rate, fmt);
+			}
+
+		default:
+			throw std::runtime_error("Can't write frame for codec-type: " + std::to_string(ctx->codec_type));
+		}
+	}
+
+	inline int64_t writeFrame(imgc::MediaEncoder::FrameRequest* frameRequest, double maxDuration) {
+		std::unique_ptr<imgc::MediaEncoder::FrameRequest> fr(frameRequest);
+
 		if (state != OPEN) {
 			throw std::logic_error("Can only write frame in OPEN-state!");
 		}
 
-		// Timestamp to be requested via callback
-		double reqTs = (double) playhead*time_base.num/time_base.den + offset;
+		{
+			int finishStat = fr->finish();
+			if (finishStat != 0) {
+				std::cerr << "Frame-finish callback exited with non-zero return code (" << finishStat << ")!" << std::endl;
+			}
+		}
 
 		switch (ctx->codec_type) {
 		case AVMEDIA_TYPE_VIDEO: {
@@ -231,21 +288,12 @@ public:
 						throw std::runtime_error("Failed to create sws_scaler_ctx!");
 				}
 
-				torasu::tstd::Dbimg_FORMAT bimgFmt(width, height);
-				imgc::MediaEncoder::VideoFrameRequest req(reqTs, &bimgFmt);
+				torasu::tstd::Dbimg* bimg = ((imgc::MediaEncoder::VideoFrameRequest*) frameRequest)->getResult();
 
-				int callbackStat = callback(&req);
-
-				if (callbackStat != 0) {
-					std::cerr << "Frame callback exited with non-zero return code (" << callbackStat << ")!" << std::endl;
-				} else {
-					torasu::tstd::Dbimg* bimg = req.getResult();
-
-					uint8_t* dst[4] = {bimg->getImageData(), nullptr, nullptr, nullptr};
-					int dest_linesize[4] = {width * 4, 0, 0, 0};
-					sws_scale(swsCtx, dst, dest_linesize, 0, frame->height,
-							  frame->data, frame->linesize);
-				}
+				uint8_t* src[4] = {bimg->getImageData(), nullptr, nullptr, nullptr};
+				int src_linesize[4] = {width * 4, 0, 0, 0};
+				sws_scale(swsCtx, src, src_linesize, 0, frame->height,
+						  frame->data, frame->linesize);
 
 				return 1;
 			}
@@ -257,30 +305,22 @@ public:
 				} else {
 					frame->nb_samples = frame_size;
 				}
-				torasu::tstd::Daudio_buffer_FORMAT fmt(frame->sample_rate, torasu::tstd::Daudio_buffer_CHFMT::FLOAT32);
-				imgc::MediaEncoder::AudioFrameRequest req(reqTs, (double) frame->nb_samples/frame->sample_rate, &fmt);
-				int callbackStat = callback(&req);
 
-				if (callbackStat != 0) {
-					std::cerr << "Frame callback exited with non-zero return code (" << callbackStat << ")!" << std::endl;
-				} else {
-					torasu::tstd::Daudio_buffer* audioSeq = req.getResult();
+				torasu::tstd::Daudio_buffer* audioSeq = ((imgc::MediaEncoder::AudioFrameRequest*) frameRequest)->getResult();
 
-					size_t chCount = audioSeq->getChannelCount();
-					auto* channels = audioSeq->getChannels();
-					for (size_t ci = 0; ci < chCount; ci++) {
-						uint8_t* srcData = channels[ci].data;
-						uint8_t* destData = frame->data[ci];
+				size_t chCount = audioSeq->getChannelCount();
+				auto* channels = audioSeq->getChannels();
+				for (size_t ci = 0; ci < chCount; ci++) {
+					uint8_t* srcData = channels[ci].data;
+					auto dataSize = channels[ci].dataSize;
+					uint8_t* destData = frame->data[ci];
 #if ENCODER_SANITY_CHECKS
-						if (channels[ci].dataSize > (size_t) frame->nb_samples*4) {
-							throw std::runtime_error("Sanity-Panic: Recieved frame is bigger then expected!");
-						}
-#endif
-						std::copy(srcData, srcData+channels[ci].dataSize, destData);
-						if (crop) {
-							std::fill(destData+(frame->nb_samples*4), destData+(frame_size*4), 0x00);
-						}
+					if (dataSize > (size_t) frame->nb_samples*4) {
+						throw std::runtime_error("Sanity-Panic: Recieved frame is bigger then expected!");
 					}
+#endif
+					std::copy(srcData, srcData+dataSize, destData);
+					std::fill(destData+dataSize, destData+(frame_size*4), 0x00);
 				}
 
 				return frame_size;
@@ -289,6 +329,86 @@ public:
 		default:
 			throw std::runtime_error("Can't write frame for codec-type: " + std::to_string(ctx->codec_type));
 		}
+	}
+
+public:
+
+	/**
+	 * @brief  Updates to next frame, and fills up the buffer
+	 * @param  callback: The callback that should be used to retrive the frames
+	 * @param  duration: The duration of the stream
+	 * @param  offset: The offset of the stream to the source
+	 * @retval true, if there is a frame to fetch; false, if the are no frames to fetch left
+	 */
+	bool updateFrameBuffer(imgc::MediaEncoder::FrameCallbackFunc callback, double duration, double offset) {
+		bool logProgress = li.options & torasu::LogInstruction::OPT_PROGRESS;
+		bool needsNewFrame = fetchQueue.empty();
+		for (;;) {
+			if (pendingRequest != nullptr) {
+				if (needsNewFrame) {
+					// Signalize it can't be postponed
+					pendingRequest->needsNow = true;
+				}
+
+				int callbackStat = callback(pendingRequest);
+				if (callbackStat == 0) {
+					// Callback successful - psuh into queue to be fetched
+					fetchQueue.push(pendingRequest);
+					needsNewFrame = false;
+
+					if (logProgress) {
+						int64_t totalFrames = (duration-offset)*time_base.den/time_base.num;
+						int64_t pendingFrames = fetchQueue.size();
+						int64_t currentFrame = fetchPlayhead - pendingFrames;
+						li.logger->log(new torasu::LogProgress( 
+							totalFrames, currentFrame, pendingFrames,
+							"Rendering frame " + std::to_string(fetchPlayhead) + "/" + std::to_string(totalFrames)));
+					}
+				} else if (callbackStat == 1) {
+					if (needsNewFrame) throw std::runtime_error("Frame callback exited with postpone-code (1), but the flag needsNow is set");
+					// Postponed processing - try again later, exit buffering
+					break;
+				} else {
+					// Callback error - drop request
+					delete pendingRequest;
+					if (callbackStat < 0) {
+						std::cerr << "Frame callback exited with negative return code (" << callbackStat << ")!" << std::endl;
+					} else {
+						std::cerr << "Frame callback exited with invalid return code (" << callbackStat << ")!" << std::endl;
+					}
+				}
+
+			}
+
+			if ((int64_t)(duration*time_base.den - fetchPlayhead*time_base.num) > 0) {
+				// Go to next request
+				pendingRequest = nextFrameRequest(offset, duration);
+			} else {
+				// Reached end
+				pendingRequest = nullptr;
+				break;
+			}
+		}
+
+		// End of stream reached if queue is still empty
+		if (needsNewFrame) return false;
+
+		auto timeLeft = duration - (playhead*time_base.num/time_base.den);
+		auto written = writeFrame(fetchQueue.front(), timeLeft);
+		fetchQueue.pop();
+		frame->pts = playhead;
+		playhead += written;
+
+		if (logProgress) {
+			int64_t totalFrames = (duration-offset)*time_base.den/time_base.num;
+			int64_t pendingFrames = fetchQueue.size();
+			int64_t currentFrame = fetchPlayhead - pendingFrames;
+			if (pendingRequest != nullptr) currentFrame -= 1;
+			li.logger->log(new torasu::LogProgress(totalFrames, currentFrame, pendingFrames));
+		}
+
+		return true;
+
 	}
 
 };
@@ -300,7 +420,7 @@ public:
 
 namespace imgc {
 
-torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
+torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request, torasu::LogInstruction li) {
 
 	//
 	// Configure
@@ -404,6 +524,7 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
 		oformat.video_codec = AV_CODEC_ID_NONE;
 	}
 
+	// TODO Log this message w/ logger
 	std::cout << "FMT SELECTED:" << std::endl
 			  << "	name: " << oformat.name << std::endl
 			  << "	video_codec: " << avcodec_get_name(oformat.video_codec) << std::endl
@@ -417,10 +538,19 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
 
 	std::list<StreamContainer> streams;
 
+	bool doProgress = li.options & torasu::LogInstruction::OPT_PROGRESS;
 	// Video Stream
 	if (doVideo) {
+		torasu::LogInstruction videoLi = li;
+		if (doProgress) {
+			videoLi.options = videoLi.options | torasu::LogInstruction::OPT_PROGRESS;
+			doProgress = false;
+		} else {
+			videoLi.options = videoLi.options &~ torasu::LogInstruction::OPT_PROGRESS;
+		}
+
 		auto& vidStream = streams.emplace_back();
-		vidStream.init(oformat.video_codec, formatCtx);
+		vidStream.init(oformat.video_codec, formatCtx, videoLi);
 
 		AVCodecParameters* codecParams = vidStream.params;
 		vidStream.time_base = {1, framerate};
@@ -434,8 +564,15 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
 
 	// Audio Stream
 	if (doAudio) {
+		torasu::LogInstruction audioLi = li;
+		if (doProgress) {
+			audioLi.options = audioLi.options | torasu::LogInstruction::OPT_PROGRESS;
+			doProgress = false;
+		} else {
+			audioLi.options = audioLi.options &~ torasu::LogInstruction::OPT_PROGRESS;
+		}
 		auto& audStream = streams.emplace_back();
-		audStream.init(oformat.audio_codec, formatCtx);
+		audStream.init(oformat.audio_codec, formatCtx, audioLi);
 
 		AVCodecParameters* codecParams = audStream.params;
 		audStream.time_base = {1, samplerate};
@@ -448,9 +585,9 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
 		audStream.open();
 	}
 
-	for (auto& current : streams) {
-		std::cout << " STR " << &current << std::endl;
-	}
+	// for (auto& current : streams) {
+	// 	std::cout << " STR " << &current << std::endl;
+	// }
 
 	// Writing Header
 
@@ -481,7 +618,8 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
 				// Directly process streams which dont have a packet yet
 				if (!current.hasQueuedPacket) {
 					selectedStream = &current;
-					std::cout << " DIRECT INIT QUEUE PACK" << std::endl;
+					// TODO Log this message w/ logger
+					// std::cout << " DIRECT INIT QUEUE PACK" << std::endl;
 					break;
 				}
 				// If all streams already have a packet, then pick the stream which the lowest dts in the queue
@@ -494,20 +632,17 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
 
 		// No Streams returned: All streams are done.
 		if (selectedStream == nullptr) {
-			std::cout << "Enocding finished." << std::endl;
+			// TODO Log this message w/ logger
+			// std::cout << "Enocding finished." << std::endl;
 			break;
 		}
 		StreamContainer& stream = *selectedStream;
 
-		double translatedPh = ((double)stream.playhead)*stream.time_base.num/stream.time_base.den;
-
-		AVFrame* frame = nullptr;
-		double duationLeft = duration - translatedPh;
-		if (duationLeft > 0) {
-			auto written = stream.writeFrame(frameCallbackFunc, begin, duationLeft);
+		AVFrame* frame;
+		if (stream.updateFrameBuffer(frameCallbackFunc, duration, begin)) {
 			frame = stream.frame;
-			frame->pts = stream.playhead;
-			stream.playhead += written;
+		} else {
+			frame = nullptr;
 		}
 
 		if (stream.hasQueuedPacket) {
@@ -547,9 +682,11 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
 		callStat = avcodec_receive_packet(stream.ctx, stream.queuedPacket);
 		if (callStat != 0) {
 			if (callStat == AVERROR(EAGAIN)) {
-				std::cout << "codec-recieve: EGAIN" << std::endl;
+				// TODO Log this message w/ logger
+				// std::cout << "codec-recieve: EGAIN" << std::endl;
 			} else if (callStat == AVERROR_EOF) {
-				std::cout << "codec-recieve: EOF" << std::endl;
+				// TODO Log this message w/ logger
+				// std::cout << "codec-recieve: EOF" << std::endl;
 				stream.state = StreamContainer::FLUSHED;
 			} else {
 				throw std::runtime_error("Error while recieving packet from codec: " + avErrStr(callStat));
@@ -569,6 +706,8 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request) {
 	//
 	// Cleanup
 	//
+
+	streams.clear();
 
 	avformat_free_context(formatCtx);
 	avio_context_free(&avioCtx);

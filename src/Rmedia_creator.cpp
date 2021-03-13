@@ -43,6 +43,9 @@ torasu::ResultSegment* Rmedia_creator::renderSegment(torasu::ResultSegmentSettin
 
 		MediaEncoder::EncodeRequest req;
 
+		bool logProgress = li.options & torasu::LogInstruction::OPT_PROGRESS; 
+		if (logProgress) li.logger->log(new torasu::LogProgress(-1, 0, "Loading video-params..."));
+
 		{
 			bool doMetadata = metadataSlot.get() != nullptr;
 			torasu::tools::RenderInstructionBuilder textRib;
@@ -125,49 +128,78 @@ torasu::ResultSegment* Rmedia_creator::renderSegment(torasu::ResultSegmentSettin
 		torasu::tstd::Dbimg_FORMAT visFmt(req.width, req.height);
 		auto visHandle = visRib.addSegmentWithHandle<torasu::tstd::Dbimg>(TORASU_STD_PL_VIS, &visFmt);
 
-		MediaEncoder enc([this, ei, li, rctx, &visRib, &visHandle, &frameDuration, &frameRatio]
+		size_t countPending = 0;
+
+		auto* visHandleRef = &visHandle;
+		auto* countPendingRef = &countPending;
+
+		MediaEncoder enc([this, ei, li, rctx, &visRib, visHandleRef, &frameDuration, &frameRatio, countPendingRef]
 		(MediaEncoder::FrameRequest* fr) {
-			torasu::RenderContext modRctx = *rctx;
+			if (*countPendingRef > 10 && !fr->needsNow) {
+				return 1; // Postpone
+			}
+			(*countPendingRef)++;
+			if (li.level <= torasu::LogLevel::DEBUG) li.logger->log(torasu::LogLevel::DEBUG, "Sym-req counter: " + std::to_string(*countPendingRef));
+
+			auto* modRctx = new torasu::RenderContext(*rctx);
 			if (auto* vidReq = dynamic_cast<MediaEncoder::VideoFrameRequest*>(fr)) {
-				torasu::tstd::Dnum time(vidReq->getTime());
-				modRctx[TORASU_STD_CTX_TIME] = &time;
-				modRctx[TORASU_STD_CTX_DURATION] = &frameDuration;
-				modRctx[TORASU_STD_CTX_IMG_RATIO] = &frameRatio;
+				auto* timeRctxVal = new torasu::tstd::Dnum(vidReq->getTime());
+				(*modRctx)[TORASU_STD_CTX_TIME] = timeRctxVal;
+				(*modRctx)[TORASU_STD_CTX_DURATION] = &frameDuration;
+				(*modRctx)[TORASU_STD_CTX_IMG_RATIO] = &frameRatio;
 
-				auto* rr = visRib.runRender(srcRnd.get(), &modRctx, ei, li);
+				auto rid = visRib.enqueueRender(srcRnd.get(), modRctx, ei, li);
 
-				fr->setFree([rr]() {
-					delete rr;
+				fr->setFinish([rid, ei, visHandleRef, vidReq, modRctx, timeRctxVal, countPendingRef] {
+					(*countPendingRef)--;
+
+					auto* rr = ei->fetchRenderResult(rid);
+					delete modRctx;
+					delete timeRctxVal;
+					auto fetchedRes = visHandleRef->getFrom(rr);
+
+					vidReq->setFree([rr]() {
+						delete rr;
+					});
+
+					if (fetchedRes.getResult() == nullptr) return -1;
+					vidReq->setResult(fetchedRes.getResult());
+
+					return 0;
 				});
-
-				auto fetchedRes = visHandle.getFrom(rr);
-
-				if (fetchedRes.getResult() == nullptr) return -1;
-
-				vidReq->setResult(fetchedRes.getResult());
 
 				return 0;
 			}
 			if (auto* audReq = dynamic_cast<MediaEncoder::AudioFrameRequest*>(fr)) {
-				torasu::tstd::Dnum time(audReq->getStart());
-				modRctx[TORASU_STD_CTX_TIME] = &time;
-				torasu::tstd::Dnum dur(audReq->getDuration());
-				modRctx[TORASU_STD_CTX_DURATION] = &dur;
+				auto* timeRctxVal = new torasu::tstd::Dnum(audReq->getStart());
+				(*modRctx)[TORASU_STD_CTX_TIME] = timeRctxVal;
+				auto* durRctxVal = new torasu::tstd::Dnum(audReq->getDuration());
+				(*modRctx)[TORASU_STD_CTX_DURATION] = durRctxVal;
 
-				torasu::tools::RenderInstructionBuilder audRib;
-				auto audHandle = audRib.addSegmentWithHandle<torasu::tstd::Daudio_buffer>(TORASU_STD_PL_AUDIO, audReq->getFormat());
+				auto* audRib = new torasu::tools::RenderInstructionBuilder();
+				auto* audHandle = new auto(audRib->addSegmentWithHandle<torasu::tstd::Daudio_buffer>(TORASU_STD_PL_AUDIO, audReq->getFormat()));
 
-				auto* rr = audRib.runRender(srcRnd.get(), &modRctx, ei, li);
+				auto rid = audRib->enqueueRender(srcRnd.get(), modRctx, ei, li);
 
-				fr->setFree([rr]() {
-					delete rr;
+				fr->setFinish([rid, ei, audRib, audHandle, audReq, modRctx, timeRctxVal, durRctxVal, countPendingRef] {
+					(*countPendingRef)--;
+
+					auto* rr = ei->fetchRenderResult(rid);
+					delete modRctx;
+					delete timeRctxVal;
+					delete durRctxVal;
+					auto fetchedRes = audHandle->getFrom(rr);
+					delete audHandle;
+					delete audRib;
+
+					audReq->setFree([rr]() {
+						delete rr;
+					});
+
+					if (fetchedRes.getResult() == nullptr) return -1;
+					audReq->setResult(fetchedRes.getResult());
+					return 0;
 				});
-
-				auto fetchedRes = audHandle.getFrom(rr);
-
-				if (fetchedRes.getResult() == nullptr) return -1;
-
-				audReq->setResult(fetchedRes.getResult());
 
 				return 0;
 			}
@@ -176,7 +208,7 @@ torasu::ResultSegment* Rmedia_creator::renderSegment(torasu::ResultSegmentSettin
 						);
 
 
-		auto* result = enc.encode(req);
+		auto* result = enc.encode(req, li);
 
 		return new torasu::ResultSegment(torasu::ResultSegmentStatus_OK, result, true);
 	} else {

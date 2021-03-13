@@ -675,16 +675,12 @@ void graphicsExample() {
 
 	torasu::tstd::Rrctx_value time(TORASU_STD_CTX_TIME, TORASU_STD_PL_NUM);
 
-	torasu::tstd::Rnum speed(40);
-
-	torasu::tstd::Rmultiply trm(&time, &speed);
+	torasu::tstd::Rmultiply trm(&time, 40);
 
 	torasu::tstd::Rsin sinVal(&trm);
 
-	torasu::tstd::Rnum valRoundFac(9.5);
-	torasu::tstd::Rnum valRoundAdd(-1);
-	torasu::tstd::Rmultiply mul(&sinVal, &valRoundFac);
-	torasu::tstd::Radd round(&mul, &valRoundAdd);
+	torasu::tstd::Rmultiply mul(&sinVal, 9.5);
+	torasu::tstd::Radd round(&mul, -1);
 
 	// torasu::tstd::Rnum round(1);
 
@@ -716,11 +712,11 @@ void graphicsExample() {
 		}
 	});
 
-	imgc::Rmedia_creator encoded(&premulMaybe, "mp4", 0., 1, 30, 1080*2, 1080*2, 4000*100, -1, &metadata);
+	imgc::Rmedia_creator encoded(&premulMaybe, "mp4", 0., 10, 30, 1080*2, 1080*2, 4000*100, -1, &metadata);
 
 	torasu::tstd::LIcore_logger logger;
-	torasu::LogInstruction li(&logger, torasu::LogLevel::DEBUG);
-	auto* runner = new torasu::tstd::EIcore_runner();
+	torasu::LogInstruction li(&logger, torasu::LogLevel::INFO, torasu::LogInstruction::OPT_PROGRESS);
+	auto* runner = new torasu::tstd::EIcore_runner((size_t)8);
 	torasu::ExecutionInterface* ei = runner->createInterface();
 
 	torasu::tools::RenderInstructionBuilder rib;

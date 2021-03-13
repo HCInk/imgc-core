@@ -34,9 +34,11 @@ Rmedia_file::~Rmedia_file() {
 
 void Rmedia_file::load(torasu::ExecutionInterface* ei, torasu::LogInstruction li) {
 
+	if (decoder != nullptr) return;
+
 	ei->lock();
 
-	if (decoder != NULL) {
+	if (decoder != nullptr) {
 		ei->unlock();
 		return;
 	}
@@ -61,6 +63,7 @@ void Rmedia_file::load(torasu::ExecutionInterface* ei, torasu::LogInstruction li
 	auto castedResultSeg = handle.getFrom(srcRendRes);
 
 	if (castedResultSeg.getResult() == NULL) {
+		ei->unlock();
 		throw std::runtime_error("Sub-render of file failed");
 	}
 
@@ -74,7 +77,7 @@ void Rmedia_file::load(torasu::ExecutionInterface* ei, torasu::LogInstruction li
 }
 
 
-torasu::RenderResult* Rmedia_file::render(torasu::RenderInstruction* ri) {
+torasu::RenderResult* Rmedia_file::renderSafe(torasu::RenderInstruction* ri) {
 	torasu::ExecutionInterface* ei = ri->getExecutionInterface();
 	torasu::LogInstruction li = ri->getLogInstruction();
 	load(ei, li);
@@ -167,28 +170,32 @@ torasu::RenderResult* Rmedia_file::render(torasu::RenderInstruction* ri) {
 		ei->unlock();
 
 		if (videoKey.has_value()) {
-			auto& frames = vidBuff->getFrames();
+			std::unique_ptr<torasu::tstd::Dbimg_sequence> vidSeq(vidBuff);
+			auto& frames = vidSeq->getFrames();
 			if (frames.size() > 0) {
 
-				auto firstFrame = vidBuff->getFrames().begin();
-				vidBuff->getFrames().erase(firstFrame);
-				delete vidBuff;
-
+				auto firstFrame = frames.begin();
 				torasu::tstd::Dbimg* resultFrame = firstFrame->second;
+				frames.erase(firstFrame);
+
+				vidSeq.reset();
+
 
 				if (videoFormat != NULL) {
 
-					auto* scaled = scaler::scaleImg(firstFrame->second, videoFormat);
+					auto* scaled = scaler::scaleImg(resultFrame, videoFormat);
 
 					if (scaled != NULL) {
-						delete firstFrame->second;
+						delete resultFrame;
 						resultFrame = scaled;
 					}
 				}
 
 				(*results)[videoKey.value()] = new torasu::ResultSegment(torasu::ResultSegmentStatus_OK, resultFrame, true);
 			} else {
-				std::cerr << "DECODER RETURNED NO FRAME" << std::endl;
+				if (li.level <= torasu::LogLevel::WARN)
+					li.logger->log(torasu::LogLevel::WARN, "DECODER RETURNED NO FRAME! "
+						"(TIME: " + std::to_string(time) + "-" + std::to_string(time+duration) + ")");
 				(*results)[videoKey.value()] = new torasu::ResultSegment(torasu::ResultSegmentStatus_OK_WARN, new torasu::tstd::Dbimg(*videoFormat), true);
 			}
 		}
@@ -201,6 +208,18 @@ torasu::RenderResult* Rmedia_file::render(torasu::RenderInstruction* ri) {
 
 	return new torasu::RenderResult(torasu::ResultStatus_OK, results);
 
+}
+
+
+torasu::RenderResult* Rmedia_file::render(torasu::RenderInstruction* ri) {
+	try {
+		return renderSafe(ri);
+	} catch(const std::exception& ex) {
+		torasu::LogInstruction li = ri->getLogInstruction();
+		if (li.level <= torasu::LogLevel::ERROR) 
+			li.logger->log(torasu::LogLevel::ERROR, "An exception ocurred while rendering Rmedia_file: " + std::string(typeid(ex).name()) + ": " + std::string(ex.what()));
+		return new torasu::RenderResult(torasu::ResultStatus_INTERNAL_ERROR);
+	}
 }
 
 torasu::ElementMap Rmedia_file::getElements() {

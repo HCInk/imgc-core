@@ -29,6 +29,7 @@ int ReadFunc(void* ptr, uint8_t* buf, int buf_size) {
 		nextPos = reader->size;
 		read = nextPos - reader->pos;
 	}
+	// std::cout << "READ TO " << ((void*)buf) << "-" << ((void*)(buf+read)) << " (SIZE " << read << ")" << std::endl;
 	memcpy(buf, reader->data + reader->pos, read);
 	reader->pos += read;
 	if (read > 0) {
@@ -42,15 +43,19 @@ int64_t SeekFunc(void* ptr, int64_t pos, int whence) {
 	imgc::MediaDecoder::FileReader* reader = reinterpret_cast<imgc::MediaDecoder::FileReader*>(ptr);
 	switch (whence) {
 	case SEEK_SET:
+		// std::cout << "SEEK SET " << pos << std::endl;
 		reader->pos = pos;
 		break;
 	case SEEK_CUR:
+		// std::cout << "SEEK CUR " << reader->pos << " + " << pos << " = " << (reader->pos+pos) << std::endl;
 		reader->pos += pos;
 		break;
 	case SEEK_END:
+		// std::cout << "SEEK END " << reader->size << " + " << pos << " = " << (reader->size+pos) << std::endl;
 		reader->pos = reader->size + pos;
 		break;
 	case AVSEEK_SIZE:
+		// std::cout << "SEEK SIZE -> " << reader->size << std::endl;
 		return reader->size;
 	default:
 		break;
@@ -89,6 +94,7 @@ MediaDecoder::MediaDecoder(uint8_t* dataP, size_t len) {
 
 void MediaDecoder::prepare() {
 	uint8_t* alloc_buf = (uint8_t*) av_malloc(32 * 1024);
+	// std::cout << "IOB-ALOC: " << ((void*)alloc_buf) << std::endl;
 	av_format_ctx = avformat_alloc_context();
 	if (!av_format_ctx) {
 		throw runtime_error("Failed allocating av_format_ctx!");
@@ -109,6 +115,7 @@ void MediaDecoder::prepare() {
 		throw runtime_error("Failed to find audio_out_stream info");
 	}
 	av_packet = av_packet_alloc();
+	// std::cout << "PKT-ALOC: " << av_packet << std::endl;
 
 	for (unsigned int stream_index = 0; stream_index < av_format_ctx->nb_streams; stream_index++) {
 		AVStream* stream = av_format_ctx->streams[stream_index];
@@ -166,6 +173,10 @@ MediaDecoder::~MediaDecoder() {
 		sws_freeContext(sws_scaler_ctx);
 	}
 
+	if (scaled_frame != nullptr) {
+		av_frame_free(&scaled_frame);
+	}
+
 	for (unsigned long i = 0; i < streams.size(); ++i) {
 		auto stream = streams[i];
 		if (stream->frame != nullptr) {
@@ -177,6 +188,7 @@ MediaDecoder::~MediaDecoder() {
 		delete stream;
 	}
 
+	// std::cout << "PKT-FREE: " << av_packet << std::endl;
 	av_packet_free(&av_packet);
 	if (av_format_ctx->pb) {
 		av_free(av_format_ctx->pb->buffer);
@@ -228,23 +240,68 @@ void MediaDecoder::removeCacheFrame(int64_t pos, std::vector<BufferedFrame>* lis
 	std::cerr << "Missing frame that should've been added" << std::endl;
 }
 
+// Use AVFrane for scaling, instead of using manual parameters
+#define VID_FRAME_SCALE_AVFRAME true
+// First convert frame into libav-buffer (with a padding for swsscale) and then into the destination-buffer, instead doing a direct conversion into 
+#define VID_FRAME_SCALE_INDIRECT true
+
 void MediaDecoder::extractVideoFrame(StreamEntry* stream, uint8_t* outPt) {
 	int32_t rWidth = stream->frame->width;
 	int32_t rHeight = stream->frame->height;
-	if (sws_scaler_ctx == NULL) {
+	if (sws_scaler_ctx == nullptr) {
 		sws_scaler_ctx = sws_getContext(stream->frame->width, stream->frame->height, stream->ctx->pix_fmt,
 										rWidth, rHeight, AV_PIX_FMT_RGB0,
 										SWS_FAST_BILINEAR, NULL, NULL, NULL);
+
+		if (!sws_scaler_ctx) throw runtime_error("Failed to create sws_scaler_ctx!");
+	}
+	
+#if VID_FRAME_SCALE_AVFRAME
+	int status;
+	if (scaled_frame == nullptr) {
+		scaled_frame = av_frame_alloc();
+		if (!scaled_frame) throw std::runtime_error("Failed to allocate scaled-frame!");
+
+		scaled_frame->format = AV_PIX_FMT_RGB0;
+		scaled_frame->width  = rWidth;
+		scaled_frame->height = rHeight;
+		status = av_frame_get_buffer(scaled_frame, 0);
+		if (status != 0) throw std::runtime_error("Error allocating destination frame on scale! (" + std::to_string(status) + ")");
 	}
 
-	if (!sws_scaler_ctx) {
-		throw runtime_error("Failed to create sws_scaler_ctx!");
+	status = sws_scale(sws_scaler_ctx, stream->frame->data, stream->frame->linesize, 0, rHeight, scaled_frame->data,
+			  scaled_frame->linesize);
+	if (status < 0) throw std::runtime_error("Error scaling frame! (" + std::to_string(status) + ")");
+
+	uint8_t* linePtr = scaled_frame->data[0];
+	uint8_t* outPtr = outPt;
+	for (int32_t y = 0; y < rHeight; y++) {
+		std::copy(linePtr, linePtr + rWidth*4, outPtr);
+		linePtr += scaled_frame->linesize[0];
+		outPtr += rWidth*4;
 	}
+
+#else
+#if VID_FRAME_SCALE_INDIRECT
+	size_t bufferSize = rWidth*rHeight*4;
+	// A padding for sws scale, since it seems to write outside of the designated are
+	// Issue was found on a conversion from 1000x1200 AV_PIX_FMT_YUV420P -> 1000x1200 AV_PIX_FMT_RGB0
+	constexpr int SWS_BOUND = 1;
+	uint8_t* writeBuffer = reinterpret_cast<uint8_t*>( av_malloc(bufferSize + rWidth*SWS_BOUND*4 + (rHeight+SWS_BOUND)*SWS_BOUND*4) );
+	uint8_t* dst[4] = {writeBuffer, NULL, NULL, NULL};
+#else
 	uint8_t* dst[4] = {outPt, NULL, NULL, NULL};
+#endif
 	int dest_linesize[4] = {rWidth * 4, 0, 0, 0};
 	sws_scale(sws_scaler_ctx, stream->frame->data, stream->frame->linesize, 0, stream->frame->height, dst,
 			  dest_linesize);
 
+
+#if VID_FRAME_SCALE_INDIRECT
+	std::copy(writeBuffer, writeBuffer+bufferSize, outPt);
+	av_free(writeBuffer);
+#endif
+#endif
 
 }
 
@@ -264,8 +321,10 @@ void MediaDecoder::getSegment(SegmentRequest request) {
 		if ((decodingState->videoDone||!decodingState->videoAvailable) && (decodingState->audioDone || !decodingState->audioAvailable)) {
 			break;
 		}
+		// std::cout << "PKT-UREF: " << av_packet << " DAT: " << ((void*)av_packet->data) << std::endl;
 		av_packet_unref(av_packet);
 		int nextFrameStat = av_read_frame(av_format_ctx, av_packet);
+		// std::cout << "PKT-READ: " << av_packet << " DAT: " << ((void*)av_packet->data) << std::endl;
 		auto stream = getStreamEntryByIndex(av_packet->stream_index);
 		if (nextFrameStat == AVERROR_EOF) {
 			for(unsigned long i = 0; i < streams.size(); i++) {
@@ -337,13 +396,15 @@ void MediaDecoder::handleFrame(StreamEntry* stream, DecodingState* decodingState
 	int64_t targetPosition = toBaseTime(decodingState->requestStart, stream->base_time);
 	int64_t targetPositionEnd = toBaseTime(decodingState->requestEnd, stream->base_time);
 
-	if(targetPositionEnd > stream->duration) {
+	/* if(targetPositionEnd > stream->duration) {
 		// FAIL safe, forced the wanted end pos to the start of last available frame of the stream
 		targetPositionEnd = stream->duration - stream->frame->pkt_duration;
-	}
+	} */
 
 	if (!decodingState->videoDone && stream->index == video_stream_index) {
-		if (checkFrameTargetBound(stream->frame, targetPosition, targetPositionEnd)) {
+		// Check if frame is inside of range or in the case of a requesting contents after the stream-limit, if the frame is the last one 
+		if (checkFrameTargetBound(stream->frame, targetPosition, targetPositionEnd) 
+			|| ( (targetPosition >= stream->duration) && (stream->frame->pts+stream->frame->pkt_duration) == stream->duration) ) {
 			if (decodingState->videoReadUntil > stream->frame->pts) {
 				return;
 			}
@@ -355,7 +416,7 @@ void MediaDecoder::handleFrame(StreamEntry* stream, DecodingState* decodingState
 								  torasu::tstd::Dbimg_FORMAT(rWidth, rHeight))->getImageData();
 			// For testing purposes
 			// std::fill(target, target+rWidth*rHeight*4, 0x00);
-			std::cout << "extracting video frame to " << ((void*)target) << " - " << ((void*)(target+rWidth*rHeight*4-1)) << std::endl;
+			// std::cout << "extracting video frame to " << ((void*)target) << " - " << ((void*)(target+rWidth*rHeight*4-1)) << std::endl;
 			extractVideoFrame(stream, target);
 
 			decodingState->videoReadUntil = stream->frame->pts + stream->frame->pkt_duration;
@@ -494,7 +555,24 @@ void MediaDecoder::initializePosition(DecodingState* decodingState) {
 
 	if (videoSeekBack || audioSeekBack || videoSeekForward) {
 		// std::cout << "SEEK VB " << videoSeekBack << " AB " << audioSeekBack << " VF " << videoSeekForward << std::endl;
-		av_seek_frame(av_format_ctx, -1, decodingState->requestStart * AV_TIME_BASE,
+
+		double position = decodingState->requestStart;
+
+		// Seek to
+		if (decodingState->audioAvailable) {
+			auto audStream = getStreamEntryByIndex(audio_stream_index);
+			// For some reason the audStream->ctx_params->seek_preroll was not enough in practice
+			// This is we also seek back two frames more, which seemd to fix the issue on testing with a mp3
+			// Is audStream->ctx_params->seek_preroll maybe not set correctly? - If someone finds a better solution, help is appreciated!
+			double audioSeekPadding = (double)(audStream->ctx_params->frame_size*2 + audStream->ctx_params->seek_preroll +1) / audStream->ctx_params->sample_rate;
+			if (position > audioSeekPadding) {
+				position -= audioSeekPadding;
+			} else {
+				position = 0;
+			}
+		}
+
+		av_seek_frame(av_format_ctx, -1, position * AV_TIME_BASE,
 					  AVSEEK_FLAG_BACKWARD); //Assuming the -1 includes all streams
 		for (auto& stream : streams) {
 			stream->flushCount = stream->cachedFrames.size();
@@ -516,6 +594,7 @@ void MediaDecoder::drainStream(StreamEntry* stream, DecodingState* decodingState
 		}
 
 		if (response == AVERROR_EOF) {
+			stream->frameIsPresent = false;
 			break;
 		}
 
