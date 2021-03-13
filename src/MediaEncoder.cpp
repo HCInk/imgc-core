@@ -546,7 +546,7 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request, torasu::LogInst
 			videoLi.options = videoLi.options | torasu::LogInstruction::OPT_PROGRESS;
 			doProgress = false;
 		} else {
-			videoLi.options = videoLi.options ^ torasu::LogInstruction::OPT_PROGRESS;
+			videoLi.options = videoLi.options &~ torasu::LogInstruction::OPT_PROGRESS;
 		}
 
 		auto& vidStream = streams.emplace_back();
@@ -569,7 +569,7 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request, torasu::LogInst
 			audioLi.options = audioLi.options | torasu::LogInstruction::OPT_PROGRESS;
 			doProgress = false;
 		} else {
-			audioLi.options = audioLi.options ^ torasu::LogInstruction::OPT_PROGRESS;
+			audioLi.options = audioLi.options &~ torasu::LogInstruction::OPT_PROGRESS;
 		}
 		auto& audStream = streams.emplace_back();
 		audStream.init(oformat.audio_codec, formatCtx, audioLi);
