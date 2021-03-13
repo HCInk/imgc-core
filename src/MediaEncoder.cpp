@@ -403,7 +403,7 @@ public:
 			int64_t totalFrames = (duration-offset)*time_base.den/time_base.num;
 			int64_t pendingFrames = fetchQueue.size();
 			int64_t currentFrame = fetchPlayhead - pendingFrames;
-			if (pendingRequest != nullptr) currentFrame -= 1;
+			if (pendingRequest != nullptr) currentFrame -= ctx->codec_type == AVMEDIA_TYPE_AUDIO ? static_cast<imgc::MediaEncoder::AudioFrameRequest*>(pendingRequest)->getDuration()*time_base.den : 1;
 			li.logger->log(new torasu::LogProgress(totalFrames, currentFrame, pendingFrames));
 		}
 
