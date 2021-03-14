@@ -61,7 +61,7 @@ public:
 	int add(void* avcl, FFmpegCallbackFunc callback) {
 		std::unique_lock lck(callbackLock);
 #if	SANITY_CHECK
-		if (callbacks.contains(avcl)) return -3;
+		if (callbacks.find(avcl) != callbacks.end()) return -3;
 #endif
 		callbacks[avcl] = callback;
 		return 0;
@@ -70,7 +70,7 @@ public:
 	int remove(void* avcl) {
 		std::unique_lock lck(callbackLock);
 #if	SANITY_CHECK
-		if (!callbacks.contains(avcl)) return -4;
+		if (callbacks.find(avcl) != callbacks.end()) return -4;
 #endif
 		callbacks.erase(avcl);
 		return 0;
