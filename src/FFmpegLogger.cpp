@@ -84,7 +84,7 @@ public:
 		if (found != callbacks.end()) {
 			found->second(avcl, level, fmt, vl);
 		} else {
-			if (avcl == nullptr && level <= AV_LOG_VERBOSE) return;
+			if (avcl == nullptr && level >= AV_LOG_VERBOSE) return;
 			std::cout << "FFmpeg: " << FFmpegLogger::formatLine(avcl, level, fmt, vl, 500) << std::endl;
 		}
 	}
