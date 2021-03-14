@@ -35,6 +35,8 @@ private:
 public:
 	FFmpegLogger();
 	FFmpegLogger(void* avcl, FFmpegCallbackFunc callback);
+	FFmpegLogger& operator=(FFmpegLogger&) = delete;
+	FFmpegLogger(FFmpegLogger&) = delete;
 	~FFmpegLogger();
 	void attach(void* avcl, FFmpegCallbackFunc callback);
 	void detach();
