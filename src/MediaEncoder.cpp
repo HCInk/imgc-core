@@ -483,6 +483,10 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request, torasu::LogInst
 		throw std::runtime_error("Failed allocating formatCtx!");
 	}
 
+	FFmpegLogger fmtCtxLogger(formatCtx, [li](void* avcl, int level, const char* message, va_list vl) {
+		imgc::FFmpegLogger::logMessageChecked(li, avcl, level, message, vl, 500);
+	});
+
 	IOOpaque opaque(li);
 
 	AVIOContext* avioCtx = avio_alloc_context(alloc_buf, 32 * 1024, true, &opaque, nullptr, WriteFunc, SeekFunc);
@@ -535,7 +539,6 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request, torasu::LogInst
 		oformat.video_codec = AV_CODEC_ID_NONE;
 	}
 
-	// TODO Log this message w/ logger
 	if (li.level <= torasu::INFO) {
 		li.logger->log(torasu::INFO, std::string() + "FMT SELECTED:\n"
 			  "	name: " + oformat.name + "\n"
