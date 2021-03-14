@@ -59,6 +59,7 @@
 
 #include <torasu/mod/imgc/Scaler.hpp>
 #include <torasu/mod/imgc/ShapeRenderer.hpp>
+#include <torasu/mod/imgc/FFmpegLogger.h>
 #include <torasu/mod/imgc/MediaDecoder.hpp>
 #include <torasu/mod/imgc/MediaEncoder.hpp>
 
