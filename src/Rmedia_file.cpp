@@ -71,7 +71,7 @@ void Rmedia_file::load(torasu::ExecutionInterface* ei, torasu::LogInstruction li
 
 	// Create Decoder
 
-	decoder = new MediaDecoder(srcFile->getFileData(), srcFile->getFileSize());
+	decoder = new MediaDecoder(srcFile->getFileData(), srcFile->getFileSize(), li);
 
 	ei->unlock();
 }
@@ -165,7 +165,7 @@ torasu::RenderResult* Rmedia_file::renderSafe(torasu::RenderInstruction* ri) {
 			.end = time+duration,
 			.videoBuffer = videoKey.has_value() ? &vidBuff : NULL,
 			.audioBuffer = audioKey.has_value() ? &audBuff : NULL
-		});
+		}, li);
 
 		ei->unlock();
 

@@ -10,7 +10,11 @@
 #include <string>
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <lodepng.h>
+
+#include <torasu/log_tools.hpp>
+#include <torasu/std/LIcore_logger.hpp>
 
 #define DECODER_SANITY_CHECKS true
 
@@ -80,25 +84,42 @@ MediaDecoder::MediaDecoder(std::string path) {
 	in_stream.data = data;
 	in_stream.pos = 0;
 	in_stream.size = length;
-	freeInput = true;
+	freeInput = true; // delete[] in_stream.data
+	std::unique_ptr<torasu::tstd::LIcore_logger> logger(new torasu::tstd::LIcore_logger());
+	torasu::LogInstruction li(logger.get());
+	LogInstructionSession logSess(this, &li);
 	prepare();
 }
 
-MediaDecoder::MediaDecoder(uint8_t* dataP, size_t len) {
+MediaDecoder::MediaDecoder(uint8_t* dataP, size_t len, torasu::LogInstruction li) {
 	in_stream.data = dataP;
 	in_stream.pos = 0;
 	in_stream.size = len;
 	freeInput = false;
+	LogInstructionSession logSess(this, &li);
 	prepare();
 }
 
 void MediaDecoder::prepare() {
+	auto* instance = this;
+	FFmpegCallbackFunc logCallback = [instance] (void* avcl, int level, const char* msg, va_list vl) {
+		auto* li = instance->li;
+		if (li != nullptr) {
+			FFmpegLogger::logMessageChecked(*li, avcl, level, msg, vl, 500);
+		} else {
+			std::cout << "MediaDecoder: (Unexpected message) " 
+				<< FFmpegLogger::formatLine(avcl, level, msg, vl, 500) << std::endl;
+		}
+	};
+
 	uint8_t* alloc_buf = (uint8_t*) av_malloc(32 * 1024);
 	// std::cout << "IOB-ALOC: " << ((void*)alloc_buf) << std::endl;
 	av_format_ctx = avformat_alloc_context();
 	if (!av_format_ctx) {
 		throw runtime_error("Failed allocating av_format_ctx!");
 	}
+
+	loggers.emplace_back().attach(av_format_ctx, logCallback);
 	av_format_ctx->pb = avio_alloc_context(alloc_buf, 32 * 1024, false, &in_stream, ReadFunc, NULL, SeekFunc);
 
 	if (!av_format_ctx->pb) {
@@ -110,10 +131,11 @@ void MediaDecoder::prepare() {
 		throw runtime_error("Failed to open input audio_out_stream");
 	}
 
-	// Get infromation about streams
-	if (avformat_find_stream_info(av_format_ctx, NULL) < 0) {
-		throw runtime_error("Failed to find audio_out_stream info");
-	}
+	// Get infromation about streams (Somehow doesn't seem necessary)
+	// if (avformat_find_stream_info(av_format_ctx, NULL) < 0) {
+	// 	throw runtime_error("Failed to find audio_out_stream info");
+	// }
+
 	av_packet = av_packet_alloc();
 	// std::cout << "PKT-ALOC: " << av_packet << std::endl;
 
@@ -126,6 +148,8 @@ void MediaDecoder::prepare() {
 		entry->ctx = avcodec_alloc_context3(entry->codec);
 		entry->ctx_params = stream->codecpar;
 		entry->base_time = stream->time_base;
+
+		loggers.emplace_back().attach(entry->ctx, logCallback);
 
 		if (stream->duration == AV_NOPTS_VALUE) {
 			entry->duration = av_format_ctx->duration * stream->time_base.den / stream->time_base.num / AV_TIME_BASE;
@@ -147,7 +171,9 @@ void MediaDecoder::prepare() {
 			}
 
 		} else {
-			cerr << "CANT FIND CODEC FOR STREAM " << stream->id << " (TYPE " << stream->codecpar->codec_type << ")" << endl;
+			torasu::tools::log_checked(*li, torasu::WARN, "CANT FIND CODEC FOR STREAM " 
+				+ std::to_string(stream->id) 
+				+ " (TYPE " + std::to_string(stream->codecpar->codec_type) + ")");
 		}
 
 		if (!entry->ctx) {
@@ -310,6 +336,13 @@ int64_t MediaDecoder::toBaseTime(double value, AVRational base) {
 }
 
 void MediaDecoder::getSegment(SegmentRequest request) {
+	std::unique_ptr<torasu::tstd::LIcore_logger> logger(new torasu::tstd::LIcore_logger());
+	torasu::LogInstruction li(logger.get());
+	getSegment(request, li);
+}
+
+void MediaDecoder::getSegment(SegmentRequest request, torasu::LogInstruction li) {
+	LogInstructionSession logSess(this, &li);
 
 	DecodingState* decodingState = createDecoderState(request);
 

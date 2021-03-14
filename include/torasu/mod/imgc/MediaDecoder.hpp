@@ -6,6 +6,7 @@
 #define IMGC_MEDIADECODER_HPP
 
 #include <vector>
+#include <list>
 #include <utility>
 
 extern "C" {
@@ -18,9 +19,11 @@ extern "C" {
 #include <libavutil/frame.h>
 }
 
+#include <torasu/torasu.hpp>
 #include <torasu/std/Dbimg.hpp>
 #include <torasu/std/Dbimg_sequence.hpp>
 #include <torasu/std/Daudio_buffer.hpp>
+#include <torasu/mod/imgc/FFmpegLogger.h>
 
 namespace imgc {
 
@@ -87,13 +90,26 @@ struct StreamEntry {
 	int64_t nextFramePts = 0;
 };
 class MediaDecoder {
+private:
+	torasu::LogInstruction* li = nullptr;
+	std::list<FFmpegLogger> loggers;
+
+	class LogInstructionSession {
+	private: 
+		MediaDecoder* dec;
+	public:
+		LogInstructionSession(MediaDecoder* dec, torasu::LogInstruction* li) 
+			: dec(dec) {dec->li = li;}
+		~LogInstructionSession() {dec->li = nullptr;}
+	};
 public:
 	MediaDecoder(std::string path);
-	MediaDecoder(uint8_t* dataP, size_t len);
+	MediaDecoder(uint8_t* dataP, size_t len, torasu::LogInstruction li);
 
 	~MediaDecoder();
 
 	void getSegment(SegmentRequest request);
+	void getSegment(SegmentRequest request, torasu::LogInstruction li);
 
 	std::pair<int32_t, int32_t> getDimensions();
 	double getDuration();
