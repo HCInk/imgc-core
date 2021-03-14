@@ -2,10 +2,12 @@
 
 #include <math.h>
 
-#include <iostream>
 #include <fstream>
 #include <list>
 #include <queue>
+
+#include <torasu/log_tools.hpp>
+#include <torasu/mod/imgc/FFmpegLogger.h>
 
 #define ENCODER_SANITY_CHECKS true
 
@@ -21,6 +23,9 @@ inline std::string avErrStr(int errNum) {
 struct IOOpaque {
 	// std::ofstream* ofstream;
 	FileBuilder fb;
+	torasu::LogInstruction li;
+	
+	IOOpaque(torasu::LogInstruction li) : li(li) {}
 };
 
 int WriteFunc(void* opaque, uint8_t* buf, int buf_size) {
@@ -48,13 +53,13 @@ int64_t SeekFunc(void* opaque, int64_t offset, int whence) {
 		fb.pos += offset;
 		break;
 	case SEEK_END:
-		std::cerr << "SeekOp END unsupported!" << std::endl;
+		torasu::tools::log_checked(ioop->li, torasu::ERROR, "SeekOp END unsupported!");
 		return AVERROR_INVALIDDATA;
 	case AVSEEK_SIZE:
-		std::cerr << "SeekOp AVSEEK_SIZE unsupported!" << std::endl;
+		torasu::tools::log_checked(ioop->li, torasu::ERROR, "SeekOp AVSEEK_SIZE unsupported!");
 		return AVERROR_INVALIDDATA;
 	default:
-		std::cerr << "Unkown SeekOp!" << std::endl;
+		torasu::tools::log_checked(ioop->li, torasu::ERROR, "Unkown SeekOp (" + std::to_string(whence) + ")!");
 		return AVERROR_INVALIDDATA;
 		break;
 	}
@@ -102,6 +107,7 @@ public:
 
 	// Logging
 	torasu::LogInstruction li = torasu::LogInstruction(nullptr);
+	imgc::FFmpegLogger ffmpegLogHook;
 
 	StreamContainer() {}
 
@@ -158,6 +164,11 @@ public:
 			state = ERROR;
 			throw std::runtime_error("Cannot create stream-packet!");
 		}
+
+		ffmpegLogHook.attach(ctx, [li](void* avcl, int level, const char* message, va_list vl) {
+			imgc::FFmpegLogger::logMessageChecked(li, avcl, level, message, vl, 500);
+		});
+
 		state = INITIALIZED;
 	}
 
@@ -272,7 +283,7 @@ private:
 		{
 			int finishStat = fr->finish();
 			if (finishStat != 0) {
-				std::cerr << "Frame-finish callback exited with non-zero return code (" << finishStat << ")!" << std::endl;
+				torasu::tools::log_checked(li, torasu::ERROR, "Frame-finish callback exited with non-zero return code (" + std::to_string(finishStat) + ")!");
 			}
 		}
 
@@ -372,9 +383,9 @@ public:
 					// Callback error - drop request
 					delete pendingRequest;
 					if (callbackStat < 0) {
-						std::cerr << "Frame callback exited with negative return code (" << callbackStat << ")!" << std::endl;
+						torasu::tools::log_checked(li, torasu::ERROR, "Frame callback exited with negative return code (" + std::to_string(callbackStat) + ")!");
 					} else {
-						std::cerr << "Frame callback exited with invalid return code (" << callbackStat << ")!" << std::endl;
+						torasu::tools::log_checked(li, torasu::ERROR, "Frame callback exited with invalid return code (" + std::to_string(callbackStat) + ")!");
 					}
 				}
 
@@ -472,7 +483,7 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request, torasu::LogInst
 		throw std::runtime_error("Failed allocating formatCtx!");
 	}
 
-	IOOpaque opaque;
+	IOOpaque opaque(li);
 
 	AVIOContext* avioCtx = avio_alloc_context(alloc_buf, 32 * 1024, true, &opaque, nullptr, WriteFunc, SeekFunc);
 
@@ -525,10 +536,12 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request, torasu::LogInst
 	}
 
 	// TODO Log this message w/ logger
-	std::cout << "FMT SELECTED:" << std::endl
-			  << "	name: " << oformat.name << std::endl
-			  << "	video_codec: " << avcodec_get_name(oformat.video_codec) << std::endl
-			  << "	audio_codec: " << avcodec_get_name(oformat.audio_codec) << std::endl;
+	if (li.level <= torasu::INFO) {
+		li.logger->log(torasu::INFO, std::string() + "FMT SELECTED:\n"
+			  "	name: " + oformat.name + "\n"
+			  "	video_codec: " + avcodec_get_name(oformat.video_codec) + "\n"
+			  "	audio_codec: " + avcodec_get_name(oformat.audio_codec) );
+	}
 
 	formatCtx->oformat = &oformat;
 
@@ -664,7 +677,7 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request, torasu::LogInst
 				callStat = avcodec_send_frame(stream.ctx, frame);
 				if (callStat != 0) {
 					if (callStat == AVERROR(EAGAIN)) {
-						std::cerr << "codec-send: EGAIN - not implemented yet!" << std::endl;
+						torasu::tools::log_checked(li, torasu::ERROR, "codec-send: EGAIN - not implemented yet!");
 					} else if (callStat == AVERROR_EOF) {
 						throw std::runtime_error("Error while sending frame to codec: Encoder has already been flushed!");
 					} else {
