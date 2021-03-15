@@ -73,6 +73,9 @@ void Rmedia_file::load(torasu::ExecutionInterface* ei, torasu::LogInstruction li
 
 	decoder = new MediaDecoder(srcFile->getFileData(), srcFile->getFileSize(), li);
 
+	// Close refs so it can be stored, without its LogInstruction still existing
+	srcRendRes->closeRefs();
+
 	ei->unlock();
 }
 
