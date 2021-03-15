@@ -70,7 +70,7 @@ public:
 	int remove(void* avcl) {
 		std::unique_lock lck(callbackLock);
 #if	SANITY_CHECK
-		if (callbacks.find(avcl) != callbacks.end()) return -4;
+		if (callbacks.find(avcl) == callbacks.end()) return -4;
 #endif
 		callbacks.erase(avcl);
 		return 0;
