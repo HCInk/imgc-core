@@ -622,26 +622,20 @@ void encodeTorasu() {
 	// Take video1 and replace its audio with the audio of video2
 	torasu::tstd::Rmix_pipelines comp(&speedVid, {{TORASU_STD_PL_AUDIO, &video2}});
 
-	torasu::tstd::Rstring format("mp4");
-	torasu::tstd::Rnum begin(0);
-	torasu::tstd::Rnum fps(10);
-	torasu::tstd::Rnum videoBitrate(4000*1000);
-	torasu::tstd::Rnum audioMinSamplerate(44100);
-
 	torasu::tstd::Rproperty duration(&video1, TORASU_STD_PROP_DURATION, TORASU_STD_PL_NUM);
 	torasu::tstd::Rdivide durFac(&one, &speed);
 	torasu::tstd::Rmultiply end(&duration, &durFac);
 	torasu::tstd::Rproperty width(&video1, TORASU_STD_PROP_IMG_WIDTH, TORASU_STD_PL_NUM);
 	torasu::tstd::Rproperty height(&video1, TORASU_STD_PROP_IMG_HEIGHT, TORASU_STD_PL_NUM);
 
-	imgc::Rmedia_creator encoded(&comp, &format, &begin, 0.2 /* &end */, &fps, &width, &height, &videoBitrate, &audioMinSamplerate);
+	imgc::Rmedia_creator encoded(&comp, "mp4", 0., .2 /* &end */, 60, &width, &height, 4000*1000, 44100);
 
 	auto* tree = &encoded;
 
 	// Creating Engine
 
 	torasu::tstd::LIcore_logger logger;
-	torasu::LogInstruction li(&logger);
+	torasu::LogInstruction li(&logger, torasu::INFO, torasu::LogInstruction::OPT_PROGRESS);
 	torasu::tstd::EIcore_runner* runner = new torasu::tstd::EIcore_runner();
 	torasu::ExecutionInterface* ei = runner->createInterface();
 
