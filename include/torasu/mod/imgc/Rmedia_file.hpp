@@ -17,13 +17,9 @@ class MediaDecoder;
 
 class Rmedia_file :  public torasu::Renderable,
 	public torasu::tools::NamedIdentElement,
-	public torasu::tools::SimpleDataElement,
-	public torasu::tools::ReadylessElement {
+	public torasu::tools::SimpleDataElement {
 private:
 	torasu::tools::ManagedRenderableSlot srcRnd;
-	torasu::RenderResult* srcRendRes = NULL;
-	torasu::tstd::Dfile* srcFile = NULL;
-	MediaDecoder* decoder = NULL;
 
 	torasu::RenderResult* renderSafe(torasu::RenderInstruction* ri);
 	void load(torasu::ExecutionInterface* ei, torasu::LogInstruction li);
@@ -32,6 +28,7 @@ public:
 	Rmedia_file(torasu::tools::RenderableSlot src);
 	~Rmedia_file();
 
+	void ready(torasu::ReadyInstruction* ri) override;
 	torasu::RenderResult* render(torasu::RenderInstruction* ri) override;
 
 	torasu::ElementMap getElements() override;

@@ -624,7 +624,7 @@ void encodeTorasu() {
 
 	torasu::tstd::Rstring format("mp4");
 	torasu::tstd::Rnum begin(0);
-	torasu::tstd::Rnum fps(25);
+	torasu::tstd::Rnum fps(10);
 	torasu::tstd::Rnum videoBitrate(4000*1000);
 	torasu::tstd::Rnum audioMinSamplerate(44100);
 
@@ -634,7 +634,7 @@ void encodeTorasu() {
 	torasu::tstd::Rproperty width(&video1, TORASU_STD_PROP_IMG_WIDTH, TORASU_STD_PL_NUM);
 	torasu::tstd::Rproperty height(&video1, TORASU_STD_PROP_IMG_HEIGHT, TORASU_STD_PL_NUM);
 
-	imgc::Rmedia_creator encoded(&comp, &format, &begin, &end, &fps, &width, &height, &videoBitrate, &audioMinSamplerate);
+	imgc::Rmedia_creator encoded(&comp, &format, &begin, 0.2 /* &end */, &fps, &width, &height, &videoBitrate, &audioMinSamplerate);
 
 	auto* tree = &encoded;
 
@@ -799,8 +799,8 @@ int main(int argc, char** argv) {
 	// examples::cropdataExample();
 	// examples::cropExample();
 	// examples::encodeExample();
-	// examples::encodeTorasu();
-	examples::graphicsExample();
+	examples::encodeTorasu();
+	// examples::graphicsExample();
 
 	return 0;
 }

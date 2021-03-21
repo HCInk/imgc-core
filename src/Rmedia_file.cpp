@@ -3,6 +3,7 @@
 #include <sstream>
 #include <optional>
 #include <iostream>
+#include <memory>
 
 #include <torasu/render_tools.hpp>
 #include <torasu/std/pipeline_names.hpp>
@@ -17,39 +18,64 @@
 
 namespace imgc {
 
+class Rmedia_creator_readyobj : public torasu::ReadyState {
+private:
+	std::vector<std::string>* ops;
+	torasu::RenderContextMask* rctxm;
+protected:
+	torasu::RenderResult* srcRendRes = nullptr;
+	torasu::tstd::Dfile* srcFile = nullptr;
+	MediaDecoder* decoder = nullptr;
+
+	Rmedia_creator_readyobj(std::vector<std::string>* ops, torasu::RenderContextMask* rctxm) 
+		: ops(ops), rctxm(rctxm) {}
+public:
+	~Rmedia_creator_readyobj() {
+		delete ops;
+		delete rctxm;
+		if (decoder != nullptr) delete decoder;
+		if (srcRendRes != nullptr) delete srcRendRes;
+	}
+
+	virtual const std::vector<std::string>* getOperations() const override {
+		return ops;
+	}
+
+	virtual const torasu::RenderContextMask* getContextMask() const override {
+		return rctxm;
+	}
+
+	virtual size_t size() const override {
+		size_t size = 0;
+		
+		if (srcFile != nullptr) size += srcFile->getFileSize();
+
+		return size;
+	}
+
+	virtual ReadyState* clone() const override {
+		// TODO implement clone
+		throw new std::runtime_error("cloning currently unsupported");
+	}
+
+	friend Rmedia_file;
+};
 
 Rmedia_file::Rmedia_file(torasu::tools::RenderableSlot src)
 	: torasu::tools::NamedIdentElement("IMGC::RMEDIA_FILE"),
 	  torasu::tools::SimpleDataElement(false, true),
 	  srcRnd(src) {}
 
-Rmedia_file::~Rmedia_file() {
-
-	if (decoder != NULL) delete decoder;
-
-	if (srcRendRes != NULL) delete srcRendRes;
-
-}
+Rmedia_file::~Rmedia_file() {}
 
 
-void Rmedia_file::load(torasu::ExecutionInterface* ei, torasu::LogInstruction li) {
+void Rmedia_file::ready(torasu::ReadyInstruction* ri) {
 
-	if (decoder != nullptr) return;
-
-	ei->lock();
-
-	if (decoder != nullptr) {
-		ei->unlock();
-		return;
-	}
+	auto li = ri->li;
+	auto* ei = ri->ei;
 
 	if (srcRnd.get() == NULL) throw std::logic_error("Source renderable set loaded yet!");
 
-	if (srcRendRes != NULL) {
-		delete srcRendRes;
-		srcRendRes = NULL;
-		srcFile = NULL;
-	}
 
 	// Render File
 
@@ -58,32 +84,34 @@ void Rmedia_file::load(torasu::ExecutionInterface* ei, torasu::LogInstruction li
 	auto handle = rib.addSegmentWithHandle<torasu::tstd::Dfile>(TORASU_STD_PL_FILE, NULL);
 
 	torasu::RenderContext rctx;
-	srcRendRes = rib.runRender(srcRnd.get(), &rctx, ei, li);
+	std::unique_ptr<torasu::RenderResult> rr(rib.runRender(srcRnd.get(), &rctx, ei, li));
 
-	auto castedResultSeg = handle.getFrom(srcRendRes);
+	auto castedResultSeg = handle.getFrom(rr.get());
 
-	if (castedResultSeg.getResult() == NULL) {
-		ei->unlock();
-		throw std::runtime_error("Sub-render of file failed");
-	}
+	auto* obj = new Rmedia_creator_readyobj(new std::vector<std::string>(ri->ops), new torasu::RenderContextMask());
 
-	srcFile = castedResultSeg.getResult();
+	ri->setState(obj);
+
+
+	auto* srcFile = castedResultSeg.getResult();
+	obj->srcFile = srcFile;
 
 	// Create Decoder
 
-	decoder = new MediaDecoder(srcFile->getFileData(), srcFile->getFileSize(), li);
+	auto* decoder = new MediaDecoder(srcFile->getFileData(), srcFile->getFileSize(), li);
+	obj->decoder = decoder;
 
 	// Close refs so it can be stored, without its LogInstruction still existing
-	srcRendRes->closeRefs();
+	rr->closeRefs();
+	obj->srcRendRes = rr.release();
 
-	ei->unlock();
 }
 
 
 torasu::RenderResult* Rmedia_file::renderSafe(torasu::RenderInstruction* ri) {
 	torasu::ExecutionInterface* ei = ri->getExecutionInterface();
 	torasu::LogInstruction li = ri->getLogInstruction();
-	load(ei, li);
+	auto* decoder = static_cast<Rmedia_creator_readyobj*>(ri->getReadyState())->decoder;
 
 	std::map<std::string, torasu::ResultSegment*>* results = new std::map<std::string, torasu::ResultSegment*>();
 
