@@ -27,8 +27,8 @@ public:
 	double getOffTop();
 	double getOffBottom();
 
-	std::string getIdent() override;
-	Dcropdata* clone() override;
+	std::string getIdent() const override;
+	Dcropdata* clone() const override;
 
 };
 

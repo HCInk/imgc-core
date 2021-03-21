@@ -18,15 +18,15 @@ torasu::DataDump* Dgraphics_FORMAT::dumpResource() {
 	return new torasu::DataDump(dp, 0, nullptr);
 }
 
-Dgraphics_FORMAT* Dgraphics_FORMAT::clone() {
+Dgraphics_FORMAT* Dgraphics_FORMAT::clone() const {
 	return new Dgraphics_FORMAT();
 }
 
-std::string Dgraphics::getIdent() {
+std::string Dgraphics::getIdent() const {
 	return "IMGC::DGRAPHICS";
 }
 
-Dgraphics* Dgraphics::clone() {
+Dgraphics* Dgraphics::clone() const {
 	return new Dgraphics(*this);
 }
 
