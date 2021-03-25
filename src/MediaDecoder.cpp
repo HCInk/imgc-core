@@ -605,7 +605,7 @@ void MediaDecoder::initializePosition(DecodingState* decodingState) {
 			// For some reason the audStream->ctx_params->seek_preroll was not enough in practice
 			// This is we also seek back two frames more, which seemd to fix the issue on testing with a mp3
 			// Is audStream->ctx_params->seek_preroll maybe not set correctly? - If someone finds a better solution, help is appreciated!
-			double audioSeekPadding = (double)(audStream->ctx_params->frame_size*2 + audStream->ctx_params->seek_preroll +1) / audStream->ctx_params->sample_rate;
+			double audioSeekPadding = (double)(audStream->ctx->frame_size*2 + audStream->ctx->seek_preroll +1) / audStream->ctx->sample_rate;
 			if (position > audioSeekPadding) {
 				position -= audioSeekPadding;
 			} else {
