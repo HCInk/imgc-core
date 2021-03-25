@@ -151,10 +151,18 @@ void MediaDecoder::prepare() {
 
 		loggers.emplace_back().attach(entry->ctx, logCallback);
 
-		if (stream->duration == AV_NOPTS_VALUE) {
-			entry->duration = av_format_ctx->duration * stream->time_base.den / stream->time_base.num / AV_TIME_BASE;
-		} else {
-			entry->duration = stream->duration;
+		// Currently disabled since av_format_ctx->duration is not valid because stream-scanning was disabled
+		// if (stream->duration == AV_NOPTS_VALUE) {
+		// 	entry->duration = av_format_ctx->duration * stream->time_base.den / stream->time_base.num / AV_TIME_BASE;
+		// } else {
+		// 	entry->duration = stream->duration;
+		// }
+
+		entry->duration = stream->duration;
+
+		if (stream->duration != AV_NOPTS_VALUE 
+			&& ((double) this->duration.num / this->duration.den) < ((double) stream->duration*stream->time_base.num / stream->time_base.den)) {
+			this->duration = {stream->duration*stream->time_base.num, stream->time_base.den};
 		}
 
 		// Sets pkt_timebase so timestamps can be corrected (anyone knows why this isnt set by default?)
@@ -235,7 +243,7 @@ std::pair<int32_t, int32_t> MediaDecoder::getDimensions() {
 }
 
 double MediaDecoder::getDuration() {
-	return (double) av_format_ctx->duration / AV_TIME_BASE;
+	return (double) this->duration.num / this->duration.den;
 }
 
 void MediaDecoder::flushBuffers(StreamEntry* entry) {

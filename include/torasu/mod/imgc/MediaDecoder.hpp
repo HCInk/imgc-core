@@ -130,6 +130,7 @@ private:
 
 	int video_stream_index = -1;
 	int audio_stream_index = -1;
+	AVRational duration = {0, -1};
 
 	double decoderPosition = -1;
 	SwsContext* sws_scaler_ctx = nullptr;
