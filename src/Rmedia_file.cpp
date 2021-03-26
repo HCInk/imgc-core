@@ -82,8 +82,7 @@ void Rmedia_file::ready(torasu::ReadyInstruction* ri) {
 
 	auto handle = rib.addSegmentWithHandle<torasu::tstd::Dfile>(TORASU_STD_PL_FILE, NULL);
 
-	torasu::RenderContext rctx;
-	std::unique_ptr<torasu::RenderResult> rr(rib.runRender(srcRnd.get(), &rctx, ei, li));
+	std::unique_ptr<torasu::RenderResult> rr(rib.runRender(srcRnd.get(), ri->rctx, ei, li));
 
 	auto castedResultSeg = handle.getFrom(rr.get());
 
