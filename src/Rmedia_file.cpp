@@ -21,18 +21,17 @@ namespace imgc {
 class Rmedia_creator_readyobj : public torasu::ReadyState {
 private:
 	std::vector<std::string>* ops;
-	torasu::RenderContextMask* rctxm;
+	const torasu::RenderContextMask* rctxm;
 protected:
 	torasu::RenderResult* srcRendRes = nullptr;
 	torasu::tstd::Dfile* srcFile = nullptr;
 	MediaDecoder* decoder = nullptr;
 
-	Rmedia_creator_readyobj(std::vector<std::string>* ops, torasu::RenderContextMask* rctxm) 
+	Rmedia_creator_readyobj(std::vector<std::string>* ops, const torasu::RenderContextMask* rctxm) 
 		: ops(ops), rctxm(rctxm) {}
 public:
 	~Rmedia_creator_readyobj() {
 		delete ops;
-		delete rctxm;
 		if (decoder != nullptr) delete decoder;
 		if (srcRendRes != nullptr) delete srcRendRes;
 	}
@@ -88,7 +87,7 @@ void Rmedia_file::ready(torasu::ReadyInstruction* ri) {
 
 	auto castedResultSeg = handle.getFrom(rr.get());
 
-	auto* obj = new Rmedia_creator_readyobj(new std::vector<std::string>(ri->ops), new torasu::RenderContextMask());
+	auto* obj = new Rmedia_creator_readyobj(new std::vector<std::string>(ri->ops), castedResultSeg.getResultMask());
 
 	ri->setState(obj);
 
