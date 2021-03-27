@@ -86,7 +86,12 @@ void Rmedia_file::ready(torasu::ReadyInstruction* ri) {
 
 	auto castedResultSeg = handle.getFrom(rr.get());
 
-	auto* obj = new Rmedia_creator_readyobj(new std::vector<std::string>(ri->ops), castedResultSeg.getResultMask());
+	auto* obj = new Rmedia_creator_readyobj(
+					new std::vector<std::string>({
+						TORASU_STD_PL_VIS, TORASU_STD_PL_AUDIO, 
+						TORASU_PROPERTY(TORASU_STD_PROP_IMG_WIDTH), TORASU_PROPERTY(TORASU_STD_PROP_IMG_HEIGHT), 
+						TORASU_PROPERTY(TORASU_STD_PROP_IMG_RAITO), TORASU_PROPERTY(TORASU_STD_PROP_DURATION)}), 
+					castedResultSeg.getResultMask());
 
 	ri->setState(obj);
 
