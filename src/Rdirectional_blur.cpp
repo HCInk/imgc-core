@@ -5,7 +5,22 @@
 #include <torasu/std/pipeline_names.hpp>
 #include <torasu/std/Dbimg.hpp>
 
+#define DEBUG_COLOR_MODE 0
+
+namespace {
+
+#if DEBUG_COLOR_MODE != 0
+const uint8_t RED[] {0xFF, 0x00, 0x00, 0xFF};
+const uint8_t YELLOW[] {0xFF, 0xFF, 0x00, 0xFF};
+const uint8_t GREEN[] {0x00, 0xFF, 0x00, 0xFF};
+const uint8_t BLUE[] {0x00, 0x00, 0xFF, 0xFF};
+#endif
+
+} // namespace
+
+
 namespace imgc {
+
 
 Rdirectional_blur::Rdirectional_blur(torasu::tools::RenderableSlot src, torasu::tstd::NumSlot direction, torasu::tstd::NumSlot strength)
 	: SimpleRenderable("IMGC::RDIRECTIONAL_BLUR", false, true), src(src), direction(direction), strength(strength) {}
@@ -58,10 +73,6 @@ torasu::ResultSegment* Rdirectional_blur::renderSegment(torasu::ResultSegmentSet
 				uint8_t* destPtr = result->getImageData();
 				uint8_t* srcPtr = original->getImageData();
 
-				uint32_t scale = std::max(height, width);
-
-				double direction = dir.getResult()->getNum()*scale;
-				double strength = strgh.getResult()->getNum()*scale;
 
 				auto li = ri->getLogInstruction();
 
@@ -69,25 +80,103 @@ torasu::ResultSegment* Rdirectional_blur::renderSegment(torasu::ResultSegmentSet
 				std::chrono::_V2::steady_clock::time_point bench;
 				if (doBench) bench = std::chrono::steady_clock::now();
 
-				size_t convolveCount = strength;
-				double convolveFactor = (double) 1/convolveCount;
+				size_t convolveCount = strgh.getResult()->getNum()*width;
+				if (convolveCount > width) convolveCount = width; 
+				float convolveFactor = (double) 1/convolveCount;
+
+				// for (size_t i = 0; i < height*width*channels; i++) {
+				// 	destPtr[i] = srcPtr[i];
+				// }
+
+				typedef float buff_val;
+				const auto preDiv = 0xFF;
+				const auto onDiv = 0x01;
+				const auto writeBackFac = 0xFF;
+
+				// typedef uint8_t buff_val;
+				// const auto preDiv = 0x1;
+				// const auto onDiv = 0xFF;
+				// const auto writeBackFac = 0xFF;
+
+				std::vector<buff_val> lineVec(convolveCount*4);
+				buff_val* lineBuf = lineVec.data();
+
+				
 
 				for (size_t y = 0; y < height; y++) {
+					size_t lineLeft = width;
+					{ // Init buffer
+						buff_val* currLineBuf = lineBuf;
+						const auto halfConvCount = convolveCount/2;
+						for (size_t i = 0; i < halfConvCount*channels; i++) {
+#if DEBUG_COLOR_MODE == 1
+							*currLineBuf = *(RED+(i%channels)) / preDiv;
+#else
+							*currLineBuf = (buff_val) *srcPtr / preDiv;
+#endif
+							currLineBuf++;
+						}
+						const auto preread = convolveCount-halfConvCount;
+						for (size_t i = 0; i < preread*channels; i++) {
+#if DEBUG_COLOR_MODE == 1
+							*currLineBuf = *(YELLOW+(i%channels)) / preDiv;
+#else
+							*currLineBuf = (buff_val) *srcPtr / preDiv;
+#endif
+							currLineBuf++;
+							srcPtr++;
+						}
+						lineLeft -= preread;
+					}
+
+					size_t writePos = convolveCount-1;
+					
 					for (size_t x = 0; x < width; x++) {
-						double accu[4] = {0, 0, 0, 0};
-						for (size_t s = 0; s < convolveCount; s++) {
-							uint8_t* src = srcPtr + s*4;
+						{
+							buff_val* currLineBuf = lineBuf;
+							buff_val accu[4] = {0, 0, 0, 0};
+							for (size_t s = 0; s < convolveCount; s++) {
+								for (size_t c = 0; c < 4; c++) {
+									accu[c] += convolveFactor * currLineBuf[c] / onDiv;
+								}
+								currLineBuf += channels;
+							}
+
 							for (size_t c = 0; c < 4; c++) {
-								accu[c] += convolveFactor*src[c] / 0xFF;
+								destPtr[c] = accu[c] * writeBackFac;
 							}
 						}
 
-						for (size_t c = 0; c < 4; c++) {
-							destPtr[c] = accu[c]*0xFF;
-						}
+
+						// for (size_t c = 0; c < channels; c++) {
+						// 	destPtr[c] = lineBuf[( (writePos+(convolveCount/2+1) ) % convolveCount)*channels+c];
+						// }
 						
-						destPtr += 4;
-						srcPtr += 4;
+						destPtr += channels;
+
+						size_t prevPos = writePos;
+						writePos = (prevPos+1)%convolveCount;
+
+						if (lineLeft > 0) {
+
+							for (size_t c = 0; c < 4; c++) {
+#if DEBUG_COLOR_MODE == 1
+								lineBuf[writePos*channels+c] = (buff_val) GREEN[c] / preDiv;
+#else
+								lineBuf[writePos*channels+c] = (buff_val) srcPtr[c] / preDiv;
+#endif
+							}
+							lineLeft--;
+							srcPtr += 4;
+						} else {
+							for (size_t c = 0; c < 4; c++) {
+#if DEBUG_COLOR_MODE == 1
+								lineBuf[writePos*channels+c] = (buff_val) BLUE[c] / preDiv;
+#else
+								lineBuf[writePos*channels+c] = lineBuf[prevPos*channels+c];
+#endif
+							}
+						}
 					}
 				}
 

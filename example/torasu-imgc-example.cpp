@@ -808,10 +808,14 @@ void directionalBlur() {
 	torasu::ExecutionInterface* ei = runner->createInterface();
 
 	torasu::tools::RenderInstructionBuilder rib;
+
 	auto handle = rib.addSegmentWithHandle<torasu::tstd::Dfile>(TORASU_STD_PL_FILE, nullptr);
 
 	torasu::RenderContext rctx;
+
+	auto benchStart = std::chrono::steady_clock::now();
 	std::unique_ptr<torasu::RenderResult> rr(rib.runRender(tree, &rctx, ei, li));
+	std::cout << "  Render Time = " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - benchStart).count() << "[ms]" << std::endl;
 
 	auto seg = handle.getFrom(rr.get());
 
@@ -825,6 +829,22 @@ void directionalBlur() {
 	sysFile.close();
 
 	std::cout << "Saved." << std::endl;
+
+	/*
+	torasu::tstd::Dbimg_FORMAT format(1340, 1200);
+	auto handle = rib.addSegmentWithHandle<torasu::tstd::Dbimg>(TORASU_STD_PL_VIS, &format);
+
+	torasu::RenderContext rctx;
+	std::unique_ptr<torasu::RenderResult> rr(rib.runRender(&blur, &rctx, ei, li));
+	auto seg = handle.getFrom(rr.get());
+	auto* bimg = seg.getResult();
+
+	unsigned error = lodepng::encode("test.png", bimg->getImageData(), bimg->getWidth(), bimg->getHeight());
+	if (error) {
+		std::cerr << "ENCODE STAT[" << "test.png" << "] " << lodepng_error_text(error) << std::endl;
+	}
+	*/
+
 
 	delete ei;
 	delete runner;
