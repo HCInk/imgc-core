@@ -48,6 +48,7 @@
 #include <torasu/mod/imgc/Rcropdata_combined.hpp>
 #include <torasu/mod/imgc/Rgraphics.hpp>
 #include <torasu/mod/imgc/Rrothombus.hpp>
+#include <torasu/mod/imgc/Rdirectional_blur.hpp>
 
 #include "example_tools.hpp"
 
@@ -780,6 +781,56 @@ void graphicsExample() {
 	delete runner;
 }
 
+
+
+void directionalBlur() {
+	// This is a constant, still looking for a better alternative compared to this here
+	torasu::tstd::Rnum one(1);
+
+	torasu::tstd::Rnet_file videoFile1("https://cdn.discordapp.com/attachments/598323767202152458/666010465809465410/8807502_Bender_and_penguins.mp4");
+
+	imgc::Rmedia_file video1(&videoFile1);
+
+	imgc::Rdirectional_blur blur(&video1, 0.1, 0.05);
+
+	torasu::tstd::Rproperty width(&video1, TORASU_STD_PROP_IMG_WIDTH, TORASU_STD_PL_NUM);
+	torasu::tstd::Rproperty height(&video1, TORASU_STD_PROP_IMG_HEIGHT, TORASU_STD_PL_NUM);
+
+	imgc::Rmedia_creator encoded(&blur, "mp4", 0., 5 /* &end */, 60, &width, &height, 4000*1000, -1);
+
+	auto* tree = &encoded;
+
+	// Creating Engine
+
+	torasu::tstd::LIcore_logger logger;
+	torasu::LogInstruction li(&logger, torasu::DEBUG, torasu::LogInstruction::OPT_PROGRESS);
+	torasu::tstd::EIcore_runner* runner = new torasu::tstd::EIcore_runner();
+	torasu::ExecutionInterface* ei = runner->createInterface();
+
+	torasu::tools::RenderInstructionBuilder rib;
+	auto handle = rib.addSegmentWithHandle<torasu::tstd::Dfile>(TORASU_STD_PL_FILE, nullptr);
+
+	torasu::RenderContext rctx;
+	std::unique_ptr<torasu::RenderResult> rr(rib.runRender(tree, &rctx, ei, li));
+
+	auto seg = handle.getFrom(rr.get());
+
+	auto* resFile = seg.getResult();
+
+	std::cout << "Saving..." << std::endl;
+	std::ofstream sysFile("test.mp4");
+
+	sysFile.write(const_cast<const char*>(reinterpret_cast<char*>(resFile->getFileData())), resFile->getFileSize());
+
+	sysFile.close();
+
+	std::cout << "Saved." << std::endl;
+
+	delete ei;
+	delete runner;
+
+}
+
 }  // namespace imgc::examples
 
 int main(int argc, char** argv) {
@@ -793,8 +844,9 @@ int main(int argc, char** argv) {
 	// examples::cropdataExample();
 	// examples::cropExample();
 	// examples::encodeExample();
-	examples::encodeTorasu();
+	// examples::encodeTorasu();
 	// examples::graphicsExample();
+	examples::directionalBlur();
 
 	return 0;
 }
