@@ -27,6 +27,11 @@ extern "C" {
 
 namespace imgc {
 
+struct LongRational {
+    int64_t num; ///< Numerator
+    int64_t den; ///< Denominator
+};
+
 struct SegmentRequest {
 	double start;
 	double end = -1;
@@ -130,7 +135,7 @@ private:
 
 	int video_stream_index = -1;
 	int audio_stream_index = -1;
-	AVRational duration = {0, -1};
+	LongRational duration = {0, -1};
 
 	double decoderPosition = -1;
 	SwsContext* sws_scaler_ctx = nullptr;
