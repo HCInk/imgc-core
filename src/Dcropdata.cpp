@@ -36,11 +36,11 @@ double Dcropdata::getOffBottom() {
 	return offBottom;
 }
 
-std::string Dcropdata::getIdent() {
+std::string Dcropdata::getIdent() const {
 	return ident;
 }
 
-Dcropdata* Dcropdata::clone() {
+Dcropdata* Dcropdata::clone() const {
 	return new Dcropdata(*this);
 }
 

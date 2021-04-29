@@ -11,7 +11,7 @@ public:
 	Dgraphics_FORMAT();
 
 	torasu::DataDump* dumpResource() override;
-	Dgraphics_FORMAT* clone() override;
+	Dgraphics_FORMAT* clone() const override;
 };
 
 class Dgraphics : public torasu::DataPackable {
@@ -82,8 +82,8 @@ public:
 	Dgraphics(std::vector<GObject> objects);
 	~Dgraphics();
 
-	std::string getIdent() override;
-	Dgraphics* clone() override;
+	std::string getIdent() const override;
+	Dgraphics* clone() const override;
 
 	std::vector<GObject>& getObjects();
 };
