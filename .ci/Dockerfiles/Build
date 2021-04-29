@@ -20,7 +20,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -yq \
 
 
 WORKDIR /build
-RUN git clone --branch ready-n-cache https://gitlab.com/HCInk/torasu/torasu-cpp.git
+RUN git clone --branch master https://gitlab.com/HCInk/torasu/torasu-cpp.git
 WORKDIR /build/torasu-cpp
 RUN git submodule update --init
 ARG build_hash
