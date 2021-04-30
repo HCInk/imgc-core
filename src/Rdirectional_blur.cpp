@@ -6,6 +6,9 @@
 #include <torasu/std/Dbimg.hpp>
 
 #define DEBUG_COLOR_MODE 0
+#define BLUR_MODE 0 // 0: Static-Buffered (default) 1: Direct 2: Line-Buffered
+#define FLOAT_MODE true
+#define IGNORE_LIMITS false
 
 namespace {
 
@@ -88,15 +91,20 @@ torasu::ResultSegment* Rdirectional_blur::renderSegment(torasu::ResultSegmentSet
 				// 	destPtr[i] = srcPtr[i];
 				// }
 
+#if FLOAT_MODE
 				typedef float buff_val;
 				const auto preDiv = 0xFF;
 				const auto onDiv = 0x01;
 				const auto writeBackFac = 0xFF;
+#else
+				typedef uint8_t buff_val;
+				const auto preDiv = 0x1;
+				const auto onDiv = 0xFF;
+				const auto writeBackFac = 0xFF;
+#endif
 
-				// typedef uint8_t buff_val;
-				// const auto preDiv = 0x1;
-				// const auto onDiv = 0xFF;
-				// const auto writeBackFac = 0xFF;
+
+#if BLUR_MODE == 0
 
 				std::vector<buff_val> lineVec(convolveCount*4);
 				buff_val* lineBuf = lineVec.data();
@@ -180,6 +188,124 @@ torasu::ResultSegment* Rdirectional_blur::renderSegment(torasu::ResultSegmentSet
 					}
 				}
 
+#elif BLUR_MODE == 1
+
+				size_t prePos = convolveCount/2;
+
+				for (size_t y = 0; y < height; y++) {
+					
+					for (size_t x = 0; x < width; x++) {
+						buff_val accu[4] = {0, 0, 0, 0};
+#if IGNORE_LIMITS
+						uint8_t* linePtr = srcPtr+(prePos*channels)-channels;
+#endif
+						for (size_t s = 0; s < convolveCount; s++) {
+#if !IGNORE_LIMITS
+							int64_t offset = x + s - prePos;
+							if (offset < 0) offset = 0;
+							else if (offset >= width) offset = width-1;
+							uint8_t* linePtr = srcPtr+(offset*channels);
+#endif
+							for (size_t c = 0; c < channels; c++) {
+								accu[c] += convolveFactor * (((buff_val)linePtr[c])/preDiv) / onDiv;
+							}
+#if IGNORE_LIMITS
+							linePtr += channels;
+#endif 
+						}
+
+						for (size_t c = 0; c < 4; c++) {
+							destPtr[c] = accu[c] * writeBackFac;
+						}
+						destPtr += channels;
+#if IGNORE_LIMITS
+						srcPtr += channels;
+#endif 
+
+					}
+#if !IGNORE_LIMITS
+					srcPtr += width*channels;
+#endif
+				}
+#elif BLUR_MODE == 2
+
+				size_t prePos = convolveCount/2;
+				size_t lineVecSize = width+convolveCount;
+				std::vector<buff_val> lineVec(lineVecSize*4);
+				buff_val* lineBuf = lineVec.data();
+
+				for (size_t y = 0; y < height; y++) {
+
+					{
+						buff_val* currLineBuf = lineBuf;
+						
+						{
+							buff_val firstPx[channels];
+							for (size_t c = 0; c < channels; c++) {
+								firstPx[c] = convolveFactor * ((buff_val)srcPtr[c])/preDiv;
+							}
+
+							for (size_t i = 0; i < prePos; i++) {
+								for (size_t c = 0; c < channels; c++) {
+									currLineBuf[c] = firstPx[c];
+								}
+								currLineBuf += channels;
+							}
+						}
+
+						for (size_t i = 0;;) {
+							for (size_t c = 0; c < channels; c++) {
+								currLineBuf[c] = ((buff_val)srcPtr[c])/preDiv;
+							}
+							currLineBuf += channels;
+							i++;
+							if (i >= width) break;
+							srcPtr += channels;
+						}
+
+						{
+							buff_val lastPx[channels];
+							for (size_t c = 0; c < channels; c++) {
+								lastPx[c] = convolveFactor * ((buff_val)srcPtr[c])/preDiv;
+							}
+
+							for (size_t i = prePos+width; i < lineVecSize; i++) {
+								for (size_t c = 0; c < channels; c++) {
+									currLineBuf[c] = lastPx[c];
+								}
+								currLineBuf += channels;
+							}
+						}
+						srcPtr += channels;
+
+					}
+
+					buff_val* currLineBuf = lineBuf;
+					
+					for (size_t x = 0; x < width; x++) {
+						buff_val accu[4] = {0, 0, 0, 0};
+						buff_val* linePtr = currLineBuf;
+						for (size_t s = 0; s < convolveCount; s++) {
+							for (size_t c = 0; c < channels; c++) {
+								accu[c] += convolveFactor * linePtr[c] / onDiv;
+							}
+							linePtr += channels;
+						}
+
+						for (size_t c = 0; c < 4; c++) {
+							destPtr[c] = accu[c] * writeBackFac;
+						}
+
+						destPtr += channels;
+						currLineBuf += channels;
+					}
+#if !IGNORE_LIMITS
+					srcPtr += width*channels;
+#endif
+				}
+#else
+#error "Invalid BLUR_MODE specified"
+#endif
 				/* for (size_t i = 0; i < dataSize; i++) {
 
 					
