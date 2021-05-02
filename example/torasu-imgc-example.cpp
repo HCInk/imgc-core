@@ -787,11 +787,11 @@ void directionalBlur() {
 	// This is a constant, still looking for a better alternative compared to this here
 	torasu::tstd::Rnum one(1);
 
-	torasu::tstd::Rnet_file videoFile1("https://cdn.discordapp.com/attachments/598323767202152458/666010465809465410/8807502_Bender_and_penguins.mp4");
+	torasu::tstd::Rnet_file videoFile1("https://cdn.discordapp.com/attachments/518772163986063390/838495140934713404/8807502_Bender_and_penguins.mp4");
 
 	imgc::Rmedia_file video1(&videoFile1);
 
-	imgc::Rdirectional_blur blur(&video1, 0.1, 0.05);
+	imgc::Rdirectional_blur blur(&video1, 0.01, 0.01);
 
 	torasu::tstd::Rproperty width(&video1, TORASU_STD_PROP_IMG_WIDTH, TORASU_STD_PL_NUM);
 	torasu::tstd::Rproperty height(&video1, TORASU_STD_PROP_IMG_HEIGHT, TORASU_STD_PL_NUM);

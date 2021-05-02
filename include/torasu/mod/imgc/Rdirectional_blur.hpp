@@ -12,15 +12,15 @@ namespace imgc {
 class Rdirectional_blur : public torasu::tools::SimpleRenderable {
 private:
 	torasu::tools::ManagedRenderableSlot src;
-	torasu::tools::ManagedSlot<torasu::tstd::NumSlot> direction;
-	torasu::tools::ManagedSlot<torasu::tstd::NumSlot> strength;
+	torasu::tools::ManagedSlot<torasu::tstd::NumSlot> strX;
+	torasu::tools::ManagedSlot<torasu::tstd::NumSlot> strY;
 
 protected:
 	torasu::ResultSegment* renderSegment(torasu::ResultSegmentSettings* resSettings, torasu::RenderInstruction* ri) override;
 
 
 public:
-	Rdirectional_blur(torasu::tools::RenderableSlot src, torasu::tstd::NumSlot direction, torasu::tstd::NumSlot strength);
+	Rdirectional_blur(torasu::tools::RenderableSlot src, torasu::tstd::NumSlot strX, torasu::tstd::NumSlot strY);
 	~Rdirectional_blur();
 
 	torasu::ElementMap getElements();
