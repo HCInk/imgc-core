@@ -63,6 +63,7 @@ int main(int argc, char** argv);
 #endif
 
 using namespace imgc;
+namespace tstd = torasu::tstd;
 
 namespace imgc::examples {
 
@@ -686,24 +687,36 @@ void graphicsExample() {
 
 	Rgraphics vecRender(&roth);
 
-	// Rtransform transform(&vecRender, IR(new torasu::tstd::Rmatrix(torasu::tstd::Dmatrix(
+	// Rtransform transform(&vecRender, IR(new torasu::tstd::Rmatrix(
 	// 	{
-	// 		+0.5, +0.5, 0,
-	// 		-0.5, +0.5, 0
-	// 	},
-	// 	2))));
+	// 		+0.5, +0.5, 0.0,
+	// 		-0.5, +0.5, 0.0
+	// 	}, 2
+	// )));
 
-	Rtransform transform(&vecRender, IR(new torasu::tstd::Rmatrix(torasu::tstd::Dmatrix(
-		{
-			+0.6, +0.2, +0.1,
-			+0.2, +0.6, -0.1
-		}, 2 ))));
-	// Rtransform transform(&vecRender, IR(new torasu::tstd::Rmatrix(torasu::tstd::Dmatrix(
+	// Rtransform transform(&vecRender, IR(new tstd::Rmatrix(
 	// 	{
-	// 		+0.5, +0.0, 0,
-	// 		-0.0, +0.5, 0
-	// 	},
-	// 	2))));
+	// 		+0.6, +0.2, IR(new tstd::Rmultiply(IR(new tstd::Rsin( IR(new tstd::Radd(&trm, 0)) )), 0.2)),
+	// 		+0.2, +0.6, IR(new tstd::Rmultiply(IR(new tstd::Rsin( IR(new tstd::Radd(&trm, 90)) )), 0.2))
+	// 	}, 2 
+	// )));
+
+
+	tstd::Rsin rSin(new tstd::Radd(&trm, 30.0));
+	tstd::Rsin rCos(new tstd::Radd(&trm, 120.0));
+	Rtransform transform(&vecRender, IR(new tstd::Rmatrix(
+		{
+			&rCos, IR(new tstd::Rmultiply(&rSin, -1.0)), 0.0,
+			&rSin, &rCos, 0.0
+		}, 2 
+	)));
+
+	// Rtransform transform(&vecRender, IR(new torasu::tstd::Rmatrix(
+	// 	{
+	// 		+0.5, +0.0, 0.0,
+	// 		-0.0, +0.5, 0.0
+	// 	}, 2
+	// )));
 	// Rtransform transform(&vecRender, IR(new torasu::tstd::Rerror("Test!")));
 
 	auto& comp = transform;
