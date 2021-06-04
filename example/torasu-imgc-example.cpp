@@ -33,6 +33,8 @@
 #include <torasu/std/Rsubtract.hpp>
 #include <torasu/std/Rstring_map.hpp>
 #include <torasu/std/Rstring_replace.hpp>
+#include <torasu/std/Rmatrix.hpp>
+#include <torasu/std/Rerror.hpp>
 
 #include <torasu/mod/imgc/pipeline_names.hpp>
 #include <torasu/mod/imgc/Rimg_file.hpp>
@@ -48,6 +50,8 @@
 #include <torasu/mod/imgc/Rcropdata_combined.hpp>
 #include <torasu/mod/imgc/Rgraphics.hpp>
 #include <torasu/mod/imgc/Rrothombus.hpp>
+#include <torasu/mod/imgc/Rtransform.hpp>
+#include <torasu/mod/imgc/Rcolor.hpp>
 
 #include "example_tools.hpp"
 
@@ -680,10 +684,31 @@ void graphicsExample() {
 
 	Rrothumbus roth(&round);
 
-	Rgraphics comp(&roth);
+	Rgraphics vecRender(&roth);
 
-	torasu::tstd::Rnet_file whiteFile("https://cdn.discordapp.com/attachments/217933179992932354/784853530628194304/unknown.png");
-	imgc::Rimg_file white(&whiteFile);
+	// Rtransform transform(&vecRender, IR(new torasu::tstd::Rmatrix(torasu::tstd::Dmatrix(
+	// 	{
+	// 		+0.5, +0.5, 0,
+	// 		-0.5, +0.5, 0
+	// 	},
+	// 	2))));
+
+	Rtransform transform(&vecRender, IR(new torasu::tstd::Rmatrix(torasu::tstd::Dmatrix(
+		{
+			+0.6, +0.2, +0.1,
+			+0.2, +0.6, -0.1
+		}, 2 ))));
+	// Rtransform transform(&vecRender, IR(new torasu::tstd::Rmatrix(torasu::tstd::Dmatrix(
+	// 	{
+	// 		+0.5, +0.0, 0,
+	// 		-0.0, +0.5, 0
+	// 	},
+	// 	2))));
+	// Rtransform transform(&vecRender, IR(new torasu::tstd::Rerror("Test!")));
+
+	auto& comp = transform;
+
+	imgc::Rcolor white(1.0,1.0,1.0,1.0);
 	torasu::tstd::Rsubtract premulMaybe(&white, &comp);
 
 
@@ -793,8 +818,8 @@ int main(int argc, char** argv) {
 	// examples::cropdataExample();
 	// examples::cropExample();
 	// examples::encodeExample();
-	examples::encodeTorasu();
-	// examples::graphicsExample();
+	// examples::encodeTorasu();
+	examples::graphicsExample();
 
 	return 0;
 }

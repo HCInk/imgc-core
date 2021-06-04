@@ -30,7 +30,9 @@ set(IMGC_SRC
         ${CMAKE_CURRENT_LIST_DIR}/src/Dgraphics.cpp
         ${CMAKE_CURRENT_LIST_DIR}/src/ShapeRenderer.cpp
         ${CMAKE_CURRENT_LIST_DIR}/src/Rrothumbus.cpp
-        ${CMAKE_CURRENT_LIST_DIR}/src/Rcolor.cpp)
+        ${CMAKE_CURRENT_LIST_DIR}/src/Rcolor.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/src/Rtransform.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/src/Transform.cpp)
 
 add_library(imgc SHARED ${IMGC_SRC})
 

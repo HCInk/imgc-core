@@ -43,6 +43,7 @@
 #include <torasu/mod/imgc/Ralign2d.hpp>
 #include <torasu/mod/imgc/Rauto_align2d.hpp>
 #include <torasu/mod/imgc/Rcropdata_combined.hpp>
+#include <torasu/mod/imgc/Rtransform.hpp>
 
 // GRAPHICS
 #include <torasu/mod/imgc/Rgraphics.hpp>
@@ -59,6 +60,7 @@
 //
 
 #include <torasu/mod/imgc/Scaler.hpp>
+#include <torasu/mod/imgc/Transform.hpp>
 #include <torasu/mod/imgc/ShapeRenderer.hpp>
 #include <torasu/mod/imgc/FFmpegLogger.h>
 #include <torasu/mod/imgc/MediaDecoder.hpp>
