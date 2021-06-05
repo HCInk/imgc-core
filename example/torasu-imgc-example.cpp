@@ -702,8 +702,8 @@ void graphicsExample() {
 	// )));
 
 
-	tstd::Rsin rSin(new tstd::Radd(&trm, 30.0));
-	tstd::Rsin rCos(new tstd::Radd(&trm, 120.0));
+	tstd::Rsin rSin(IR(new tstd::Radd(&trm, 30.0)));
+	tstd::Rsin rCos(IR(new tstd::Radd(&trm, 120.0)));
 	Rtransform transform(&vecRender, IR(new tstd::Rmatrix(
 		{
 			&rCos, IR(new tstd::Rmultiply(&rSin, -1.0)), 0.0,
@@ -747,11 +747,14 @@ void graphicsExample() {
 	imgc::Rmedia_creator encoded(&premulMaybe, "mp4", 0., 10, 30, 1080*2, 1080*2, 4000*100, -1, &metadata);
 
 	torasu::tstd::LIcore_logger logger;
-	torasu::LogInstruction li(&logger, torasu::LogLevel::INFO, torasu::LogInstruction::OPT_PROGRESS);
+	torasu::LogInstruction li(&logger, torasu::LogLevel::DEBUG, torasu::LogInstruction::OPT_PROGRESS);
 	auto* runner = new torasu::tstd::EIcore_runner((size_t)8);
 	torasu::ExecutionInterface* ei = runner->createInterface();
 
 	torasu::tools::RenderInstructionBuilder rib;
+
+
+
 	auto handle = rib.addSegmentWithHandle<torasu::tstd::Dfile>(TORASU_STD_PL_FILE, nullptr);
 
 	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
@@ -775,11 +778,10 @@ void graphicsExample() {
 
 	std::cout << "Saved." << std::endl;
 
-	/*
-	torasu::tools::RenderInstructionBuilder rib;
 
-	torasu::tstd::Dbimg_FORMAT format(1080*2, 1080*2);
-	// torasu::tstd::Dbimg_FORMAT format(30*3, 30*3);
+	/* 
+	// torasu::tstd::Dbimg_FORMAT format(1080*2, 1080*2);
+	torasu::tstd::Dbimg_FORMAT format(30*3, 30*3);
 
 	auto handle = rib.addSegmentWithHandle<torasu::tstd::Dbimg>(TORASU_STD_PL_VIS, &format);
 
@@ -787,14 +789,16 @@ void graphicsExample() {
 
 	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
+	torasu::tstd::Dnum rndTime = 2.0;
 	torasu::RenderContext rctx;
-	auto result = rib.runRender(&comp, &rctx, ei);
+	rctx[TORASU_STD_CTX_TIME] = &rndTime;
+	std::unique_ptr<torasu::RenderResult> rr (rib.runRender(&comp, &rctx, ei, li));
 
 	std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 	std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
 	std::cout << "RENDER FIN" << std::endl;
 
-	auto castedRes = handle.getFrom(result);
+	auto castedRes = handle.getFrom(rr.get());
 
 	torasu::ResultSegmentStatus rss = castedRes.getStatus();
 
@@ -807,12 +811,7 @@ void graphicsExample() {
 
 		std::cout << "ENCODE STAT " << error << std::endl;
 	}
-
-
-
-
-	delete result;
-	*/
+	 */
 
 	delete ei;
 	delete runner;
