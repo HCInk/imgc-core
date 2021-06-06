@@ -7,19 +7,33 @@ namespace imgc::transform {
 namespace {
 static const uint32_t channels = 4;
 
-#if PREBUF
-inline void addToAccu(float accu[4], const float* src, float factor) {
+template<typename T> inline void addToAccu(float accu[4], const T* src, float factor) {
 	for (uint32_t c = 0; c < channels; c++) {
-		accu[c] += src[c]*factor;
+		accu[c] += static_cast<float>(src[c])*factor;
 	}
 }
-#else
-inline void addToAccu(float accu[4], const uint8_t* src, float factor) {
-	for (uint32_t c = 0; c < channels; c++) {
-		accu[c] += static_cast<float>(src[c])*factor/0xFF;
+
+template<typename T> inline void pixelCollect(float accu[4], const T* src, double xAbs, double yAbs, size_t widthSub, size_t heightSub, size_t srcNewLine, bool evalulateOnLimit) {
+	size_t xBase = xAbs;
+	size_t yBase = yAbs;
+	float xFac = xAbs-xBase;
+	float yFac = yAbs-yBase;
+	const T* localSrc = src+( (yBase*srcNewLine + xBase)*channels);
+	if (xBase >= 0 && yBase >= 0 && xBase < widthSub && yBase < heightSub) {
+		// accuAdd(accu, localSrc, 1);
+		addToAccu<T>(accu, localSrc, (1-xFac)*(1-yFac));
+		addToAccu<T>(accu, localSrc+channels, (xFac)*(1-yFac));
+		addToAccu<T>(accu, localSrc+srcNewLine*channels, (1-xFac)*(yFac));
+		addToAccu<T>(accu, localSrc+(srcNewLine+1)*channels, (xFac)*(yFac));
+	} else if (evalulateOnLimit && (xBase == widthSub || xBase == heightSub)) {
+		addToAccu<T>(accu, localSrc, (1-xFac)*(1-yFac));
+		if (xBase < widthSub) {
+			addToAccu<T>(accu, localSrc+channels, (xFac)*(1-yFac));
+		} else if (yBase < heightSub) {
+			addToAccu<T>(accu, localSrc+srcNewLine*channels, (1-xFac)*(yFac));
+		}
 	}
 }
-#endif
 
 } // namespace
 
@@ -51,8 +65,9 @@ void transform(const uint8_t* src, uint8_t* dest, uint32_t width, uint32_t heigh
 		for (uint32_t y = 0; y < height; y++) {
 			for (uint32_t x = 0; x < width; x++) {
 				for (uint32_t c = 0; c < channels; c++) {
-					(*srcBuffPtr) = static_cast<float>(*srcPtr)/0xFF;
+					(*srcBuffPtr) = static_cast<float>(*srcPtr);
 					srcBuffPtr++;
+					srcPtr++;
 				}
 			}
 
@@ -83,8 +98,6 @@ void transform(const uint8_t* src, uint8_t* dest, uint32_t width, uint32_t heigh
 			double yRel = xDest*invCords[3] + yDest*invCords[4] + invCords[5];
 			double xAbs = xRel*widthSub;
 			double yAbs = yRel*heightSub;
-			size_t xBase = xAbs;
-			size_t yBase = yAbs;
 
 			// const uint8_t* localSrc;
 			// if (xSrc >= 0 && xSrc <= 1 && ySrc >= 0 && ySrc <= 1) {
@@ -98,26 +111,13 @@ void transform(const uint8_t* src, uint8_t* dest, uint32_t width, uint32_t heigh
 			// }
 
 			float accu[4] = {0,0,0,0};
-			{
 #if PREBUF
-				const float* localSrc = srcBuffPtr+( (yBase*width + xBase)*channels);
+			pixelCollect<float>(accu, srcBuffPtr, xAbs, yAbs, width, height, width+1, false);
 #else
-				const uint8_t* localSrc = src+( (yBase*width + xBase)*channels);
+			pixelCollect<uint8_t>(accu, src, xAbs, yAbs, widthSub, heightSub, width, true);
 #endif
-
-				float xFac = xAbs-xBase;
-				float yFac = yAbs-yBase;
-				if (xBase >= 0 && yBase >= 0 && xBase < widthSub && yBase < heightSub) {
-					// addToAccu(accu, localSrc, 1);
-					addToAccu(accu, localSrc, (1-xFac)*(1-yFac));
-					addToAccu(accu, localSrc+channels, (xFac)*(1-yFac));
-					addToAccu(accu, localSrc+width*channels, (1-xFac)*(yFac));
-					addToAccu(accu, localSrc+(width+1)*channels, (xFac)*(yFac));
-				}
-			}
-
 			for (uint32_t c = 0; c < channels; c++) {
-				(*dest) = static_cast<uint8_t>(accu[c]*0xFF);
+				(*dest) = static_cast<uint8_t>(accu[c]);
 				dest++;
 			}
 
