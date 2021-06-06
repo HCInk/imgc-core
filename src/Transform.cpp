@@ -35,11 +35,7 @@ template<typename T> inline void pixelCollect(float accu[4], const T* src, doubl
 	}
 }
 
-} // namespace
-
-
-void transform(const uint8_t* src, uint8_t* dest, uint32_t width, uint32_t height, torasu::tstd::Dmatrix transformMatrix) {
-
+void calcInvCords(double invCords[9], torasu::tstd::Dmatrix transformMatrix) {
 	torasu::tstd::Dmatrix adjust({
 		0.5, 0.0, 0.5,
 		0.0, -0.5, 0.5,
@@ -51,10 +47,18 @@ void transform(const uint8_t* src, uint8_t* dest, uint32_t width, uint32_t heigh
 	torasu::tstd::Dmatrix inverse = adjusted.inverse();
 
 	torasu::tstd::Dnum* matrixNums = inverse.getNums();
-	double invCords[9];
+
 	for (size_t i = 0; i < 9; i++) {
 		invCords[i] = matrixNums[i].getNum();
 	}
+}
+
+} // namespace
+
+
+void transform(const uint8_t* src, uint8_t* dest, uint32_t width, uint32_t height, torasu::tstd::Dmatrix transformMatrix) {
+	double invCords[9];
+	calcInvCords(invCords, transformMatrix);
 
 #if PREBUF
 	std::vector<float> srcBuffVec((width+1)*(height+1)*channels);
