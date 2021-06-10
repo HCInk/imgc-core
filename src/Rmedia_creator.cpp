@@ -122,7 +122,6 @@ torasu::ResultSegment* Rmedia_creator::renderSegment(torasu::ResultSegmentSettin
 		}
 
 		torasu::tstd::Dnum frameRatio((double) req.width / req.height);
-		torasu::tstd::Dnum frameDuration(0);
 
 		torasu::tools::RenderInstructionBuilder visRib;
 		torasu::tstd::Dbimg_FORMAT visFmt(req.width, req.height);
@@ -133,7 +132,7 @@ torasu::ResultSegment* Rmedia_creator::renderSegment(torasu::ResultSegmentSettin
 		auto* visHandleRef = &visHandle;
 		auto* countPendingRef = &countPending;
 
-		MediaEncoder enc([this, ei, li, rctx, &visRib, visHandleRef, &frameDuration, &frameRatio, countPendingRef]
+		MediaEncoder enc([this, ei, li, rctx, &visRib, visHandleRef, &frameRatio, countPendingRef]
 		(MediaEncoder::FrameRequest* fr) {
 			if (*countPendingRef > 10 && !fr->needsNow) {
 				return 1; // Postpone
@@ -144,18 +143,20 @@ torasu::ResultSegment* Rmedia_creator::renderSegment(torasu::ResultSegmentSettin
 			auto* modRctx = new torasu::RenderContext(*rctx);
 			if (auto* vidReq = dynamic_cast<MediaEncoder::VideoFrameRequest*>(fr)) {
 				auto* timeRctxVal = new torasu::tstd::Dnum(vidReq->getTime());
+				auto* durRctxVal = new torasu::tstd::Dnum(vidReq->getDuration());
 				(*modRctx)[TORASU_STD_CTX_TIME] = timeRctxVal;
-				(*modRctx)[TORASU_STD_CTX_DURATION] = &frameDuration;
+				(*modRctx)[TORASU_STD_CTX_DURATION] = durRctxVal;
 				(*modRctx)[TORASU_STD_CTX_IMG_RATIO] = &frameRatio;
 
 				auto rid = visRib.enqueueRender(srcRnd.get(), modRctx, ei, li);
 
-				fr->setFinish([rid, ei, visHandleRef, vidReq, modRctx, timeRctxVal, countPendingRef] {
+				fr->setFinish([rid, ei, visHandleRef, vidReq, modRctx, timeRctxVal, durRctxVal, countPendingRef] {
 					(*countPendingRef)--;
 
 					auto* rr = ei->fetchRenderResult(rid);
 					delete modRctx;
 					delete timeRctxVal;
+					delete durRctxVal;
 					auto fetchedRes = visHandleRef->getFrom(rr);
 
 					vidReq->setFree([rr]() {

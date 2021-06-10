@@ -60,12 +60,13 @@ public:
 	class VideoFrameRequest : public FrameRequest {
 	private:
 		double time;
+		double duration;
 		torasu::tstd::Dbimg* result;
 		torasu::tstd::Dbimg_FORMAT* format;
 
 	protected:
-		VideoFrameRequest(double time, torasu::tstd::Dbimg_FORMAT* format)
-			: time(time), format(format) {}
+		VideoFrameRequest(double time, double duration, torasu::tstd::Dbimg_FORMAT* format)
+			: time(time), duration(duration), format(format) {}
 		~VideoFrameRequest() {
 			delete format;
 		}
@@ -77,6 +78,10 @@ public:
 	public:
 		inline double getTime() {
 			return time;
+		}
+
+		inline double getDuration() {
+			return duration;
 		}
 
 		inline void setResult(torasu::tstd::Dbimg* result) {

@@ -249,9 +249,9 @@ private:
 		switch (ctx->codec_type) {
 		case AVMEDIA_TYPE_VIDEO: {
 				fetchPlayhead += 1;
-
+				double duration = (double) time_base.num/time_base.den;
 				auto* bimgFmt = new torasu::tstd::Dbimg_FORMAT(frame->width, frame->height);
-				return new imgc::MediaEncoder::VideoFrameRequest(reqTs, bimgFmt);
+				return new imgc::MediaEncoder::VideoFrameRequest(reqTs, duration, bimgFmt);
 			}
 
 		case AVMEDIA_TYPE_AUDIO: {
