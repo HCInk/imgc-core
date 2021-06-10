@@ -6,18 +6,22 @@
 #include <torasu/mod/imgc/Dgraphics.hpp>
 #include <torasu/SimpleRenderable.hpp>
 
+#include <torasu/std/Rnum.hpp>
+
 namespace imgc {
 
 class Rtransform : public torasu::tools::SimpleRenderable {
 private:
 	torasu::tools::ManagedRenderableSlot source;
 	torasu::tools::ManagedRenderableSlot transform;
+	torasu::tools::ManagedRenderableSlot shutter;
+	torasu::tools::ManagedRenderableSlot interpolationLimit;
 
 protected:
 	torasu::ResultSegment* renderSegment(torasu::ResultSegmentSettings* resSettings, torasu::RenderInstruction* ri) override;
 
 public:
-	Rtransform(torasu::tools::RenderableSlot source, torasu::tools::RenderableSlot transform);
+	Rtransform(torasu::tools::RenderableSlot source, torasu::tools::RenderableSlot transform, torasu::tstd::NumSlot shutter = nullptr, torasu::tstd::NumSlot interpolationLimit = nullptr);
 	~Rtransform();
 
 	torasu::ElementMap getElements() override;

@@ -674,7 +674,7 @@ void graphicsExample() {
 
 	torasu::tstd::Rrctx_value time(TORASU_STD_CTX_TIME, TORASU_STD_PL_NUM);
 
-	torasu::tstd::Rmultiply trm(&time, 40);
+	torasu::tstd::Rmultiply trm(&time, 40*5);
 
 	torasu::tstd::Rsin sinVal(&trm);
 
@@ -701,15 +701,19 @@ void graphicsExample() {
 	// 	}, 2 
 	// )));
 
-
 	tstd::Rsin rSin(IR(new tstd::Radd(&trm, 30.0)));
 	tstd::Rsin rCos(IR(new tstd::Radd(&trm, 120.0)));
-	Rtransform transform(&vecRender, IR(new tstd::Rmatrix(
-		{
-			&rCos, IR(new tstd::Rmultiply(&rSin, -1.0)), 0.0,
-			&rSin, &rCos, 0.0
-		}, 2 
-	)));
+	// tstd::Rmatrix transMat({
+	// 	&rCos, IR(new tstd::Rmultiply(&rSin, -1.0)), 0.0,
+	// 	&rSin, &rCos, 0.0
+	// }, 2 );
+
+	tstd::Rmatrix transMat({
+		&rCos, IR(new tstd::Rmultiply(&rSin, -1.0)), &rSin,
+		&rSin, &rCos, IR(new tstd::Rsin(IR(new tstd::Rmultiply(&trm, 4))))
+	}, 2 );
+
+	Rtransform transform(&vecRender, &transMat, 1.0/60, 30);
 
 	// Rtransform transform(&vecRender, IR(new torasu::tstd::Rmatrix(
 	// 	{
@@ -719,11 +723,29 @@ void graphicsExample() {
 	// )));
 	// Rtransform transform(&vecRender, IR(new torasu::tstd::Rerror("Test!")));
 
-	auto& comp = transform;
+	auto& preComp = transform;
 
 	imgc::Rcolor white(1.0,1.0,1.0,1.0);
-	torasu::tstd::Rsubtract premulMaybe(&white, &comp);
+	torasu::tstd::Rsubtract premulMaybe(&white, &preComp);
 
+	// RGB-EFFECT: OFF
+
+	auto& comp = preComp;
+	auto& premulComp = premulMaybe;
+
+	// RGB-EFFECT: ON
+
+	// auto& redFr = premulMaybe;
+	// tstd::Rmod_rctx greenFr(&premulMaybe, IR( new tstd::Radd(&time, 1.0/60) ), TORASU_STD_CTX_TIME, TORASU_STD_PL_NUM);
+	// tstd::Rmod_rctx blueFr(&premulMaybe, IR( new tstd::Radd(&time, 2.0/60) ), TORASU_STD_CTX_TIME, TORASU_STD_PL_NUM);
+
+	// tstd::Rmultiply red(&redFr, IR(new imgc::Rcolor(1.0, 0.0, 0.0, 1.0)));
+	// tstd::Rmultiply green(&greenFr, IR(new imgc::Rcolor(0.0, 1.0, 0.0, 1.0)));
+	// tstd::Rmultiply blue(&blueFr, IR(new imgc::Rcolor(0.0, 0.0, 1.0, 1.0)));
+
+	// tstd::Radd comp(&red, IR( new tstd::Radd(&green, &blue)));
+
+	// auto& premulComp = comp;
 
 	torasu::tstd::Rstring artist("John Doe");
 
@@ -744,11 +766,11 @@ void graphicsExample() {
 		}
 	});
 
-	imgc::Rmedia_creator encoded(&premulMaybe, "mp4", 0., 10, 30, 1080*2, 1080*2, 4000*100, -1, &metadata);
+	imgc::Rmedia_creator encoded(&premulComp, "mp4", 0., 10, 30, 1080*2, 1080*2, 8000*1000, -1, &metadata);
 
 	torasu::tstd::LIcore_logger logger;
 	torasu::LogInstruction li(&logger, torasu::LogLevel::DEBUG, torasu::LogInstruction::OPT_PROGRESS);
-	auto* runner = new torasu::tstd::EIcore_runner((size_t)8);
+	auto* runner = new torasu::tstd::EIcore_runner((size_t)25);
 	torasu::ExecutionInterface* ei = runner->createInterface();
 
 	torasu::tools::RenderInstructionBuilder rib;
@@ -779,9 +801,10 @@ void graphicsExample() {
 	std::cout << "Saved." << std::endl;
 
 
-	/* 
-	// torasu::tstd::Dbimg_FORMAT format(1080*2, 1080*2);
-	torasu::tstd::Dbimg_FORMAT format(30*3, 30*3);
+
+/* 
+	torasu::tstd::Dbimg_FORMAT format(1080*2, 1080*2);
+	// torasu::tstd::Dbimg_FORMAT format(30*3, 30*3);
 
 	auto handle = rib.addSegmentWithHandle<torasu::tstd::Dbimg>(TORASU_STD_PL_VIS, &format);
 
@@ -811,7 +834,7 @@ void graphicsExample() {
 
 		std::cout << "ENCODE STAT " << error << std::endl;
 	}
-	 */
+ */
 
 	delete ei;
 	delete runner;

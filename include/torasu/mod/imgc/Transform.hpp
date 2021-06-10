@@ -10,5 +10,6 @@
 namespace imgc::transform {
 
 void transform(const uint8_t* src, uint8_t* dest, uint32_t width, uint32_t height, torasu::tstd::Dmatrix matrix);
+void transformMix(const uint8_t* src, uint8_t* dest, uint32_t width, uint32_t height, const torasu::tstd::Dmatrix* transArray, size_t nTransforms);
 
 } // namespace imgc
