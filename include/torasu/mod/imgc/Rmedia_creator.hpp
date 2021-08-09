@@ -26,7 +26,7 @@ private:
 	torasu::tools::ManagedRenderableSlot metadataSlot; // MAP - Metadata-map
 
 protected:
-	torasu::ResultSegment* renderSegment(torasu::ResultSegmentSettings* resSettings, torasu::RenderInstruction* ri) override;
+	torasu::ResultSegment* render(torasu::RenderInstruction* ri) override;
 
 public:
 	Rmedia_creator(torasu::tools::RenderableSlot src, torasu::tstd::StringSlot format,

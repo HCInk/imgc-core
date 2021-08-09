@@ -17,7 +17,7 @@ Rcropdata_combined::Rcropdata_combined(torasu::tstd::NumSlot left, torasu::tstd:
 
 Rcropdata_combined::~Rcropdata_combined() {}
 
-torasu::ResultSegment* Rcropdata_combined::renderSegment(torasu::ResultSegmentSettings* resSettings, torasu::RenderInstruction* ri) {
+torasu::ResultSegment* Rcropdata_combined::renderSegment(torasu::ResultSettings* resSettings, torasu::RenderInstruction* ri) {
 	std::string pipeline = resSettings->getPipeline();
 	if (pipeline.compare(IMGC_PL_ALIGN) == 0) {
 

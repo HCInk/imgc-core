@@ -14,30 +14,25 @@
 
 namespace imgc {
 
-class Rimg_file : public torasu::tools::SimpleRenderable {
+class Rimg_file : public torasu::Renderable,
+	public torasu::tools::NamedIdentElement,
+	public torasu::tools::SimpleDataElement {
 private:
 	const std::string pipeline = std::string(TORASU_STD_PL_FILE);
 
 	torasu::tools::ManagedRenderableSlot rfile;
 
-	torasu::tools::RenderInstructionBuilder rib;
-	torasu::tools::RenderResultSegmentHandle<torasu::tstd::Dfile> resHandle;
-
-	std::mutex loadLock;
-	bool loaded = false;
-	std::vector<uint8_t> loadedImage;
-	uint32_t srcWidth, srcHeight;
-
 private:
-	void load(torasu::RenderContext* rctx, torasu::ExecutionInterface* ei, torasu::LogInstruction li);
+	void load(torasu::tools::RenderHelper* rh);
 
 protected:
-	torasu::ResultSegment* renderSegment(torasu::ResultSegmentSettings* resSettings, torasu::RenderInstruction* ri) override;
+	torasu::ResultSegment* render(torasu::RenderInstruction* ri) override;
 
 public:
 	explicit Rimg_file(torasu::tools::RenderableSlot file);
 	~Rimg_file();
 
+	void ready(torasu::ReadyInstruction* ri) override;
 	torasu::ElementMap getElements() override;
 	void setElement(std::string key, Element* elem) override;
 };

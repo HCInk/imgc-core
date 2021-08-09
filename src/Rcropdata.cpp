@@ -27,7 +27,7 @@ void Rcropdata::setData(torasu::DataResource* data) {
 	}
 }
 
-torasu::ResultSegment* Rcropdata::renderSegment(torasu::ResultSegmentSettings* resSettings, torasu::RenderInstruction* ri) {
+torasu::ResultSegment* Rcropdata::renderSegment(torasu::ResultSettings* resSettings, torasu::RenderInstruction* ri) {
 
 	if (resSettings->getPipeline().compare(pipeline) == 0) {
 		return new torasu::ResultSegment(torasu::ResultSegmentStatus_OK, val, false);

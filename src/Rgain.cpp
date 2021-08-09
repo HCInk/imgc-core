@@ -11,7 +11,7 @@ Rgain::Rgain(torasu::tools::RenderableSlot src, torasu::tstd::NumSlot gainVal)
 
 Rgain::~Rgain() {}
 
-torasu::ResultSegment* Rgain::renderSegment(torasu::ResultSegmentSettings* resSettings, torasu::RenderInstruction* ri) {
+torasu::ResultSegment* Rgain::renderSegment(torasu::ResultSettings* resSettings, torasu::RenderInstruction* ri) {
 	if (resSettings->getPipeline() != visPipeline) {
 		return new torasu::ResultSegment(torasu::ResultSegmentStatus_INVALID_SEGMENT);
 	}

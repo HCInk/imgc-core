@@ -26,7 +26,7 @@ Rtransform::~Rtransform() {
 
 }
 
-torasu::ResultSegment* Rtransform::renderSegment(torasu::ResultSegmentSettings* resSettings, torasu::RenderInstruction* ri) {
+torasu::ResultSegment* Rtransform::renderSegment(torasu::ResultSettings* resSettings, torasu::RenderInstruction* ri) {
 
 	torasu::tools::RenderHelper rh(ri);
 	auto& lirb = rh.lrib;

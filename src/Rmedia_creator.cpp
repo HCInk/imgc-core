@@ -30,60 +30,54 @@ Rmedia_creator::Rmedia_creator(torasu::tools::RenderableSlot src, torasu::tstd::
 
 Rmedia_creator::~Rmedia_creator() {}
 
-torasu::ResultSegment* Rmedia_creator::renderSegment(torasu::ResultSegmentSettings* resSettings, torasu::RenderInstruction* ri) {
-	std::string pipeline = resSettings->getPipeline();
+torasu::ResultSegment* Rmedia_creator::render(torasu::RenderInstruction* ri) {
+	std::string pipeline = ri->getResultSettings()->getPipeline();
 	if (pipeline == TORASU_STD_PL_FILE) {
+		torasu::tools::RenderHelper rh(ri);
 
-		auto* ei = ri->getExecutionInterface();
-		auto li = ri->getLogInstruction();
-		auto* rctx = ri->getRenderContext();
-
-		std::unique_ptr<torasu::RenderResult> rrMetadata;
+		std::unique_ptr<torasu::ResultSegment> rrMetadata;
 		std::map<std::string, std::string> metadata;
 
 		MediaEncoder::EncodeRequest req;
 
-		bool logProgress = li.options & torasu::LogInstruction::OPT_PROGRESS; 
-		if (logProgress) li.logger->log(new torasu::LogProgress(-1, 0, "Loading video-params..."));
+		bool logProgress = rh.li.options & torasu::LogInstruction::OPT_PROGRESS; 
+		if (logProgress) rh.li.logger->log(new torasu::LogProgress(-1, 0, "Loading video-params..."));
 
 		{
 			bool doMetadata = metadataSlot.get() != nullptr;
-			torasu::tools::RenderInstructionBuilder textRib;
-			auto textHandle = textRib.addSegmentWithHandle<torasu::tstd::Dstring>(TORASU_STD_PL_STRING, nullptr);
-			torasu::tools::RenderInstructionBuilder numRib;
-			auto numHandle = numRib.addSegmentWithHandle<torasu::tstd::Dnum>(TORASU_STD_PL_NUM, nullptr);
-			torasu::tools::RenderInstructionBuilder metadataRib;
-			auto metdadataHandle = metadataRib.addSegmentWithHandle<torasu::tstd::Dstring_map>(TORASU_STD_PL_MAP, nullptr);
+			torasu::ResultSettings textSettings(TORASU_STD_PL_STRING, nullptr);
+			torasu::ResultSettings numSettings(TORASU_STD_PL_NUM, nullptr);
+			torasu::ResultSettings metadataSettings(TORASU_STD_PL_MAP, nullptr);
 
-			auto formatRid = textRib.enqueueRender(formatRnd, rctx, ei, li);
-			auto beginRid = numRib.enqueueRender(beginRnd, rctx, ei, li);
-			auto endRid = numRib.enqueueRender(endRnd, rctx, ei, li);
-			auto fpsRid = numRib.enqueueRender(fpsRnd, rctx, ei, li);
-			auto widthRid = numRib.enqueueRender(widthRnd, rctx, ei, li);
-			auto heightRid = numRib.enqueueRender(heightRnd, rctx, ei, li);
-			auto vbrRid = numRib.enqueueRender(videoBitrateRnd, rctx, ei, li);
-			auto amsrRid = numRib.enqueueRender(audioMinSampleRateRnd, rctx, ei, li);
-			auto metaRid = doMetadata ? metadataRib.enqueueRender(metadataSlot, rctx, ei, li) : 0;
+			auto formatRid = rh.enqueueRender(formatRnd, &textSettings);
+			auto beginRid = rh.enqueueRender(beginRnd, &numSettings);
+			auto endRid = rh.enqueueRender(endRnd, &numSettings);
+			auto fpsRid = rh.enqueueRender(fpsRnd, &numSettings);
+			auto widthRid = rh.enqueueRender(widthRnd, &numSettings);
+			auto heightRid = rh.enqueueRender(heightRnd, &numSettings);
+			auto vbrRid = rh.enqueueRender(videoBitrateRnd, &numSettings);
+			auto amsrRid = rh.enqueueRender(audioMinSampleRateRnd, &numSettings);
+			auto metaRid = doMetadata ? rh.enqueueRender(metadataSlot, &metadataSettings) : 0;
 
-			std::unique_ptr<torasu::RenderResult> rrFormat(ei->fetchRenderResult(formatRid));
-			std::unique_ptr<torasu::RenderResult> rrBegin(ei->fetchRenderResult(beginRid));
-			std::unique_ptr<torasu::RenderResult> rrEnd(ei->fetchRenderResult(endRid));
-			std::unique_ptr<torasu::RenderResult> rrFps(ei->fetchRenderResult(fpsRid));
-			std::unique_ptr<torasu::RenderResult> rrWidth(ei->fetchRenderResult(widthRid));
-			std::unique_ptr<torasu::RenderResult> rrHeight(ei->fetchRenderResult(heightRid));
-			std::unique_ptr<torasu::RenderResult> rrVbr(ei->fetchRenderResult(vbrRid));
-			std::unique_ptr<torasu::RenderResult> rrAmsr(ei->fetchRenderResult(amsrRid));
-			if (doMetadata) rrMetadata = std::unique_ptr<torasu::RenderResult>(ei->fetchRenderResult(metaRid));
+			std::unique_ptr<torasu::ResultSegment> rrFormat(rh.fetchRenderResult(formatRid));
+			std::unique_ptr<torasu::ResultSegment> rrBegin(rh.fetchRenderResult(beginRid));
+			std::unique_ptr<torasu::ResultSegment> rrEnd(rh.fetchRenderResult(endRid));
+			std::unique_ptr<torasu::ResultSegment> rrFps(rh.fetchRenderResult(fpsRid));
+			std::unique_ptr<torasu::ResultSegment> rrWidth(rh.fetchRenderResult(widthRid));
+			std::unique_ptr<torasu::ResultSegment> rrHeight(rh.fetchRenderResult(heightRid));
+			std::unique_ptr<torasu::ResultSegment> rrVbr(rh.fetchRenderResult(vbrRid));
+			std::unique_ptr<torasu::ResultSegment> rrAmsr(rh.fetchRenderResult(amsrRid));
+			if (doMetadata) rrMetadata = std::unique_ptr<torasu::ResultSegment>(rh.fetchRenderResult(metaRid));
 
-			auto* dFormat = textHandle.getFrom(rrFormat.get()).getResult();
-			auto* dBegin = numHandle.getFrom(rrBegin.get()).getResult();
-			auto* dEnd = numHandle.getFrom(rrEnd.get()).getResult();
-			auto* dFps = numHandle.getFrom(rrFps.get()).getResult();
-			auto* dWidth = numHandle.getFrom(rrWidth.get()).getResult();
-			auto* dHeight = numHandle.getFrom(rrHeight.get()).getResult();
-			auto* dVbr = numHandle.getFrom(rrVbr.get()).getResult();
-			auto* dAmsr = numHandle.getFrom(rrAmsr.get()).getResult();
-			auto* dMeta = doMetadata ? metdadataHandle.getFrom(rrMetadata.get()).getResult() : nullptr;
+			auto* dFormat = rh.evalResult<torasu::tstd::Dstring>(rrFormat.get()).getResult();
+			auto* dBegin = rh.evalResult<torasu::tstd::Dnum>(rrBegin.get()).getResult();
+			auto* dEnd = rh.evalResult<torasu::tstd::Dnum>(rrEnd.get()).getResult();
+			auto* dFps = rh.evalResult<torasu::tstd::Dnum>(rrFps.get()).getResult();
+			auto* dWidth = rh.evalResult<torasu::tstd::Dnum>(rrWidth.get()).getResult();
+			auto* dHeight = rh.evalResult<torasu::tstd::Dnum>(rrHeight.get()).getResult();
+			auto* dVbr = rh.evalResult<torasu::tstd::Dnum>(rrVbr.get()).getResult();
+			auto* dAmsr = rh.evalResult<torasu::tstd::Dnum>(rrAmsr.get()).getResult();
+			auto* dMeta = doMetadata ? rh.evalResult<torasu::tstd::Dstring_map>(rrMetadata.get()).getResult() : nullptr;
 
 			if (!dFormat) throw std::runtime_error("Failed to retrieve format-key");
 			if (!dBegin) throw std::runtime_error("Failed to retrieve begin-timestamp");
@@ -123,24 +117,22 @@ torasu::ResultSegment* Rmedia_creator::renderSegment(torasu::ResultSegmentSettin
 
 		torasu::tstd::Dnum frameRatio((double) req.width / req.height);
 
-		torasu::tools::RenderInstructionBuilder visRib;
 		torasu::tstd::Dbimg_FORMAT visFmt(req.width, req.height);
-		auto visHandle = visRib.addSegmentWithHandle<torasu::tstd::Dbimg>(TORASU_STD_PL_VIS, &visFmt);
+		torasu::ResultSettings visSettings(TORASU_STD_PL_VIS, &visFmt);
 
 		size_t countPending = 0;
 
-		auto* visHandleRef = &visHandle;
 		auto* countPendingRef = &countPending;
 
-		MediaEncoder enc([this, ei, li, rctx, &visRib, visHandleRef, &frameRatio, countPendingRef]
+		MediaEncoder enc([this, &rh, &visSettings, &frameRatio, countPendingRef]
 		(MediaEncoder::FrameRequest* fr) {
 			if (*countPendingRef > 10 && !fr->needsNow) {
 				return 1; // Postpone
 			}
 			(*countPendingRef)++;
-			if (li.level <= torasu::LogLevel::DEBUG) li.logger->log(torasu::LogLevel::DEBUG, "Sym-req counter: " + std::to_string(*countPendingRef));
+			if (rh.mayLog(torasu::DEBUG)) rh.li.logger->log(torasu::LogLevel::DEBUG, "Sym-req counter: " + std::to_string(*countPendingRef));
 
-			auto* modRctx = new torasu::RenderContext(*rctx);
+			auto* modRctx = new torasu::RenderContext(*rh.rctx);
 			if (auto* vidReq = dynamic_cast<MediaEncoder::VideoFrameRequest*>(fr)) {
 				auto* timeRctxVal = new torasu::tstd::Dnum(vidReq->getTime());
 				auto* durRctxVal = new torasu::tstd::Dnum(vidReq->getDuration());
@@ -148,16 +140,16 @@ torasu::ResultSegment* Rmedia_creator::renderSegment(torasu::ResultSegmentSettin
 				(*modRctx)[TORASU_STD_CTX_DURATION] = durRctxVal;
 				(*modRctx)[TORASU_STD_CTX_IMG_RATIO] = &frameRatio;
 
-				auto rid = visRib.enqueueRender(srcRnd.get(), modRctx, ei, li);
+				auto rid = rh.enqueueRender(srcRnd.get(), &visSettings, modRctx);
 
-				fr->setFinish([rid, ei, visHandleRef, vidReq, modRctx, timeRctxVal, durRctxVal, countPendingRef] {
+				fr->setFinish([rid, &rh, vidReq, modRctx, timeRctxVal, durRctxVal, countPendingRef] {
 					(*countPendingRef)--;
 
-					auto* rr = ei->fetchRenderResult(rid);
+					auto* rr = rh.fetchRenderResult(rid);
 					delete modRctx;
 					delete timeRctxVal;
 					delete durRctxVal;
-					auto fetchedRes = visHandleRef->getFrom(rr);
+					auto fetchedRes = rh.evalResult<torasu::tstd::Dbimg>(rr);
 
 					vidReq->setFree([rr]() {
 						delete rr;
@@ -177,21 +169,20 @@ torasu::ResultSegment* Rmedia_creator::renderSegment(torasu::ResultSegmentSettin
 				auto* durRctxVal = new torasu::tstd::Dnum(audReq->getDuration());
 				(*modRctx)[TORASU_STD_CTX_DURATION] = durRctxVal;
 
-				auto* audRib = new torasu::tools::RenderInstructionBuilder();
-				auto* audHandle = new auto(audRib->addSegmentWithHandle<torasu::tstd::Daudio_buffer>(TORASU_STD_PL_AUDIO, audReq->getFormat()));
+				auto* audSettings = new torasu::ResultSettings(TORASU_STD_PL_AUDIO, audReq->getFormat());
 
-				auto rid = audRib->enqueueRender(srcRnd.get(), modRctx, ei, li);
+				auto rid = rh.enqueueRender(srcRnd.get(), audSettings, modRctx);
 
-				fr->setFinish([rid, ei, audRib, audHandle, audReq, modRctx, timeRctxVal, durRctxVal, countPendingRef] {
+				fr->setFinish([rid, &rh, audSettings, audReq, modRctx, timeRctxVal, durRctxVal, countPendingRef] {
 					(*countPendingRef)--;
 
-					auto* rr = ei->fetchRenderResult(rid);
+					auto* rr = rh.fetchRenderResult(rid);
 					delete modRctx;
 					delete timeRctxVal;
 					delete durRctxVal;
-					auto fetchedRes = audHandle->getFrom(rr);
-					delete audHandle;
-					delete audRib;
+					delete audSettings;
+
+					auto fetchedRes = rh.evalResult<torasu::tstd::Daudio_buffer>(rr);
 
 					audReq->setFree([rr]() {
 						delete rr;
@@ -209,7 +200,7 @@ torasu::ResultSegment* Rmedia_creator::renderSegment(torasu::ResultSegmentSettin
 						);
 
 
-		auto* result = enc.encode(req, li);
+		auto* result = enc.encode(req, rh.li);
 
 		return new torasu::ResultSegment(torasu::ResultSegmentStatus_OK, result, true);
 	} else {

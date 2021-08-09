@@ -19,7 +19,7 @@ Rgraphics::Rgraphics(Renderable* graphics)
 
 Rgraphics::~Rgraphics() {}
 
-torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSegmentSettings* resSettings, torasu::RenderInstruction* ri) {
+torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSettings* resSettings, torasu::RenderInstruction* ri) {
 
 	if (resSettings->getPipeline() == TORASU_STD_PL_VIS) {
 

@@ -12,7 +12,7 @@ Rcolor::Rcolor(torasu::tstd::NumSlot r, torasu::tstd::NumSlot g, torasu::tstd::N
 
 Rcolor::~Rcolor() {}
 
-torasu::ResultSegment* Rcolor::renderSegment(torasu::ResultSegmentSettings* resSettings, torasu::RenderInstruction* ri) {
+torasu::ResultSegment* Rcolor::renderSegment(torasu::ResultSettings* resSettings, torasu::RenderInstruction* ri) {
 
 	torasu::tools::RenderHelper rh(ri);
 	auto& lirb = rh.lrib;

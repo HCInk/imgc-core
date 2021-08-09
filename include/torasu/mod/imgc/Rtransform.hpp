@@ -18,7 +18,7 @@ private:
 	torasu::tools::ManagedRenderableSlot interpolationLimit;
 
 protected:
-	torasu::ResultSegment* renderSegment(torasu::ResultSegmentSettings* resSettings, torasu::RenderInstruction* ri) override;
+	torasu::ResultSegment* render(torasu::RenderInstruction* ri) override;
 
 public:
 	Rtransform(torasu::tools::RenderableSlot source, torasu::tools::RenderableSlot transform, torasu::tstd::NumSlot shutter = nullptr, torasu::tstd::NumSlot interpolationLimit = nullptr);

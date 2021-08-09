@@ -23,26 +23,33 @@ Ralign2d::Ralign2d(torasu::tools::RenderableSlot rndSrc, torasu::tools::Renderab
 
 Ralign2d::~Ralign2d() {}
 
+
+namespace {
+
 #define ROUND_PRECISION 40000
 
-void Ralign2d::calcAlign(Renderable* alignmentProvider, torasu::ExecutionInterface* ei, torasu::LogInstruction li, torasu::RenderContext* rctx,
+struct Ralign2d_CROPDATA {
+	uint32_t srcWidth, srcHeight;
+	int32_t offLeft, offRight, offTop, offBottom;
+};
+
+void calcAlign(torasu::Renderable* alignmentProvider, torasu::tools::RenderHelper* rh,
 						 uint32_t destWidth, uint32_t destHeight,
-						 Ralign2d_CROPDATA* outCropData) const {
+						 Ralign2d_CROPDATA* outCropData) {
 
 	// Creating instruction to get alignment
 
-	torasu::tools::RenderInstructionBuilder rib;
-	auto handle = rib.addSegmentWithHandle<imgc::Dcropdata>(IMGC_PL_ALIGN, NULL);
+	torasu::ResultSettings alignSettings(IMGC_PL_ALIGN, nullptr);
 
 	// Running render based on instruction
 
-	torasu::RenderResult* rr = rib.runRender(alignmentProvider, rctx, ei, li);
+	std::unique_ptr<torasu::ResultSegment> rr(rh->runRender(alignmentProvider, &alignSettings));
 
 	// Finding results
 
-	auto result = handle.getFrom(rr);
+	auto result = rh->evalResult<imgc::Dcropdata>(rr.get());
 
-	if (result.getResult() == nullptr) {
+	if (!result) {
 		throw std::runtime_error("Alignment calculation failed!");
 	}
 
@@ -55,12 +62,9 @@ void Ralign2d::calcAlign(Renderable* alignmentProvider, torasu::ExecutionInterfa
 
 	outCropData->srcWidth = destWidth - (outCropData->offLeft + outCropData->offRight);
 	outCropData->srcHeight = destHeight - (outCropData->offTop + outCropData->offBottom);
-
-	delete rr;
 }
 
-
-void Ralign2d::align(torasu::tstd::Dbimg* srcImg, torasu::tstd::Dbimg* destImg, Ralign2d_CROPDATA* cropData) const {
+void align(torasu::tstd::Dbimg* srcImg, torasu::tstd::Dbimg* destImg, Ralign2d_CROPDATA* cropData) {
 
 	uint8_t* const srcData = srcImg->getImageData();
 	uint8_t* const destData = destImg->getImageData();
@@ -120,46 +124,42 @@ void Ralign2d::align(torasu::tstd::Dbimg* srcImg, torasu::tstd::Dbimg* destImg, 
 
 }
 
+} // namespace
 
-torasu::ResultSegment* Ralign2d::renderSegment(torasu::ResultSegmentSettings* resSettings, torasu::RenderInstruction* ri) {
 
-	if (resSettings->getPipeline().compare(TORASU_STD_PL_VIS) == 0) {
+torasu::ResultSegment* Ralign2d::render(torasu::RenderInstruction* ri) {
+	torasu::ResultSettings* resSettings = ri->getResultSettings();
+
+	if (strcmp(resSettings->getPipeline(), TORASU_STD_PL_VIS) == 0) {
 		torasu::tstd::Dbimg_FORMAT* fmt;
-		if ( !( resSettings->getResultFormatSettings() != NULL
-				&& (fmt = dynamic_cast<torasu::tstd::Dbimg_FORMAT*>(resSettings->getResultFormatSettings())) )) {
+		if ( !( resSettings->getFromat() != nullptr
+				&& (fmt = dynamic_cast<torasu::tstd::Dbimg_FORMAT*>(resSettings->getFromat())) )) {
 			return new torasu::ResultSegment(torasu::ResultSegmentStatus_INVALID_FORMAT);
 		}
 
-		auto ei = ri->getExecutionInterface();
-		auto li = ri->getLogInstruction();
-		auto rctx = ri->getRenderContext();
-
-		torasu::tools::RenderInstructionBuilder rib;
+		torasu::tools::RenderHelper rh(ri);
 
 		Ralign2d_CROPDATA cropData;
 
-		calcAlign(rndAlign.get(), ei, li, rctx, fmt->getWidth(), fmt->getHeight(), &cropData);
+		calcAlign(rndAlign.get(), &rh, fmt->getWidth(), fmt->getHeight(), &cropData);
 
 		// Format creation
 
 		torasu::tstd::Dbimg_FORMAT srcFmt(cropData.srcWidth, cropData.srcHeight);
 
-		torasu::tools::RenderResultSegmentHandle<torasu::tstd::Dbimg> resHandle = rib.addSegmentWithHandle<torasu::tstd::Dbimg>(TORASU_STD_PL_VIS, &srcFmt);
+		torasu::ResultSettings visSettings(TORASU_STD_PL_VIS, &srcFmt);
 
 		// Render-context modification
 
-		torasu::RenderContext modRctx(*rctx); // Create copy of the render context
+		torasu::RenderContext modRctx(*rh.rctx); // Create copy of the render context
 		torasu::tstd::Dnum ratio((double)cropData.srcWidth/cropData.srcHeight);
 		modRctx[TORASU_STD_CTX_IMG_RATIO] = &ratio;
 
-		// Sub-Renderings
-		auto srcRndId = rib.enqueueRender(rndSrc, rctx, ei, li);
-
-		torasu::RenderResult* srcRes = ei->fetchRenderResult(srcRndId);
+		std::unique_ptr<torasu::ResultSegment> srcRes(rh.runRender(rndSrc, &visSettings));
 
 		// Calculating Result from Results
 
-		torasu::tools::CastedRenderSegmentResult<torasu::tstd::Dbimg> a = resHandle.getFrom(srcRes);
+		auto a = rh.evalResult<torasu::tstd::Dbimg>(srcRes.get());
 
 		torasu::tstd::Dbimg* result = NULL;
 
@@ -172,13 +172,11 @@ torasu::ResultSegment* Ralign2d::renderSegment(torasu::ResultSegmentSettings* re
 			align(a.getResult(), result, &cropData);
 
 			auto benchEnd = std::chrono::steady_clock::now();
-			if (li.level <= torasu::LogLevel::DEBUG)
-				li.logger->log(torasu::LogLevel::DEBUG, " Align Time = "
+			if (rh.mayLog(torasu::DEBUG))
+				rh.li.logger->log(torasu::LogLevel::DEBUG, " Align Time = "
 							   + std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(benchEnd - benchBegin).count()) + "[ms] "
 							   + std::to_string(std::chrono::duration_cast<std::chrono::microseconds>(benchEnd - benchBegin).count()) + "[us]");
 		}
-
-		delete srcRes;
 
 		if (result != NULL) {
 			return new torasu::ResultSegment(torasu::ResultSegmentStatus_OK, result, true);

@@ -21,7 +21,6 @@ class Rmedia_file :  public torasu::Renderable,
 private:
 	torasu::tools::ManagedRenderableSlot srcRnd;
 
-	torasu::RenderResult* renderSafe(torasu::RenderInstruction* ri);
 	void load(torasu::ExecutionInterface* ei, torasu::LogInstruction li);
 
 public:
@@ -29,7 +28,7 @@ public:
 	~Rmedia_file();
 
 	void ready(torasu::ReadyInstruction* ri) override;
-	torasu::RenderResult* render(torasu::RenderInstruction* ri) override;
+	torasu::ResultSegment* render(torasu::RenderInstruction* ri) override;
 
 	torasu::ElementMap getElements() override;
 	void setElement(std::string key, torasu::Element* elem) override;
