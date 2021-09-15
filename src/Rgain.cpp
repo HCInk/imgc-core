@@ -11,12 +11,14 @@ Rgain::Rgain(torasu::tools::RenderableSlot src, torasu::tstd::NumSlot gainVal)
 
 Rgain::~Rgain() {}
 
-torasu::ResultSegment* Rgain::renderSegment(torasu::ResultSettings* resSettings, torasu::RenderInstruction* ri) {
+torasu::ResultSegment* Rgain::render(torasu::RenderInstruction* ri) {
+	torasu::tools::RenderHelper rh(ri);
+	auto* resSettings = ri->getResultSettings();
 	if (resSettings->getPipeline() != visPipeline) {
 		return new torasu::ResultSegment(torasu::ResultSegmentStatus_INVALID_SEGMENT);
 	}
 
-	auto* format = resSettings->getResultFormatSettings();
+	auto* format = resSettings->getFromat();
 	uint32_t rWidth, rHeight;
 	if (auto* bimgFormat = dynamic_cast<torasu::tstd::Dbimg_FORMAT*>(format)) {
 		rWidth = bimgFormat->getWidth();
@@ -25,27 +27,20 @@ torasu::ResultSegment* Rgain::renderSegment(torasu::ResultSettings* resSettings,
 		return new torasu::ResultSegment(torasu::ResultSegmentStatus_INVALID_FORMAT);
 	}
 
-	torasu::ExecutionInterface* ei = ri->getExecutionInterface();
-	torasu::LogInstruction li = ri->getLogInstruction();
-	torasu::RenderContext* rctx = ri->getRenderContext();
-
 	// Creation of Requests
+	torasu::ResultSettings rsVis(TORASU_STD_PL_VIS, format);
+	auto srcRndId = rh.enqueueRender(rSrc, &rsVis);
 
-	torasu::tools::RenderInstructionBuilder ribSrc;
-	auto srcHandle = ribSrc.addSegmentWithHandle<torasu::tstd::Dbimg>(visPipeline, format);
-	auto srcRndId = ribSrc.enqueueRender(rSrc, rctx, ei, li);
-
-	torasu::tools::RenderInstructionBuilder ribGain;
-	auto gainHandle = ribGain.addSegmentWithHandle<torasu::tstd::Dnum>(numPipeline, NULL);
-	auto gainRndId = ribGain.enqueueRender(rGainVal, rctx, ei, li);
+	torasu::ResultSettings rsNum(TORASU_STD_PL_NUM, nullptr);
+	auto gainRndId = rh.enqueueRender(rGainVal, &rsNum);
 
 	// Fetching of requests
 
-	std::unique_ptr<torasu::RenderResult> srcRndResult(ei->fetchRenderResult(srcRndId));
-	std::unique_ptr<torasu::RenderResult> gainRndResult(ei->fetchRenderResult(gainRndId));
+	std::unique_ptr<torasu::ResultSegment> srcRndResult(rh.fetchRenderResult(srcRndId));
+	std::unique_ptr<torasu::ResultSegment> gainRndResult(rh.fetchRenderResult(gainRndId));
 
-	auto srcRes = srcHandle.getFrom(srcRndResult.get());
-	auto gainRes = gainHandle.getFrom(gainRndResult.get());
+	auto srcRes = rh.evalResult<torasu::tstd::Dbimg>(srcRndResult.get());
+	auto gainRes = rh.evalResult<torasu::tstd::Dnum>(gainRndResult.get());
 
 	torasu::tstd::Dbimg* srcImg = srcRes.getResult();
 

@@ -12,41 +12,38 @@ Rcolor::Rcolor(torasu::tstd::NumSlot r, torasu::tstd::NumSlot g, torasu::tstd::N
 
 Rcolor::~Rcolor() {}
 
-torasu::ResultSegment* Rcolor::renderSegment(torasu::ResultSettings* resSettings, torasu::RenderInstruction* ri) {
-
+torasu::ResultSegment* Rcolor::render(torasu::RenderInstruction* ri) {
 	torasu::tools::RenderHelper rh(ri);
 	auto& lirb = rh.lrib;
 
-	if (resSettings->getPipeline() == TORASU_STD_PL_VIS) {
+	if (strcmp(ri->getResultSettings()->getPipeline(), TORASU_STD_PL_VIS) == 0) {
 
 		torasu::tstd::Dbimg_FORMAT* fmt;
-		auto fmtSettings = resSettings->getResultFormatSettings();
+		auto fmtSettings = ri->getResultSettings()->getFromat();
 		if ( !( fmtSettings != nullptr
 				&& (fmt = dynamic_cast<torasu::tstd::Dbimg_FORMAT*>(fmtSettings)) )) {
 			return new torasu::ResultSegment(torasu::ResultSegmentStatus_INVALID_FORMAT);
 		}
 
-		torasu::tools::RenderInstructionBuilder rib;
-		torasu::tools::RenderResultSegmentHandle<torasu::tstd::Dnum> resHandle = rib.addSegmentWithHandle<torasu::tstd::Dnum>(TORASU_STD_PL_NUM, nullptr);
-
+		torasu::ResultSettings rsNum(TORASU_STD_PL_NUM, nullptr);
 		// Sub-Renderings
 
-		auto rendR = rib.enqueueRender(rSrc, &rh);
-		auto rendG = rib.enqueueRender(gSrc, &rh);
-		auto rendB = rib.enqueueRender(bSrc, &rh);
-		auto rendA = rib.enqueueRender(aSrc, &rh);
+		auto rendR = rh.enqueueRender(rSrc, &rsNum);
+		auto rendG = rh.enqueueRender(gSrc, &rsNum);
+		auto rendB = rh.enqueueRender(bSrc, &rsNum);
+		auto rendA = rh.enqueueRender(aSrc, &rsNum);
 
-		std::unique_ptr<torasu::RenderResult> resR(rh.fetchRenderResult(rendR));
-		std::unique_ptr<torasu::RenderResult> resG(rh.fetchRenderResult(rendG));
-		std::unique_ptr<torasu::RenderResult> resB(rh.fetchRenderResult(rendB));
-		std::unique_ptr<torasu::RenderResult> resA(rh.fetchRenderResult(rendA));
+		std::unique_ptr<torasu::ResultSegment> resR(rh.fetchRenderResult(rendR));
+		std::unique_ptr<torasu::ResultSegment> resG(rh.fetchRenderResult(rendG));
+		std::unique_ptr<torasu::ResultSegment> resB(rh.fetchRenderResult(rendB));
+		std::unique_ptr<torasu::ResultSegment> resA(rh.fetchRenderResult(rendA));
 
 		// Calculating Result from Results
 
-		torasu::tools::CastedRenderSegmentResult<torasu::tstd::Dnum> r = resHandle.getFrom(resR.get(), &rh);
-		torasu::tools::CastedRenderSegmentResult<torasu::tstd::Dnum> g = resHandle.getFrom(resG.get(), &rh);
-		torasu::tools::CastedRenderSegmentResult<torasu::tstd::Dnum> b = resHandle.getFrom(resB.get(), &rh);
-		torasu::tools::CastedRenderSegmentResult<torasu::tstd::Dnum> a = resHandle.getFrom(resA.get(), &rh);
+		torasu::tools::CastedRenderSegmentResult<torasu::tstd::Dnum> r = rh.evalResult<torasu::tstd::Dnum>(resR.get());
+		torasu::tools::CastedRenderSegmentResult<torasu::tstd::Dnum> g = rh.evalResult<torasu::tstd::Dnum>(resG.get());
+		torasu::tools::CastedRenderSegmentResult<torasu::tstd::Dnum> b = rh.evalResult<torasu::tstd::Dnum>(resB.get());
+		torasu::tools::CastedRenderSegmentResult<torasu::tstd::Dnum> a = rh.evalResult<torasu::tstd::Dnum>(resA.get());
 
 		double rVal, gVal, bVal, aVal;
 

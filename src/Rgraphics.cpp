@@ -19,23 +19,23 @@ Rgraphics::Rgraphics(Renderable* graphics)
 
 Rgraphics::~Rgraphics() {}
 
-torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSettings* resSettings, torasu::RenderInstruction* ri) {
+torasu::ResultSegment* Rgraphics::render(torasu::RenderInstruction* ri) {
+	torasu::tools::RenderHelper rh(ri);
 
-	if (resSettings->getPipeline() == TORASU_STD_PL_VIS) {
+	if (strcmp(ri->getResultSettings()->getPipeline(), TORASU_STD_PL_VIS) == 0) {
+		auto* reqFormat = ri->getResultSettings()->getFromat();
 
-		if (auto* fmt = dynamic_cast<torasu::tstd::Dbimg_FORMAT*>(resSettings->getResultFormatSettings())) {
+		if (auto* fmt = dynamic_cast<torasu::tstd::Dbimg_FORMAT*>(reqFormat)) {
 
-			torasu::tools::RenderInstructionBuilder rib;
 			Dgraphics_FORMAT graphicsFmt;
-			auto resHandle = rib.addSegmentWithHandle<imgc::Dgraphics>(TORASU_STD_PL_VIS, &graphicsFmt);
+			torasu::ResultSettings rsGraphics(TORASU_STD_PL_VIS, &graphicsFmt);
 
-			auto ei = ri->getExecutionInterface();
 
-			auto rid = rib.enqueueRender(source, ri->getRenderContext(), ei, ri->getLogInstruction());
+			auto rid = rh.enqueueRender(source, &rsGraphics);
 
-			std::unique_ptr<torasu::RenderResult> res(ei->fetchRenderResult(rid));
+			std::unique_ptr<torasu::ResultSegment> res(rh.fetchRenderResult(rid));
 
-			auto* graphics = resHandle.getFrom(res.get()).getResult();
+			auto* graphics = rh.evalResult<imgc::Dgraphics>(res.get()).getResult();
 
 			if (graphics == nullptr) {
 				throw std::runtime_error("Error rendering graphics-source!");
@@ -58,10 +58,8 @@ torasu::ResultSegment* Rgraphics::renderSegment(torasu::ResultSettings* resSetti
 			}
 
 			return new torasu::ResultSegment(torasu::ResultSegmentStatus_OK, base, true);
-		} else if (dynamic_cast<imgc::Dgraphics_FORMAT*>(resSettings->getResultFormatSettings())) {
-
+		} else if (dynamic_cast<imgc::Dgraphics_FORMAT*>(reqFormat)) {
 			return new torasu::ResultSegment(torasu::ResultSegmentStatus_OK, graphics.get(), false);
-
 		} else {
 			return new torasu::ResultSegment(torasu::ResultSegmentStatus_INVALID_FORMAT);
 		}

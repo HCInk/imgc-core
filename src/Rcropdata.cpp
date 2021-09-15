@@ -6,6 +6,8 @@
 #include <torasu/torasu.hpp>
 #include <torasu/DataPackable.hpp>
 
+#include <torasu/mod/imgc/pipeline_names.hpp>
+
 namespace imgc {
 
 Rcropdata::Rcropdata(Dcropdata val) : SimpleRenderable("IMGC::RCROPDATA", true, false), val(new Dcropdata(val)) {}
@@ -27,14 +29,12 @@ void Rcropdata::setData(torasu::DataResource* data) {
 	}
 }
 
-torasu::ResultSegment* Rcropdata::renderSegment(torasu::ResultSettings* resSettings, torasu::RenderInstruction* ri) {
-
-	if (resSettings->getPipeline().compare(pipeline) == 0) {
+torasu::ResultSegment* Rcropdata::render(torasu::RenderInstruction* ri) {
+	if (strcmp(ri->getResultSettings()->getPipeline(), IMGC_PL_ALIGN) == 0) {
 		return new torasu::ResultSegment(torasu::ResultSegmentStatus_OK, val, false);
 	} else {
 		return new torasu::ResultSegment(torasu::ResultSegmentStatus_INVALID_SEGMENT);
 	}
-
 }
 
 } // namespace imgc

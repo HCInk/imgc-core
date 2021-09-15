@@ -7,15 +7,12 @@
 #include <torasu/torasu.hpp>
 #include <torasu/SimpleRenderable.hpp>
 
-#include <torasu/mod/imgc/pipeline_names.hpp>
 #include <torasu/mod/imgc/Dcropdata.hpp>
 
 namespace imgc {
 
 class Rcropdata : public torasu::tools::SimpleRenderable {
 private:
-	std::string pipeline = std::string(IMGC_PL_ALIGN);
-
 	Dcropdata* val;
 
 protected:

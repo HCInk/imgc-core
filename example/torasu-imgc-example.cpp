@@ -92,12 +92,12 @@ void netImageTest() {
 	torasu::LogInstruction li(&logger);
 	auto* runner = new torasu::tstd::EIcore_runner();
 	torasu::ExecutionInterface* ei = runner->createInterface();
+	torasu::RenderContext rctx;
+	torasu::tools::RenderHelper rh(ei, li, &rctx);
 
-	torasu::tools::RenderInstructionBuilder rib;
 
 	torasu::tstd::Dbimg_FORMAT format(400, 400);
-
-	auto handle = rib.addSegmentWithHandle<torasu::tstd::Dbimg>(TORASU_STD_PL_VIS, &format);
+	torasu::ResultSettings rsImg(TORASU_STD_PL_VIS, &format);
 
 	std::cout << "RENDER BEGIN" << std::endl;
 	/*for (int i = 0; i < 120; i++) {
@@ -111,13 +111,13 @@ void netImageTest() {
 
 	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
-	auto result = rib.runRender(&tree, NULL, ei, li);
+	auto result = rh.runRender(&tree, &rsImg);
 
 	std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 	std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
 	std::cout << "RENDER FIN" << std::endl;
 
-	auto castedRes = handle.getFrom(result);
+	auto castedRes = rh.evalResult<torasu::tstd::Dbimg>(result);
 
 	torasu::ResultSegmentStatus rss = castedRes.getStatus();
 
@@ -269,6 +269,7 @@ void yetAnotherIMGCTest() {
 	torasu::LogInstruction li(&logger);
 	torasu::tstd::EIcore_runner* runner = new torasu::tstd::EIcore_runner();
 	torasu::ExecutionInterface* ei = runner->createInterface();
+	torasu::tools::RenderHelper rh(ei, li, nullptr);
 
 	// Some Properties
 
@@ -289,10 +290,9 @@ void yetAnotherIMGCTest() {
 
 	// Building Instruction
 
-	torasu::tools::RenderInstructionBuilder rib;
 	// Dbimg_FORMAT format(1340, 1200);
 	torasu::tstd::Dbimg_FORMAT format(1340, 1200);
-	auto handle = rib.addSegmentWithHandle<torasu::tstd::Dbimg>(TORASU_STD_PL_VIS, &format);
+	torasu::ResultSettings rsImg(TORASU_STD_PL_VIS, &format);
 
 	// Rendering Results
 
@@ -325,11 +325,11 @@ void yetAnotherIMGCTest() {
 		rctx[TORASU_STD_CTX_TIME] = &timeBuf;
 
 		// Render Result
-		auto result = rib.runRender(&tree, &rctx, ei, li);
+		auto result = rh.runRender(&tree, &rsImg, &rctx);
 
 		// Evaluate Result
 
-		auto castedRes = handle.getFrom(result);
+		auto castedRes = rh.evalResult<torasu::tstd::Dbimg>(result);
 		torasu::ResultSegmentStatus rss = castedRes.getStatus();
 
 
@@ -411,22 +411,20 @@ void cropdataExample() {
 	torasu::LogInstruction li(&logger);
 	torasu::tstd::EIcore_runner runner;
 	torasu::ExecutionInterface* ei = runner.createInterface();
+	torasu::RenderContext rctx;
+	torasu::tools::RenderHelper rh(ei, li, &rctx);
 
 	// Creating instruction
 
-	torasu::tools::RenderInstructionBuilder rib;
-
-	auto handle = rib.addSegmentWithHandle<imgc::Dcropdata>(IMGC_PL_ALIGN, NULL);
+	torasu::ResultSettings rs(IMGC_PL_ALIGN, nullptr);
 
 	// Running render based on instruction
 
-	torasu::RenderContext rctx;
-
-	torasu::RenderResult* rr = rib.runRender(&tree, &rctx, ei, li);
+	torasu::ResultSegment* rr = rh.runRender(&tree, &rs);
 
 	// Finding results
 
-	auto result = handle.getFrom(rr);
+	auto result = rh.evalResult<imgc::Dcropdata>(rr);
 	std::cout << "CROPDATA : " << result.getResult()->getSerializedJson() << std::endl;
 
 	// Cleaning
@@ -462,30 +460,29 @@ void cropExample() {
 	torasu::LogInstruction li(&logger);
 	torasu::tstd::EIcore_runner runner;
 	torasu::ExecutionInterface* ei = runner.createInterface();
+	torasu::RenderContext rctx;
+	torasu::tools::RenderHelper rh(ei, li, &rctx);
 
 	// Creating instruction
-
-	torasu::tools::RenderInstructionBuilder rib;
 
 	// torasu::tstd::Dbimg_FORMAT format(500, 500); // Works
 	// torasu::tstd::Dbimg_FORMAT format(500, 600); // Now Works
 	torasu::tstd::Dbimg_FORMAT format(600, 500); // Now Works
 
-	auto handle = rib.addSegmentWithHandle<torasu::tstd::Dbimg>(TORASU_STD_PL_VIS, &format);
+	torasu::ResultSettings rs(TORASU_STD_PL_VIS, &format);
 
 	// Creating render-context
 
-	torasu::RenderContext rctx;
 	torasu::tstd::Dnum ratio((double) format.getWidth() / format.getHeight());
 	rctx[TORASU_STD_CTX_IMG_RATIO] = &ratio;
 
 	// Running render based on instruction
 
-	torasu::RenderResult* rr = rib.runRender(&tree, &rctx, ei, li);
+	torasu::ResultSegment* rr = rh.runRender(&tree, &rs);
 
 	// Finding results
 
-	auto result = handle.getFrom(rr);
+	auto result = rh.evalResult<torasu::tstd::Dbimg>(rr);
 	std::cout << "RESULT STAT " << result.getStatus() << std::endl;
 	auto* bimg = result.getResult();
 	unsigned error = lodepng::encode("test-res/out.png", bimg->getImageData(), bimg->getWidth(), bimg->getHeight());
@@ -643,14 +640,14 @@ void encodeTorasu() {
 	torasu::LogInstruction li(&logger, torasu::INFO, torasu::LogInstruction::OPT_PROGRESS);
 	torasu::tstd::EIcore_runner* runner = new torasu::tstd::EIcore_runner();
 	torasu::ExecutionInterface* ei = runner->createInterface();
-
-	torasu::tools::RenderInstructionBuilder rib;
-	auto handle = rib.addSegmentWithHandle<torasu::tstd::Dfile>(TORASU_STD_PL_FILE, nullptr);
-
 	torasu::RenderContext rctx;
-	std::unique_ptr<torasu::RenderResult> rr(rib.runRender(tree, &rctx, ei, li));
+	torasu::tools::RenderHelper rh(ei, li, &rctx);
 
-	auto seg = handle.getFrom(rr.get());
+	torasu::ResultSettings rs(TORASU_STD_PL_FILE, nullptr);
+
+	std::unique_ptr<torasu::ResultSegment> rr(rh.runRender(tree, &rs));
+
+	auto seg = rh.evalResult<torasu::tstd::Dfile>(rr.get());
 
 	auto* resFile = seg.getResult();
 
@@ -772,19 +769,16 @@ void graphicsExample() {
 	torasu::LogInstruction li(&logger, torasu::LogLevel::DEBUG, torasu::LogInstruction::OPT_PROGRESS);
 	auto* runner = new torasu::tstd::EIcore_runner((size_t)25);
 	torasu::ExecutionInterface* ei = runner->createInterface();
+	torasu::RenderContext rctx;
+	torasu::tools::RenderHelper rh(ei, li, &rctx);
 
-	torasu::tools::RenderInstructionBuilder rib;
-
-
-
-	auto handle = rib.addSegmentWithHandle<torasu::tstd::Dfile>(TORASU_STD_PL_FILE, nullptr);
+	torasu::ResultSettings rs(TORASU_STD_PL_FILE, nullptr);
 
 	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
-	torasu::RenderContext rctx;
-	std::unique_ptr<torasu::RenderResult> rr(rib.runRender(&encoded, &rctx, ei, li));
+	std::unique_ptr<torasu::ResultSegment> rr(rh.runRender(&encoded, &rs));
 
-	auto seg = handle.getFrom(rr.get());
+	auto seg = rh.evalResult<torasu::tstd::Dfile>(rr.get());
 
 	auto* resFile = seg.getResult();
 
