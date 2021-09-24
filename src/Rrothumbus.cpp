@@ -12,15 +12,15 @@
 namespace imgc {
 
 Rrothumbus::Rrothumbus(Renderable* roundVal)
-	: SimpleRenderable("IMGC::RROTHUMBUS", false, true),
-	  roundValRnd(roundVal) {}
+	: SimpleRenderable(false, true), roundValRnd(roundVal) {}
 
 Rrothumbus::~Rrothumbus() {}
 
+torasu::Identifier Rrothumbus::getType() { return "IMGC::RROTHUMBUS"; }
+
 torasu::ResultSegment* Rrothumbus::render(torasu::RenderInstruction* ri) {
 	auto* resSettings = ri->getResultSettings();
-	std::string pipeline = resSettings->getPipeline();
-	if (pipeline == TORASU_STD_PL_VIS) {
+	if (resSettings->getPipeline() == TORASU_STD_PL_VIS) {
 		torasu::tools::RenderHelper rh(ri);
 
 		// Check format

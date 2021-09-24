@@ -11,17 +11,18 @@
 namespace imgc {
 
 Rcropdata_combined::Rcropdata_combined(torasu::tstd::NumSlot left, torasu::tstd::NumSlot right, torasu::tstd::NumSlot top, torasu::tstd::NumSlot bottom)
-	: SimpleRenderable("IMGC::RCROPDATA_COMBINED", false, true),
-	  leftRnd(left), rightRnd(right), topRnd(top), bottomRnd(bottom)  {}
+	: SimpleRenderable(false, true),
+	  leftRnd(left), rightRnd(right), topRnd(top), bottomRnd(bottom) {}
 
 
 Rcropdata_combined::~Rcropdata_combined() {}
 
+torasu::Identifier Rcropdata_combined::getType() { return "IMGC::RCROPDATA_COMBINED"; }
+
 torasu::ResultSegment* Rcropdata_combined::render(torasu::RenderInstruction* ri) {
 	torasu::tools::RenderHelper rh(ri);
 	auto resSettings = ri->getResultSettings();
-	std::string pipeline = resSettings->getPipeline();
-	if (pipeline.compare(IMGC_PL_ALIGN) == 0) {
+	if (resSettings->getPipeline() == IMGC_PL_ALIGN) {
 		torasu::ResultSettings rsNum(TORASU_STD_PL_NUM, nullptr);
 		
 		auto rendL = rh.enqueueRender(leftRnd, &rsNum);

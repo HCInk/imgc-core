@@ -22,7 +22,7 @@ Rmedia_creator::Rmedia_creator(torasu::tools::RenderableSlot src, torasu::tstd::
 							   torasu::tstd::NumSlot width, torasu::tstd::NumSlot height,
 							   torasu::tstd::NumSlot videoBitrate, torasu::tstd::NumSlot audioMinSampleRate,
 							   torasu::tools::RenderableSlot metadata)
-	: SimpleRenderable("IMGC::RMEDIA_CREATOR", false, true),
+	: SimpleRenderable(false, true),
 	  srcRnd(src), formatRnd(format), beginRnd(begin), endRnd(end), fpsRnd(fps),
 	  widthRnd(width), heightRnd(height),
 	  videoBitrateRnd(videoBitrate), audioMinSampleRateRnd(audioMinSampleRate),
@@ -30,9 +30,10 @@ Rmedia_creator::Rmedia_creator(torasu::tools::RenderableSlot src, torasu::tstd::
 
 Rmedia_creator::~Rmedia_creator() {}
 
+torasu::Identifier Rmedia_creator::getType() { return "IMGC::RMEDIA_CREATOR"; }
+
 torasu::ResultSegment* Rmedia_creator::render(torasu::RenderInstruction* ri) {
-	std::string pipeline = ri->getResultSettings()->getPipeline();
-	if (pipeline == TORASU_STD_PL_FILE) {
+	if (ri->getResultSettings()->getPipeline() == TORASU_STD_PL_FILE) {
 		torasu::tools::RenderHelper rh(ri);
 
 		std::unique_ptr<torasu::ResultSegment> rrMetadata;

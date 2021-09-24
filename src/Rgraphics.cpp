@@ -9,20 +9,22 @@
 namespace imgc {
 
 Rgraphics::Rgraphics(Dgraphics* graphics)
-	: SimpleRenderable("IMGC::RGRAPHICS", true, true),
+	: SimpleRenderable(true, true),
 	  graphics(graphics), source(this) {}
 
 
 Rgraphics::Rgraphics(Renderable* graphics)
-	: SimpleRenderable("IMGC::RGRAPHICS", true, true),
+	: SimpleRenderable(true, true),
 	  graphics(nullptr), source(graphics) {}
 
 Rgraphics::~Rgraphics() {}
 
+torasu::Identifier Rgraphics::getType() { return "IMGC::RGRAPHICS"; }
+
 torasu::ResultSegment* Rgraphics::render(torasu::RenderInstruction* ri) {
 	torasu::tools::RenderHelper rh(ri);
 
-	if (strcmp(ri->getResultSettings()->getPipeline(), TORASU_STD_PL_VIS) == 0) {
+	if (ri->getResultSettings()->getPipeline() == TORASU_STD_PL_VIS) {
 		auto* reqFormat = ri->getResultSettings()->getFromat();
 
 		if (auto* fmt = dynamic_cast<torasu::tstd::Dbimg_FORMAT*>(reqFormat)) {

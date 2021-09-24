@@ -36,8 +36,8 @@ double Dcropdata::getOffBottom() {
 	return offBottom;
 }
 
-std::string Dcropdata::getIdent() const {
-	return ident;
+torasu::Identifier Dcropdata::getType() const {
+	return "IMGC::DCROPDATA";
 }
 
 Dcropdata* Dcropdata::clone() const {

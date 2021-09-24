@@ -9,8 +9,6 @@ namespace imgc {
 class Dcropdata : public torasu::DataPackable {
 
 private:
-	const std::string ident = std::string("IMGC::DCROPDATA");
-
 	double offLeft, offRight, offTop, offBottom;
 
 protected:
@@ -27,7 +25,7 @@ public:
 	double getOffTop();
 	double getOffBottom();
 
-	std::string getIdent() const override;
+	torasu::Identifier getType() const override;
 	Dcropdata* clone() const override;
 
 };

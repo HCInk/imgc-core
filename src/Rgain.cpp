@@ -6,15 +6,17 @@
 namespace imgc {
 
 Rgain::Rgain(torasu::tools::RenderableSlot src, torasu::tstd::NumSlot gainVal)
-	: SimpleRenderable("IMGC::RGAIN", false, true),
+	: SimpleRenderable(false, true),
 	  rSrc(src), rGainVal(gainVal) {}
 
 Rgain::~Rgain() {}
 
+torasu::Identifier Rgain::getType() { return "IMGC::RGAIN"; }
+
 torasu::ResultSegment* Rgain::render(torasu::RenderInstruction* ri) {
 	torasu::tools::RenderHelper rh(ri);
 	auto* resSettings = ri->getResultSettings();
-	if (resSettings->getPipeline() != visPipeline) {
+	if (resSettings->getPipeline() != TORASU_STD_PL_VIS) {
 		return new torasu::ResultSegment(torasu::ResultSegmentStatus_INVALID_SEGMENT);
 	}
 

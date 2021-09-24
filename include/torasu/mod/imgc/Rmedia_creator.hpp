@@ -35,6 +35,7 @@ public:
 				   torasu::tstd::NumSlot videoBitrate = 0.0, torasu::tstd::NumSlot audioMinSampleRate = -1,
 				   torasu::tools::RenderableSlot metadata = nullptr);
 	~Rmedia_creator();
+	torasu::Identifier getType() override;
 
 	torasu::ElementMap getElements() override;
 	void setElement(std::string key, Element* elem) override;

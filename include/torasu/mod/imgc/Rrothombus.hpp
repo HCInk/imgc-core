@@ -16,6 +16,7 @@ protected:
 public:
 	Rrothumbus(Renderable* roundVal);
 	~Rrothumbus();
+	torasu::Identifier getType() override;
 
 	torasu::ElementMap getElements() override;
 	void setElement(std::string key, Element* elem) override;

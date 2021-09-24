@@ -16,7 +16,7 @@
 namespace imgc {
 
 Rauto_align2d::Rauto_align2d(torasu::tools::RenderableSlot rndSrc, double posX, double posY, double zoomFactor, double ratio)
-	: SimpleRenderable("IMGC::RAUTO_ALIGN2D", true, false),
+	: SimpleRenderable(true, false),
 	  rndSrc(rndSrc), posX(posX), posY(posY), zoomFactor(zoomFactor), ratio(ratio) {
 
 	internalAlign = new Ralign2d(rndSrc, this);
@@ -26,6 +26,7 @@ Rauto_align2d::~Rauto_align2d() {
 	delete internalAlign;
 }
 
+torasu::Identifier Rauto_align2d::getType() { return "IMGC::RAUTO_ALIGN2D"; }
 
 imgc::Dcropdata* Rauto_align2d::calcAlign(double posX, double posY, double zoomFactor, double srcRatio,
 		double destRatio) const {
@@ -84,9 +85,8 @@ torasu::ResultSegment* Rauto_align2d::render(torasu::RenderInstruction* ri) {
 
 	torasu::tools::RenderHelper rh(ri);
 	torasu::ResultSettings* resSettings = ri->getResultSettings();
-	std::string pipeline = resSettings->getPipeline();
 
-	if (pipeline == IMGC_PL_ALIGN) {
+	if (resSettings->getPipeline() == IMGC_PL_ALIGN) {
 		double ratio;
 		if (this->ratio == 0) {
 			torasu::RenderableProperties* props = torasu::tools::getProperties(rndSrc.get(), {TORASU_STD_PROP_IMG_RAITO}, rh.ei, rh.li, rh.rctx);

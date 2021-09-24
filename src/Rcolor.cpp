@@ -8,15 +8,17 @@
 namespace imgc {
 
 Rcolor::Rcolor(torasu::tstd::NumSlot r, torasu::tstd::NumSlot g, torasu::tstd::NumSlot b, torasu::tstd::NumSlot a) 
-	: SimpleRenderable("IMGC::RCOLOR", false, true), rSrc(r), gSrc(g), bSrc(b), aSrc(a) {}
+	: SimpleRenderable(false, true), rSrc(r), gSrc(g), bSrc(b), aSrc(a) {}
 
 Rcolor::~Rcolor() {}
+
+torasu::Identifier Rcolor::getType() { return "IMGC::RCOLOR"; }
 
 torasu::ResultSegment* Rcolor::render(torasu::RenderInstruction* ri) {
 	torasu::tools::RenderHelper rh(ri);
 	auto& lirb = rh.lrib;
 
-	if (strcmp(ri->getResultSettings()->getPipeline(), TORASU_STD_PL_VIS) == 0) {
+	if (ri->getResultSettings()->getPipeline() == TORASU_STD_PL_VIS) {
 
 		torasu::tstd::Dbimg_FORMAT* fmt;
 		auto fmtSettings = ri->getResultSettings()->getFromat();

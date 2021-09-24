@@ -23,13 +23,13 @@ namespace imgc {
 
 class Rimg_file_readyobj : public torasu::ReadyState {
 private:
-	std::vector<std::string>* ops;
+	std::vector<torasu::Identifier>* ops;
 	const torasu::RenderContextMask* rctxm;
 protected:
 	std::vector<uint8_t> loadedImage;
 	uint32_t srcWidth, srcHeight;
 
-	Rimg_file_readyobj(std::vector<std::string>* ops, const torasu::RenderContextMask* rctxm) 
+	Rimg_file_readyobj(std::vector<torasu::Identifier>* ops, const torasu::RenderContextMask* rctxm) 
 		: ops(ops), rctxm(rctxm) {}
 public:
 	~Rimg_file_readyobj() {
@@ -37,7 +37,7 @@ public:
 		if (rctxm != nullptr) delete rctxm;
 	}
 
-	virtual const std::vector<std::string>* getOperations() const override {
+	virtual const std::vector<torasu::Identifier>* getOperations() const override {
 		return ops;
 	}
 
@@ -79,7 +79,7 @@ void Rimg_file::ready(torasu::ReadyInstruction* ri) {
 	}
 
 	auto* obj = new Rimg_file_readyobj(
-					new std::vector<std::string>({TORASU_STD_PL_VIS, 
+					new std::vector<torasu::Identifier>({TORASU_STD_PL_VIS, 
 						TORASU_PROPERTY(TORASU_STD_PROP_IMG_WIDTH), TORASU_PROPERTY(TORASU_STD_PROP_IMG_HEIGHT), 
 						TORASU_PROPERTY(TORASU_STD_PROP_IMG_RAITO)
 					}), 
@@ -102,15 +102,17 @@ void Rimg_file::ready(torasu::ReadyInstruction* ri) {
 
 
 Rimg_file::Rimg_file(torasu::tools::RenderableSlot file)
-	: NamedIdentElement("STD::RIMG_FILE"), SimpleDataElement(false, true),
+	: SimpleDataElement(false, true),
 	  rfile(file) {}
 
 Rimg_file::~Rimg_file() {}
 
+torasu::Identifier Rimg_file::getType() { return "STD::RIMG_FILE"; }
+
 ResultSegment* Rimg_file::render(RenderInstruction* ri) {
 
 	ResultSettings* resSettings = ri->getResultSettings();
-	std::string currentPipeline = resSettings->getPipeline();
+	auto currentPipeline = resSettings->getPipeline();
 
 	auto* state = static_cast<Rimg_file_readyobj*>(ri->getReadyState());
 

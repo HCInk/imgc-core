@@ -20,14 +20,14 @@ namespace imgc {
 
 class Rmedia_creator_readyobj : public torasu::ReadyState {
 private:
-	std::vector<std::string>* ops;
+	std::vector<torasu::Identifier>* ops;
 	const torasu::RenderContextMask* rctxm;
 protected:
 	torasu::ResultSegment* srcRendRes = nullptr;
 	torasu::tstd::Dfile* srcFile = nullptr;
 	MediaDecoder* decoder = nullptr;
 
-	Rmedia_creator_readyobj(std::vector<std::string>* ops, const torasu::RenderContextMask* rctxm) 
+	Rmedia_creator_readyobj(std::vector<torasu::Identifier>* ops, const torasu::RenderContextMask* rctxm) 
 		: ops(ops), rctxm(rctxm) {}
 public:
 	~Rmedia_creator_readyobj() {
@@ -36,7 +36,7 @@ public:
 		if (srcRendRes != nullptr) delete srcRendRes;
 	}
 
-	virtual const std::vector<std::string>* getOperations() const override {
+	virtual const std::vector<torasu::Identifier>* getOperations() const override {
 		return ops;
 	}
 
@@ -61,12 +61,11 @@ public:
 };
 
 Rmedia_file::Rmedia_file(torasu::tools::RenderableSlot src)
-	: torasu::tools::NamedIdentElement("IMGC::RMEDIA_FILE"),
-	  torasu::tools::SimpleDataElement(false, true),
-	  srcRnd(src) {}
+	: torasu::tools::SimpleDataElement(false, true), srcRnd(src) {}
 
 Rmedia_file::~Rmedia_file() {}
 
+torasu::Identifier Rmedia_file::getType() { return "IMGC::RMEDIA_FILE"; }
 
 void Rmedia_file::ready(torasu::ReadyInstruction* ri) {
 	if (srcRnd.get() == NULL) throw std::logic_error("Source renderable set loaded yet!");
@@ -82,7 +81,7 @@ void Rmedia_file::ready(torasu::ReadyInstruction* ri) {
 	auto castedResultSeg = rh.evalResult<torasu::tstd::Dfile>(rr.get());
 
 	auto* obj = new Rmedia_creator_readyobj(
-					new std::vector<std::string>({
+					new std::vector<torasu::Identifier>({
 						TORASU_STD_PL_VIS, TORASU_STD_PL_AUDIO, 
 						TORASU_PROPERTY(TORASU_STD_PROP_IMG_WIDTH), TORASU_PROPERTY(TORASU_STD_PROP_IMG_HEIGHT), 
 						TORASU_PROPERTY(TORASU_STD_PROP_IMG_RAITO), TORASU_PROPERTY(TORASU_STD_PROP_DURATION)}), 
@@ -117,7 +116,7 @@ torasu::ResultSegment* Rmedia_file::render(torasu::RenderInstruction* ri) {
 	std::optional<std::string> audioKey;
 
 	auto segmentSettings = ri->getResultSettings();
-	std::string currentPipeline = segmentSettings->getPipeline();
+	auto currentPipeline = segmentSettings->getPipeline();
 
 	if (currentPipeline == TORASU_STD_PL_VIS || currentPipeline == TORASU_STD_PL_AUDIO) {
 

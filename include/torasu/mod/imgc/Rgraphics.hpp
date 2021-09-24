@@ -21,6 +21,7 @@ public:
 	Rgraphics(Dgraphics* graphics);
 	Rgraphics(Renderable* graphics);
 	~Rgraphics();
+	torasu::Identifier getType() override;
 
 	torasu::ElementMap getElements() override;
 	void setElement(std::string key, Element* elem) override;

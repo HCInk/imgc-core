@@ -20,11 +20,11 @@
 namespace imgc {
 
 Rtransform::Rtransform(torasu::tools::RenderableSlot source, torasu::tools::RenderableSlot transform, torasu::tstd::NumSlot shutter, torasu::tstd::NumSlot interpolationLimit)
-	: SimpleRenderable(std::string("IMGC::RTRANSFORM"), false, true), source(source), transform(transform), shutter(shutter), interpolationLimit(interpolationLimit) {}
+	: SimpleRenderable(false, true), source(source), transform(transform), shutter(shutter), interpolationLimit(interpolationLimit) {}
 
-Rtransform::~Rtransform() {
+Rtransform::~Rtransform() {}
 
-}
+torasu::Identifier Rtransform::getType() { return "IMGC::RTRANSFORM"; }
 
 torasu::ResultSegment* Rtransform::render(torasu::RenderInstruction* ri) {
 
@@ -32,7 +32,7 @@ torasu::ResultSegment* Rtransform::render(torasu::RenderInstruction* ri) {
 	auto& lirb = rh.lrib;
 
 	auto resSettings = ri->getResultSettings();
-	if (strcmp(resSettings->getPipeline(), TORASU_STD_PL_VIS) == 0) {
+	if (resSettings->getPipeline() == TORASU_STD_PL_VIS) {
 		torasu::tstd::Dbimg_FORMAT* fmt;
 		auto fmtSettings = resSettings->getFromat();
 		if ( !( fmtSettings != nullptr

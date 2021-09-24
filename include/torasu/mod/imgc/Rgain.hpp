@@ -13,9 +13,6 @@ namespace imgc {
 
 class Rgain : public torasu::tools::SimpleRenderable {
 private:
-	const std::string visPipeline = std::string(TORASU_STD_PL_VIS);
-	const std::string numPipeline = std::string(TORASU_STD_PL_NUM);
-
 	torasu::tools::ManagedRenderableSlot rSrc;
 	torasu::tools::ManagedSlot<torasu::tstd::NumSlot> rGainVal;
 
@@ -25,6 +22,7 @@ protected:
 public:
 	Rgain(torasu::tools::RenderableSlot src, torasu::tstd::NumSlot gainVal);
 	~Rgain();
+	torasu::Identifier getType() override;
 
 	torasu::ElementMap getElements() override;
 	void setElement(std::string key, Element* elem) override;

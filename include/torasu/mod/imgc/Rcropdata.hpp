@@ -21,6 +21,7 @@ protected:
 public:
 	explicit Rcropdata(Dcropdata val);
 	~Rcropdata();
+	torasu::Identifier getType() override;
 
 	torasu::DataResource* getData() override;
 	void setData(torasu::DataResource* data) override;

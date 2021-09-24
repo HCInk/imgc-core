@@ -17,12 +17,13 @@
 namespace imgc {
 
 Ralign2d::Ralign2d(torasu::tools::RenderableSlot rndSrc, torasu::tools::RenderableSlot rndAlign)
-	: torasu::tools::SimpleRenderable("IMGC::RALIGN2D", false, true),
+	: torasu::tools::SimpleRenderable(false, true),
 	  rndSrc(rndSrc),
 	  rndAlign(rndAlign) {}
 
 Ralign2d::~Ralign2d() {}
 
+torasu::Identifier Ralign2d::getType() { return "IMGC::RALIGN2D"; }
 
 namespace {
 
@@ -130,7 +131,7 @@ void align(torasu::tstd::Dbimg* srcImg, torasu::tstd::Dbimg* destImg, Ralign2d_C
 torasu::ResultSegment* Ralign2d::render(torasu::RenderInstruction* ri) {
 	torasu::ResultSettings* resSettings = ri->getResultSettings();
 
-	if (strcmp(resSettings->getPipeline(), TORASU_STD_PL_VIS) == 0) {
+	if (resSettings->getPipeline() == TORASU_STD_PL_VIS) {
 		torasu::tstd::Dbimg_FORMAT* fmt;
 		if ( !( resSettings->getFromat() != nullptr
 				&& (fmt = dynamic_cast<torasu::tstd::Dbimg_FORMAT*>(resSettings->getFromat())) )) {

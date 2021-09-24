@@ -16,7 +16,6 @@ namespace imgc {
 class MediaDecoder;
 
 class Rmedia_file :  public torasu::Renderable,
-	public torasu::tools::NamedIdentElement,
 	public torasu::tools::SimpleDataElement {
 private:
 	torasu::tools::ManagedRenderableSlot srcRnd;
@@ -26,6 +25,7 @@ private:
 public:
 	Rmedia_file(torasu::tools::RenderableSlot src);
 	~Rmedia_file();
+	torasu::Identifier getType() override;
 
 	void ready(torasu::ReadyInstruction* ri) override;
 	torasu::ResultSegment* render(torasu::RenderInstruction* ri) override;

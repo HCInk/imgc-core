@@ -15,11 +15,8 @@
 namespace imgc {
 
 class Rimg_file : public torasu::Renderable,
-	public torasu::tools::NamedIdentElement,
 	public torasu::tools::SimpleDataElement {
 private:
-	const std::string pipeline = std::string(TORASU_STD_PL_FILE);
-
 	torasu::tools::ManagedRenderableSlot rfile;
 
 private:
@@ -31,6 +28,7 @@ protected:
 public:
 	explicit Rimg_file(torasu::tools::RenderableSlot file);
 	~Rimg_file();
+	torasu::Identifier getType() override;
 
 	void ready(torasu::ReadyInstruction* ri) override;
 	torasu::ElementMap getElements() override;
