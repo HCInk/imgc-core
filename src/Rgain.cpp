@@ -15,12 +15,11 @@ torasu::Identifier Rgain::getType() { return "IMGC::RGAIN"; }
 
 torasu::ResultSegment* Rgain::render(torasu::RenderInstruction* ri) {
 	torasu::tools::RenderHelper rh(ri);
-	auto* resSettings = ri->getResultSettings();
-	if (resSettings->getPipeline() != TORASU_STD_PL_VIS) {
+	if (!rh.matchPipeline(TORASU_STD_PL_VIS)) {
 		return new torasu::ResultSegment(torasu::ResultSegmentStatus_INVALID_SEGMENT);
 	}
 
-	auto* format = resSettings->getFromat();
+	auto* format = rh.rs->getFromat();
 	uint32_t rWidth, rHeight;
 	if (auto* bimgFormat = dynamic_cast<torasu::tstd::Dbimg_FORMAT*>(format)) {
 		rWidth = bimgFormat->getWidth();
