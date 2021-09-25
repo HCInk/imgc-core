@@ -11,11 +11,12 @@ private:
 	Renderable* roundValRnd = nullptr;
 
 protected:
-	torasu::ResultSegment* renderSegment(torasu::ResultSegmentSettings* resSettings, torasu::RenderInstruction* ri) override;
+	torasu::ResultSegment* render(torasu::RenderInstruction* ri) override;
 
 public:
 	Rrothumbus(Renderable* roundVal);
 	~Rrothumbus();
+	torasu::Identifier getType() override;
 
 	torasu::ElementMap getElements() override;
 	void setElement(std::string key, Element* elem) override;

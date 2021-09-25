@@ -15,12 +15,13 @@ private:
 	Renderable* source;
 
 protected:
-	torasu::ResultSegment* renderSegment(torasu::ResultSegmentSettings* resSettings, torasu::RenderInstruction* ri) override;
+	torasu::ResultSegment* render(torasu::RenderInstruction* ri) override;
 
 public:
 	Rgraphics(Dgraphics* graphics);
 	Rgraphics(Renderable* graphics);
 	~Rgraphics();
+	torasu::Identifier getType() override;
 
 	torasu::ElementMap getElements() override;
 	void setElement(std::string key, Element* elem) override;

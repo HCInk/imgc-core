@@ -22,7 +22,7 @@ Dgraphics_FORMAT* Dgraphics_FORMAT::clone() const {
 	return new Dgraphics_FORMAT();
 }
 
-std::string Dgraphics::getIdent() const {
+torasu::Identifier Dgraphics::getType() const {
 	return "IMGC::DGRAPHICS";
 }
 

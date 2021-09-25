@@ -12,49 +12,47 @@
 namespace imgc {
 
 Rrothumbus::Rrothumbus(Renderable* roundVal)
-	: SimpleRenderable("IMGC::RROTHUMBUS", false, true),
-	  roundValRnd(roundVal) {}
+	: SimpleRenderable(false, true), roundValRnd(roundVal) {}
 
 Rrothumbus::~Rrothumbus() {}
 
-torasu::ResultSegment* Rrothumbus::renderSegment(torasu::ResultSegmentSettings* resSettings, torasu::RenderInstruction* ri) {
-	std::string pipeline = resSettings->getPipeline();
-	if (pipeline == TORASU_STD_PL_VIS) {
+torasu::Identifier Rrothumbus::getType() { return "IMGC::RROTHUMBUS"; }
 
-		if (!(dynamic_cast<Dgraphics_FORMAT*>(resSettings->getResultFormatSettings()))) {
+torasu::ResultSegment* Rrothumbus::render(torasu::RenderInstruction* ri) {
+	auto* resSettings = ri->getResultSettings();
+	if (resSettings->getPipeline() == TORASU_STD_PL_VIS) {
+		torasu::tools::RenderHelper rh(ri);
+
+		// Check format
+
+		if (!(dynamic_cast<Dgraphics_FORMAT*>(resSettings->getFromat()))) {
 			return new torasu::ResultSegment(torasu::ResultSegmentStatus_INVALID_FORMAT);
 		}
 
+		// Retrieve rounding
+
 		double rounding;
-		bool failGetRounding = false;
 		if (roundValRnd != nullptr) {
 
-			auto* ei = ri->getExecutionInterface();
-			auto li = ri->getLogInstruction();
-			auto* rctx = ri->getRenderContext();
+			torasu::ResultSettings numSettings(TORASU_STD_PL_NUM, nullptr);
 
-			// Sub-renderings
+			std::unique_ptr<torasu::ResultSegment> rndRes(rh.runRender(roundValRnd, &numSettings));
 
-			torasu::tools::RenderInstructionBuilder rib;
-			auto segHandle = rib.addSegmentWithHandle<torasu::tstd::Dnum>(TORASU_STD_PL_NUM, nullptr);
+			auto fetchedRes = rh.evalResult<torasu::tstd::Dnum>(rndRes.get());
 
-			auto renderId = rib.enqueueRender(roundValRnd, rctx, ei, li);
-
-			std::unique_ptr<torasu::RenderResult> rndRes(ei->fetchRenderResult(renderId));
-
-			auto fetchedRes = segHandle.getFrom(rndRes.get());
-
-			if (fetchedRes.getResult() != nullptr) {
+			if (fetchedRes) {
 				rounding = fetchedRes.getResult()->getNum();
 			} else {
 				rounding = 0;
-				failGetRounding = true;
+				rh.lrib.hasError = true;
 			}
 
 		} else {
 			rounding = 0;
 		}
-		// Processing
+
+		// Create graphics
+
 		double radius = 0.2; // TODO remove the radius this is just in for show as of now and should be removed once transformation-layers are availabe
 		auto unit = rounding*radius*4*(sqrt(2)-1)/3;
 
@@ -92,10 +90,7 @@ torasu::ResultSegment* Rrothumbus::renderSegment(torasu::ResultSegmentSettings* 
 			}
 				))});
 
-		return new torasu::ResultSegment(
-				   !failGetRounding ? torasu::ResultSegmentStatus_OK :torasu::ResultSegmentStatus_OK_WARN,
-				   graphics, true);
-
+		return rh.buildResult(graphics);
 	} else {
 		return new torasu::ResultSegment(torasu::ResultSegmentStatus_INVALID_SEGMENT);
 	}

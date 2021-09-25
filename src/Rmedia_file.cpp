@@ -20,14 +20,14 @@ namespace imgc {
 
 class Rmedia_creator_readyobj : public torasu::ReadyState {
 private:
-	std::vector<std::string>* ops;
+	std::vector<torasu::Identifier>* ops;
 	const torasu::RenderContextMask* rctxm;
 protected:
-	torasu::RenderResult* srcRendRes = nullptr;
+	torasu::ResultSegment* srcRendRes = nullptr;
 	torasu::tstd::Dfile* srcFile = nullptr;
 	MediaDecoder* decoder = nullptr;
 
-	Rmedia_creator_readyobj(std::vector<std::string>* ops, const torasu::RenderContextMask* rctxm) 
+	Rmedia_creator_readyobj(std::vector<torasu::Identifier>* ops, const torasu::RenderContextMask* rctxm) 
 		: ops(ops), rctxm(rctxm) {}
 public:
 	~Rmedia_creator_readyobj() {
@@ -36,7 +36,7 @@ public:
 		if (srcRendRes != nullptr) delete srcRendRes;
 	}
 
-	virtual const std::vector<std::string>* getOperations() const override {
+	virtual const std::vector<torasu::Identifier>* getOperations() const override {
 		return ops;
 	}
 
@@ -61,33 +61,27 @@ public:
 };
 
 Rmedia_file::Rmedia_file(torasu::tools::RenderableSlot src)
-	: torasu::tools::NamedIdentElement("IMGC::RMEDIA_FILE"),
-	  torasu::tools::SimpleDataElement(false, true),
-	  srcRnd(src) {}
+	: torasu::tools::SimpleDataElement(false, true), srcRnd(src) {}
 
 Rmedia_file::~Rmedia_file() {}
 
+torasu::Identifier Rmedia_file::getType() { return "IMGC::RMEDIA_FILE"; }
 
 void Rmedia_file::ready(torasu::ReadyInstruction* ri) {
-
-	auto li = ri->li;
-	auto* ei = ri->ei;
-
 	if (srcRnd.get() == NULL) throw std::logic_error("Source renderable set loaded yet!");
 
+	torasu::tools::RenderHelper rh(ri);
 
 	// Render File
 
-	torasu::tools::RenderInstructionBuilder rib;
+	torasu::ResultSettings fileSettings(TORASU_STD_PL_FILE, nullptr);
 
-	auto handle = rib.addSegmentWithHandle<torasu::tstd::Dfile>(TORASU_STD_PL_FILE, NULL);
+	std::unique_ptr<torasu::ResultSegment> rr(rh.runRender(srcRnd.get(), &fileSettings));
 
-	std::unique_ptr<torasu::RenderResult> rr(rib.runRender(srcRnd.get(), ri->rctx, ei, li));
-
-	auto castedResultSeg = handle.getFrom(rr.get());
+	auto castedResultSeg = rh.evalResult<torasu::tstd::Dfile>(rr.get());
 
 	auto* obj = new Rmedia_creator_readyobj(
-					new std::vector<std::string>({
+					new std::vector<torasu::Identifier>({
 						TORASU_STD_PL_VIS, TORASU_STD_PL_AUDIO, 
 						TORASU_PROPERTY(TORASU_STD_PROP_IMG_WIDTH), TORASU_PROPERTY(TORASU_STD_PROP_IMG_HEIGHT), 
 						TORASU_PROPERTY(TORASU_STD_PROP_IMG_RAITO), TORASU_PROPERTY(TORASU_STD_PROP_DURATION)}), 
@@ -101,7 +95,7 @@ void Rmedia_file::ready(torasu::ReadyInstruction* ri) {
 
 	// Create Decoder
 
-	auto* decoder = new MediaDecoder(srcFile->getFileData(), srcFile->getFileSize(), li);
+	auto* decoder = new MediaDecoder(srcFile->getFileData(), srcFile->getFileSize(), rh.li);
 	obj->decoder = decoder;
 
 	// Close refs so it can be stored, without its LogInstruction still existing
@@ -111,63 +105,23 @@ void Rmedia_file::ready(torasu::ReadyInstruction* ri) {
 }
 
 
-torasu::RenderResult* Rmedia_file::renderSafe(torasu::RenderInstruction* ri) {
+torasu::ResultSegment* Rmedia_file::render(torasu::RenderInstruction* ri) {
 	torasu::ExecutionInterface* ei = ri->getExecutionInterface();
 	torasu::LogInstruction li = ri->getLogInstruction();
+
+	torasu::tools::RenderHelper rh(ri);
 	auto* decoder = static_cast<Rmedia_creator_readyobj*>(ri->getReadyState())->decoder;
 
-	std::map<std::string, torasu::ResultSegment*>* results = new std::map<std::string, torasu::ResultSegment*>();
-
 	std::optional<std::string> videoKey;
-	torasu::tstd::Dbimg_FORMAT* videoFormat = NULL;
 	std::optional<std::string> audioKey;
 
-	std::string currentPipeline;
-	for (torasu::ResultSegmentSettings* segmentSettings : *ri->getResultSettings()) {
-		currentPipeline = segmentSettings->getPipeline();
-		if (currentPipeline == TORASU_STD_PL_VIS) {
-			videoKey = segmentSettings->getKey();
-			auto fmtSettings = segmentSettings->getResultFormatSettings();
+	auto segmentSettings = ri->getResultSettings();
+	auto currentPipeline = segmentSettings->getPipeline();
 
-			if (fmtSettings != NULL) {
-				if (!( videoFormat = dynamic_cast<torasu::tstd::Dbimg_FORMAT*>(fmtSettings) )) {
-					(*results)[videoKey.value()] = new torasu::ResultSegment(torasu::ResultSegmentStatus_INVALID_FORMAT);
-				}
-			}
+	if (currentPipeline == TORASU_STD_PL_VIS || currentPipeline == TORASU_STD_PL_AUDIO) {
 
-		} else if (currentPipeline == TORASU_STD_PL_AUDIO) {
-			audioKey = segmentSettings->getKey();
-		} else if (torasu::isPipelineKeyPropertyKey(currentPipeline)) { // optional so properties get skipped if it is no property
-			if (currentPipeline == TORASU_PROPERTY(TORASU_STD_PROP_IMG_WIDTH)) {
-				std::pair<int32_t, int32_t> dims = decoder->getDimensions();
-				(*results)[segmentSettings->getKey()]
-					= new torasu::ResultSegment(torasu::ResultSegmentStatus_OK, new torasu::tstd::Dnum(dims.first), true);
-			} else if (currentPipeline == TORASU_PROPERTY(TORASU_STD_PROP_IMG_HEIGHT)) {
-				std::pair<int32_t, int32_t> dims = decoder->getDimensions();
-				(*results)[segmentSettings->getKey()]
-					= new torasu::ResultSegment(torasu::ResultSegmentStatus_OK, new torasu::tstd::Dnum(dims.second), true);
-			} else if (currentPipeline == TORASU_PROPERTY(TORASU_STD_PROP_IMG_RAITO)) {
-				std::pair<int32_t, int32_t> dims = decoder->getDimensions();
-				(*results)[segmentSettings->getKey()]
-					= new torasu::ResultSegment(torasu::ResultSegmentStatus_OK, new torasu::tstd::Dnum((double) dims.first / dims.second), true);
-			} else if (currentPipeline == TORASU_PROPERTY(TORASU_STD_PROP_DURATION)) {
-				double duration = decoder->getDuration();
-				(*results)[segmentSettings->getKey()]
-					= new torasu::ResultSegment(torasu::ResultSegmentStatus_OK, new torasu::tstd::Dnum(duration), true);
-			} else {
-				// Unsupported Property
-				(*results)[segmentSettings->getKey()]
-					= new torasu::ResultSegment(torasu::ResultSegmentStatus_INVALID_SEGMENT);
-			}
-		} else {
-			(*results)[segmentSettings->getKey()]
-				= new torasu::ResultSegment(torasu::ResultSegmentStatus_INVALID_SEGMENT);
-		}
-	}
-
-	torasu::RenderContext* rctx = ri->getRenderContext();
-
-	if (videoKey.has_value() || audioKey.has_value()) {
+		// Parse RenderContext
+		auto* rctx = rh.rctx;
 
 		double time = 0;
 		double duration = 0;
@@ -189,71 +143,96 @@ torasu::RenderResult* Rmedia_file::renderSafe(torasu::RenderInstruction* ri) {
 			}
 		}
 
-		torasu::tstd::Dbimg_sequence* vidBuff = NULL;
-		torasu::tstd::Daudio_buffer* audBuff = NULL;
+		auto* fmt = segmentSettings->getFromat();
 
-		ei->lock();
+		if (currentPipeline == TORASU_STD_PL_VIS) {
+			// Render video
 
-		decoder->getSegment((SegmentRequest) {
-			.start = time,
-			.end = time+duration,
-			.videoBuffer = videoKey.has_value() ? &vidBuff : NULL,
-			.audioBuffer = audioKey.has_value() ? &audBuff : NULL
-		}, li);
+			torasu::tstd::Dbimg_FORMAT* videoFormat;
+			if (fmt == nullptr || !( videoFormat = dynamic_cast<torasu::tstd::Dbimg_FORMAT*>(fmt) )) {
+				return rh.buildResult(torasu::ResultSegmentStatus_INVALID_FORMAT);
+			}
 
-		ei->unlock();
+			torasu::tstd::Dbimg_sequence* vidBuff = nullptr;
 
-		if (videoKey.has_value()) {
+			ei->lock();
+
+			decoder->getSegment((SegmentRequest) {
+				.start = time,
+				.end = time+duration,
+				.videoBuffer = &vidBuff,
+				.audioBuffer = nullptr
+			}, li);
+
+			ei->unlock();
+
 			std::unique_ptr<torasu::tstd::Dbimg_sequence> vidSeq(vidBuff);
 			auto& frames = vidSeq->getFrames();
-			if (frames.size() > 0) {
-
-				auto firstFrame = frames.begin();
-				torasu::tstd::Dbimg* resultFrame = firstFrame->second;
-				frames.erase(firstFrame);
-
-				vidSeq.reset();
-
-
-				if (videoFormat != NULL) {
-
-					auto* scaled = scaler::scaleImg(resultFrame, videoFormat);
-
-					if (scaled != NULL) {
-						delete resultFrame;
-						resultFrame = scaled;
-					}
-				}
-
-				(*results)[videoKey.value()] = new torasu::ResultSegment(torasu::ResultSegmentStatus_OK, resultFrame, true);
-			} else {
-				if (li.level <= torasu::LogLevel::WARN)
-					li.logger->log(torasu::LogLevel::WARN, "DECODER RETURNED NO FRAME! "
+			if (frames.size() <= 0) {
+				if (rh.mayLog(torasu::WARN))
+					rh.lrib.logCause(torasu::LogLevel::WARN, "DECODER RETURNED NO FRAME! "
 						"(TIME: " + std::to_string(time) + "-" + std::to_string(time+duration) + ")");
-				(*results)[videoKey.value()] = new torasu::ResultSegment(torasu::ResultSegmentStatus_OK_WARN, new torasu::tstd::Dbimg(*videoFormat), true);
+
+				return rh.buildResult(new torasu::tstd::Dbimg(*videoFormat), torasu::ResultSegmentStatus_OK_WARN);
 			}
-		}
 
-		if (audioKey.has_value()) {
-			(*results)[audioKey.value()] = new torasu::ResultSegment(torasu::ResultSegmentStatus_OK, audBuff, true);
-		}
+			auto firstFrame = frames.begin();
+			torasu::tstd::Dbimg* resultFrame = firstFrame->second;
+			frames.erase(firstFrame);
 
+			vidSeq.reset();
+
+
+			if (videoFormat != nullptr) {
+
+				auto* scaled = scaler::scaleImg(resultFrame, videoFormat);
+
+				if (scaled != nullptr) {
+					delete resultFrame;
+					resultFrame = scaled;
+				}
+			}
+
+			return rh.buildResult(resultFrame);
+
+		} else if (currentPipeline == TORASU_STD_PL_AUDIO) {
+			// Render audio
+
+			torasu::tstd::Daudio_buffer* audBuff = nullptr;
+			ei->lock();
+
+			decoder->getSegment((SegmentRequest) {
+				.start = time,
+				.end = time+duration,
+				.videoBuffer = nullptr,
+				.audioBuffer = &audBuff
+			}, li);
+
+			ei->unlock();
+
+			return rh.buildResult(audBuff);
+
+		}
+		
+
+	} else if (torasu::isPipelineKeyPropertyKey(currentPipeline)) { // optional so properties get skipped if it is no property
+		if (currentPipeline == TORASU_PROPERTY(TORASU_STD_PROP_IMG_WIDTH)) {
+			auto dims = decoder->getDimensions();
+			return rh.buildResult(new torasu::tstd::Dnum(dims.first));
+		} else if (currentPipeline == TORASU_PROPERTY(TORASU_STD_PROP_IMG_HEIGHT)) {
+			auto dims = decoder->getDimensions();
+			return rh.buildResult(new torasu::tstd::Dnum(dims.second));
+		} else if (currentPipeline == TORASU_PROPERTY(TORASU_STD_PROP_IMG_RAITO)) {
+			auto dims = decoder->getDimensions();
+			return rh.buildResult(new torasu::tstd::Dnum((double) dims.first / dims.second));
+		} else if (currentPipeline == TORASU_PROPERTY(TORASU_STD_PROP_DURATION)) {
+			double duration = decoder->getDuration();
+			return rh.buildResult(new torasu::tstd::Dnum(duration));
+		}
 	}
 
-	return new torasu::RenderResult(torasu::ResultStatus_OK, results);
+	return rh.buildResult(torasu::ResultSegmentStatus_INVALID_SEGMENT);
 
-}
-
-
-torasu::RenderResult* Rmedia_file::render(torasu::RenderInstruction* ri) {
-	try {
-		return renderSafe(ri);
-	} catch(const std::exception& ex) {
-		torasu::LogInstruction li = ri->getLogInstruction();
-		if (li.level <= torasu::LogLevel::ERROR) 
-			li.logger->log(torasu::LogLevel::ERROR, "An exception ocurred while rendering Rmedia_file: " + std::string(typeid(ex).name()) + ": " + std::string(ex.what()));
-		return new torasu::RenderResult(torasu::ResultStatus_INTERNAL_ERROR);
-	}
 }
 
 torasu::ElementMap Rmedia_file::getElements() {

@@ -19,12 +19,13 @@ private:
 							   double destRatio) const;
 
 protected:
-	torasu::ResultSegment* renderSegment(torasu::ResultSegmentSettings* resSettings, torasu::RenderInstruction* ri) override;
+	torasu::ResultSegment* render(torasu::RenderInstruction* ri) override;
 
 public:
 
 	Rauto_align2d(torasu::tools::RenderableSlot rndSrc, double posX, double posY, double zoomFactor, double ratio = 0);
 	~Rauto_align2d();
+	torasu::Identifier getType() override;
 
 	torasu::ElementMap getElements() override;
 	void setElement(std::string key, Element* elem) override;

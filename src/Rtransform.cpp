@@ -20,22 +20,21 @@
 namespace imgc {
 
 Rtransform::Rtransform(torasu::tools::RenderableSlot source, torasu::tools::RenderableSlot transform, torasu::tstd::NumSlot shutter, torasu::tstd::NumSlot interpolationLimit)
-	: SimpleRenderable(std::string("IMGC::RTRANSFORM"), false, true), source(source), transform(transform), shutter(shutter), interpolationLimit(interpolationLimit) {}
+	: SimpleRenderable(false, true), source(source), transform(transform), shutter(shutter), interpolationLimit(interpolationLimit) {}
 
-Rtransform::~Rtransform() {
+Rtransform::~Rtransform() {}
 
-}
+torasu::Identifier Rtransform::getType() { return "IMGC::RTRANSFORM"; }
 
-torasu::ResultSegment* Rtransform::renderSegment(torasu::ResultSegmentSettings* resSettings, torasu::RenderInstruction* ri) {
+torasu::ResultSegment* Rtransform::render(torasu::RenderInstruction* ri) {
 
 	torasu::tools::RenderHelper rh(ri);
 	auto& lirb = rh.lrib;
 
-	const auto selPipleine = resSettings->getPipeline();
-
-	if (selPipleine == TORASU_STD_PL_VIS) {
+	auto resSettings = ri->getResultSettings();
+	if (resSettings->getPipeline() == TORASU_STD_PL_VIS) {
 		torasu::tstd::Dbimg_FORMAT* fmt;
-		auto fmtSettings = resSettings->getResultFormatSettings();
+		auto fmtSettings = resSettings->getFromat();
 		if ( !( fmtSettings != nullptr
 				&& (fmt = dynamic_cast<torasu::tstd::Dbimg_FORMAT*>(fmtSettings)) )) {
 			return new torasu::ResultSegment(torasu::ResultSegmentStatus_INVALID_FORMAT);
@@ -69,12 +68,10 @@ torasu::ResultSegment* Rtransform::renderSegment(torasu::ResultSegmentSettings* 
 			torasu::tstd::Dnum baseDuration = 1;
 
 			if (baseDuration.getNum() > 0) {
-				torasu::tools::RenderInstructionBuilder ribNum;
-				auto numHandle = ribNum.addSegmentWithHandle<torasu::tstd::Dnum>(TORASU_STD_PL_NUM, nullptr);
+				torasu::ResultSettings rsNum(TORASU_STD_PL_NUM, nullptr);;
 
-				auto shutterRid = ribNum.enqueueRender(shutter, &rh);
-				std::unique_ptr<torasu::RenderResult> shutterRes(rh.fetchRenderResult(shutterRid));
-				auto shutterRendered = numHandle.getFrom(shutterRes.get());
+				std::unique_ptr<torasu::ResultSegment> shutterRes(rh.runRender(shutter, &rsNum));
+				auto shutterRendered = rh.evalResult<torasu::tstd::Dnum>(shutterRes.get());
 
 				if (shutterRendered) {
 					interpolationDuration = baseDuration.getNum() * shutterRendered.getResult()->getNum();	
@@ -85,10 +82,8 @@ torasu::ResultSegment* Rtransform::renderSegment(torasu::ResultSegmentSettings* 
 				}
 
 				if (interpolationDuration > 0 && interpolationLimit.get() != nullptr) {
-
-					auto imaxRid = ribNum.enqueueRender(interpolationLimit, &rh);
-					std::unique_ptr<torasu::RenderResult> imaxRes(rh.fetchRenderResult(imaxRid));
-					auto imaxRendered = numHandle.getFrom(imaxRes.get());
+					std::unique_ptr<torasu::ResultSegment> imaxRes(rh.runRender(interpolationLimit, &rsNum));
+					auto imaxRendered = rh.evalResult<torasu::tstd::Dnum>(imaxRes.get());
 
 					if (imaxRendered) {
 						interpolationCount = imaxRendered.getResult()->getNum();
@@ -108,9 +103,6 @@ torasu::ResultSegment* Rtransform::renderSegment(torasu::ResultSegmentSettings* 
 		}
 
 		// Calculate transform-vector(s)
-
-		torasu::tools::RenderInstructionBuilder ribVec;
-		auto vecHandle = ribVec.addSegmentWithHandle<torasu::tstd::Dmatrix>(TORASU_STD_PL_VEC, nullptr);
 
 		std::vector<torasu::tstd::Dmatrix> matrices(interpolationCount, torasu::tstd::Dmatrix(3));
 
@@ -133,17 +125,19 @@ torasu::ResultSegment* Rtransform::renderSegment(torasu::ResultSegmentSettings* 
 
 			if (doBench) bench = std::chrono::steady_clock::now();
 
+			torasu::ResultSettings rsVec(TORASU_STD_PL_VEC, nullptr);
+
 			for (size_t i = 0; i < interpolationCount; i++) {
 				torasu::RenderContext* modRctx = &rctxs.emplace_back(*rh.rctx);
 				torasu::tstd::Dnum* newTime = &nums.emplace_back(baseTime.getNum() + i*(interpolationDuration/interpolationCount));
 				(*modRctx)[TORASU_STD_CTX_TIME] = newTime;
 
-				renderIds[i] = ribVec.enqueueRender(transform, &rh, modRctx);
+				renderIds[i] = rh.enqueueRender(transform, &rsVec, modRctx);
 			}
 
 			for (size_t i = 0; i < interpolationCount; i++) {
-				std::unique_ptr<torasu::RenderResult> resT(rh.fetchRenderResult(renderIds[i]));
-				auto transform = vecHandle.getFrom(resT.get(), &rh);
+				std::unique_ptr<torasu::ResultSegment> resT(rh.fetchRenderResult(renderIds[i]));
+				auto transform = rh.evalResult<torasu::tstd::Dmatrix>(resT.get());
 
 				if (transform) {
 					matrices[i] = *transform.getResult();
@@ -161,12 +155,10 @@ torasu::ResultSegment* Rtransform::renderSegment(torasu::ResultSegmentSettings* 
 
 		// Calculate source
 
-		torasu::tools::RenderInstructionBuilder ribImg;
-		auto imgHandle = ribImg.addSegmentWithHandle<torasu::tstd::Dbimg>(TORASU_STD_PL_VIS, fmt);
+		torasu::ResultSettings rsImg(TORASU_STD_PL_VIS, fmt);
 
-		auto rendS = ribImg.enqueueRender(source, &rh);
-		std::unique_ptr<torasu::RenderResult> resS(rh.fetchRenderResult(rendS));
-		auto source = imgHandle.getFrom(resS.get(), &rh);
+		std::unique_ptr<torasu::ResultSegment> resS(rh.runRender(source, &rsImg));
+		auto source = rh.evalResult<torasu::tstd::Dbimg>(resS.get());
 
 		if (source) {
 			torasu::tstd::Dbimg* result = new torasu::tstd::Dbimg(*fmt);

@@ -7,23 +7,21 @@
 #include <torasu/torasu.hpp>
 #include <torasu/SimpleRenderable.hpp>
 
-#include <torasu/mod/imgc/pipeline_names.hpp>
 #include <torasu/mod/imgc/Dcropdata.hpp>
 
 namespace imgc {
 
 class Rcropdata : public torasu::tools::SimpleRenderable {
 private:
-	std::string pipeline = std::string(IMGC_PL_ALIGN);
-
 	Dcropdata* val;
 
 protected:
-	torasu::ResultSegment* renderSegment(torasu::ResultSegmentSettings* resSettings, torasu::RenderInstruction* ri) override;
+	torasu::ResultSegment* render(torasu::RenderInstruction* ri) override;
 
 public:
 	explicit Rcropdata(Dcropdata val);
 	~Rcropdata();
+	torasu::Identifier getType() override;
 
 	torasu::DataResource* getData() override;
 	void setData(torasu::DataResource* data) override;

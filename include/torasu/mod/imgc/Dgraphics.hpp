@@ -82,7 +82,7 @@ public:
 	Dgraphics(std::vector<GObject> objects);
 	~Dgraphics();
 
-	std::string getIdent() const override;
+	torasu::Identifier getType() const override;
 	Dgraphics* clone() const override;
 
 	std::vector<GObject>& getObjects();

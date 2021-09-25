@@ -17,11 +17,12 @@ private:
 	torasu::tools::ManagedSlot<torasu::tstd::NumSlot> aSrc;
 
 protected:
-	torasu::ResultSegment* renderSegment(torasu::ResultSegmentSettings* resSettings, torasu::RenderInstruction* ri) override;
+	torasu::ResultSegment* render(torasu::RenderInstruction* ri) override;
 
 public:
 	Rcolor(torasu::tstd::NumSlot r, torasu::tstd::NumSlot g, torasu::tstd::NumSlot b, torasu::tstd::NumSlot a);
 	~Rcolor();
+	torasu::Identifier getType() override;
 
 	torasu::ElementMap getElements() override;
 	void setElement(std::string key, Element* elem) override;

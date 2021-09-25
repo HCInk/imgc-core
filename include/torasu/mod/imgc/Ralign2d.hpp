@@ -14,23 +14,13 @@ private:
 	torasu::tools::ManagedRenderableSlot  rndSrc;
 	torasu::tools::ManagedRenderableSlot rndAlign;
 
-	struct Ralign2d_CROPDATA {
-		uint32_t srcWidth, srcHeight;
-		int32_t offLeft, offRight, offTop, offBottom;
-	};
-
-	void calcAlign(Renderable* alignmentProvider, torasu::ExecutionInterface* ei, torasu::LogInstruction li, torasu::RenderContext* rctx,
-				   uint32_t destWidth, uint32_t destHeight,
-				   Ralign2d_CROPDATA* outCropData) const;
-
-	void align(torasu::tstd::Dbimg* srcImg, torasu::tstd::Dbimg* destImg, Ralign2d_CROPDATA* cropData) const;
-
 protected:
-	torasu::ResultSegment* renderSegment(torasu::ResultSegmentSettings* resSettings, torasu::RenderInstruction* ri) override;
+	torasu::ResultSegment* render(torasu::RenderInstruction* ri) override;
 
 public:
 	Ralign2d(torasu::tools::RenderableSlot rndSrc, torasu::tools::RenderableSlot rndAlign);
 	~Ralign2d();
+	torasu::Identifier getType() override;
 
 	torasu::ElementMap getElements() override;
 	void setElement(std::string key, Element* elem) override;

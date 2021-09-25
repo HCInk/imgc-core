@@ -16,7 +16,7 @@
 namespace imgc {
 
 Rauto_align2d::Rauto_align2d(torasu::tools::RenderableSlot rndSrc, double posX, double posY, double zoomFactor, double ratio)
-	: SimpleRenderable("IMGC::RAUTO_ALIGN2D", true, false),
+	: SimpleRenderable(true, false),
 	  rndSrc(rndSrc), posX(posX), posY(posY), zoomFactor(zoomFactor), ratio(ratio) {
 
 	internalAlign = new Ralign2d(rndSrc, this);
@@ -26,6 +26,7 @@ Rauto_align2d::~Rauto_align2d() {
 	delete internalAlign;
 }
 
+torasu::Identifier Rauto_align2d::getType() { return "IMGC::RAUTO_ALIGN2D"; }
 
 imgc::Dcropdata* Rauto_align2d::calcAlign(double posX, double posY, double zoomFactor, double srcRatio,
 		double destRatio) const {
@@ -80,22 +81,23 @@ imgc::Dcropdata* Rauto_align2d::calcAlign(double posX, double posY, double zoomF
 
 }
 
-torasu::ResultSegment* Rauto_align2d::renderSegment(torasu::ResultSegmentSettings* resSettings, torasu::RenderInstruction* ri) {
+torasu::ResultSegment* Rauto_align2d::render(torasu::RenderInstruction* ri) {
 
-	auto* ei = ri->getExecutionInterface();
-	auto li = ri->getLogInstruction();
-	auto* rctx = ri->getRenderContext();
+	torasu::tools::RenderHelper rh(ri);
+	torasu::ResultSettings* resSettings = ri->getResultSettings();
 
 	if (resSettings->getPipeline() == IMGC_PL_ALIGN) {
 		double ratio;
 		if (this->ratio == 0) {
-			torasu::RenderableProperties* props = torasu::tools::getProperties(rndSrc.get(), {TORASU_STD_PROP_IMG_RAITO}, ei, li);
+			torasu::RenderableProperties* props = torasu::tools::getProperties(rndSrc.get(), {TORASU_STD_PROP_IMG_RAITO}, rh.ei, rh.li, rh.rctx);
 			auto* dataRatio = torasu::tools::getPropertyValue<torasu::tstd::Dnum>(props, TORASU_STD_PROP_IMG_RAITO);
 			ratio = dataRatio ? dataRatio->getNum() : 1;
 			delete props;
 		} else {
 			ratio = this->ratio;
 		}
+
+		auto* rctx = rh.rctx;
 
 		auto foundDestRatio = rctx->find(TORASU_STD_CTX_IMG_RATIO);
 		double destRatio;
@@ -115,23 +117,8 @@ torasu::ResultSegment* Rauto_align2d::renderSegment(torasu::ResultSegmentSetting
 		return new torasu::ResultSegment(torasu::ResultSegmentStatus::ResultSegmentStatus_OK, cropdata, true);
 
 	} else {
-		torasu::tools::RenderInstructionBuilder rib;
-
-		auto handle = rib.addSegmentWithHandle<torasu::DataResource>(resSettings->getPipeline(), resSettings->getResultFormatSettings());
-
 		// Running render based on instruction
-
-		torasu::RenderResult* rr = rib.runRender(internalAlign, rctx, ei, li);
-
-		auto res = handle.getFrom(rr);
-
-		auto* rs = res.canFreeResult() ?
-				   new torasu::ResultSegment(res.getStatus(), res.ejectResult(), true) :
-				   new torasu::ResultSegment(res.getStatus(), res.getResult(), false);
-
-		delete rr;
-
-		return rs;
+		return rh.runRender(internalAlign, resSettings);
 	}
 
 }
