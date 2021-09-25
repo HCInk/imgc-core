@@ -11,7 +11,7 @@ private:
 	Renderable* roundValRnd = nullptr;
 
 protected:
-	torasu::ResultSegment* render(torasu::RenderInstruction* ri) override;
+	torasu::RenderResult* render(torasu::RenderInstruction* ri) override;
 
 public:
 	Rrothumbus(Renderable* roundVal);

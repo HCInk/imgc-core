@@ -26,7 +26,7 @@ Rtransform::~Rtransform() {}
 
 torasu::Identifier Rtransform::getType() { return "IMGC::RTRANSFORM"; }
 
-torasu::ResultSegment* Rtransform::render(torasu::RenderInstruction* ri) {
+torasu::RenderResult* Rtransform::render(torasu::RenderInstruction* ri) {
 
 	torasu::tools::RenderHelper rh(ri);
 	auto& lirb = rh.lrib;
@@ -37,7 +37,7 @@ torasu::ResultSegment* Rtransform::render(torasu::RenderInstruction* ri) {
 		auto fmtSettings = resSettings->getFromat();
 		if ( !( fmtSettings != nullptr
 				&& (fmt = dynamic_cast<torasu::tstd::Dbimg_FORMAT*>(fmtSettings)) )) {
-			return new torasu::ResultSegment(torasu::ResultSegmentStatus_INVALID_FORMAT);
+			return new torasu::RenderResult(torasu::RenderResultStatus_INVALID_FORMAT);
 		}
 
 		bool validTransform = true;
@@ -70,7 +70,7 @@ torasu::ResultSegment* Rtransform::render(torasu::RenderInstruction* ri) {
 			if (baseDuration.getNum() > 0) {
 				torasu::ResultSettings rsNum(TORASU_STD_PL_NUM, nullptr);;
 
-				std::unique_ptr<torasu::ResultSegment> shutterRes(rh.runRender(shutter, &rsNum));
+				std::unique_ptr<torasu::RenderResult> shutterRes(rh.runRender(shutter, &rsNum));
 				auto shutterRendered = rh.evalResult<torasu::tstd::Dnum>(shutterRes.get());
 
 				if (shutterRendered) {
@@ -82,7 +82,7 @@ torasu::ResultSegment* Rtransform::render(torasu::RenderInstruction* ri) {
 				}
 
 				if (interpolationDuration > 0 && interpolationLimit.get() != nullptr) {
-					std::unique_ptr<torasu::ResultSegment> imaxRes(rh.runRender(interpolationLimit, &rsNum));
+					std::unique_ptr<torasu::RenderResult> imaxRes(rh.runRender(interpolationLimit, &rsNum));
 					auto imaxRendered = rh.evalResult<torasu::tstd::Dnum>(imaxRes.get());
 
 					if (imaxRendered) {
@@ -136,7 +136,7 @@ torasu::ResultSegment* Rtransform::render(torasu::RenderInstruction* ri) {
 			}
 
 			for (size_t i = 0; i < interpolationCount; i++) {
-				std::unique_ptr<torasu::ResultSegment> resT(rh.fetchRenderResult(renderIds[i]));
+				std::unique_ptr<torasu::RenderResult> resT(rh.fetchRenderResult(renderIds[i]));
 				auto transform = rh.evalResult<torasu::tstd::Dmatrix>(resT.get());
 
 				if (transform) {
@@ -157,7 +157,7 @@ torasu::ResultSegment* Rtransform::render(torasu::RenderInstruction* ri) {
 
 		torasu::ResultSettings rsImg(TORASU_STD_PL_VIS, fmt);
 
-		std::unique_ptr<torasu::ResultSegment> resS(rh.runRender(source, &rsImg));
+		std::unique_ptr<torasu::RenderResult> resS(rh.runRender(source, &rsImg));
 		auto source = rh.evalResult<torasu::tstd::Dbimg>(resS.get());
 
 		if (source) {
@@ -178,7 +178,7 @@ torasu::ResultSegment* Rtransform::render(torasu::RenderInstruction* ri) {
 											"Trans Time = " + std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - bench).count()) + "[ms]");
 
 
-			return rh.buildResult(result, validTransform ? torasu::ResultSegmentStatus_OK : torasu::ResultSegmentStatus_OK_WARN);
+			return rh.buildResult(result, validTransform ? torasu::RenderResultStatus_OK : torasu::RenderResultStatus_OK_WARN);
 		} else {
 
 			if (rh.mayLog(torasu::WARN))
@@ -186,11 +186,11 @@ torasu::ResultSegment* Rtransform::render(torasu::RenderInstruction* ri) {
 
 			torasu::tstd::Dbimg* errRes = new torasu::tstd::Dbimg(*fmt);
 			errRes->clear();
-			return rh.buildResult(errRes, torasu::ResultSegmentStatus_OK_WARN);
+			return rh.buildResult(errRes, torasu::RenderResultStatus_OK_WARN);
 		}
 
 	} else {
-		return new torasu::ResultSegment(torasu::ResultSegmentStatus_INVALID_SEGMENT);
+		return new torasu::RenderResult(torasu::RenderResultStatus_INVALID_SEGMENT);
 	}
 
 }

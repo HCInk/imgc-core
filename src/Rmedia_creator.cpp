@@ -32,11 +32,11 @@ Rmedia_creator::~Rmedia_creator() {}
 
 torasu::Identifier Rmedia_creator::getType() { return "IMGC::RMEDIA_CREATOR"; }
 
-torasu::ResultSegment* Rmedia_creator::render(torasu::RenderInstruction* ri) {
+torasu::RenderResult* Rmedia_creator::render(torasu::RenderInstruction* ri) {
 	if (ri->getResultSettings()->getPipeline() == TORASU_STD_PL_FILE) {
 		torasu::tools::RenderHelper rh(ri);
 
-		std::unique_ptr<torasu::ResultSegment> rrMetadata;
+		std::unique_ptr<torasu::RenderResult> rrMetadata;
 		std::map<std::string, std::string> metadata;
 
 		MediaEncoder::EncodeRequest req;
@@ -60,15 +60,15 @@ torasu::ResultSegment* Rmedia_creator::render(torasu::RenderInstruction* ri) {
 			auto amsrRid = rh.enqueueRender(audioMinSampleRateRnd, &numSettings);
 			auto metaRid = doMetadata ? rh.enqueueRender(metadataSlot, &metadataSettings) : 0;
 
-			std::unique_ptr<torasu::ResultSegment> rrFormat(rh.fetchRenderResult(formatRid));
-			std::unique_ptr<torasu::ResultSegment> rrBegin(rh.fetchRenderResult(beginRid));
-			std::unique_ptr<torasu::ResultSegment> rrEnd(rh.fetchRenderResult(endRid));
-			std::unique_ptr<torasu::ResultSegment> rrFps(rh.fetchRenderResult(fpsRid));
-			std::unique_ptr<torasu::ResultSegment> rrWidth(rh.fetchRenderResult(widthRid));
-			std::unique_ptr<torasu::ResultSegment> rrHeight(rh.fetchRenderResult(heightRid));
-			std::unique_ptr<torasu::ResultSegment> rrVbr(rh.fetchRenderResult(vbrRid));
-			std::unique_ptr<torasu::ResultSegment> rrAmsr(rh.fetchRenderResult(amsrRid));
-			if (doMetadata) rrMetadata = std::unique_ptr<torasu::ResultSegment>(rh.fetchRenderResult(metaRid));
+			std::unique_ptr<torasu::RenderResult> rrFormat(rh.fetchRenderResult(formatRid));
+			std::unique_ptr<torasu::RenderResult> rrBegin(rh.fetchRenderResult(beginRid));
+			std::unique_ptr<torasu::RenderResult> rrEnd(rh.fetchRenderResult(endRid));
+			std::unique_ptr<torasu::RenderResult> rrFps(rh.fetchRenderResult(fpsRid));
+			std::unique_ptr<torasu::RenderResult> rrWidth(rh.fetchRenderResult(widthRid));
+			std::unique_ptr<torasu::RenderResult> rrHeight(rh.fetchRenderResult(heightRid));
+			std::unique_ptr<torasu::RenderResult> rrVbr(rh.fetchRenderResult(vbrRid));
+			std::unique_ptr<torasu::RenderResult> rrAmsr(rh.fetchRenderResult(amsrRid));
+			if (doMetadata) rrMetadata = std::unique_ptr<torasu::RenderResult>(rh.fetchRenderResult(metaRid));
 
 			auto* dFormat = rh.evalResult<torasu::tstd::Dstring>(rrFormat.get()).getResult();
 			auto* dBegin = rh.evalResult<torasu::tstd::Dnum>(rrBegin.get()).getResult();
@@ -203,9 +203,9 @@ torasu::ResultSegment* Rmedia_creator::render(torasu::RenderInstruction* ri) {
 
 		auto* result = enc.encode(req, rh.li);
 
-		return new torasu::ResultSegment(torasu::ResultSegmentStatus_OK, result, true);
+		return new torasu::RenderResult(torasu::RenderResultStatus_OK, result, true);
 	} else {
-		return new torasu::ResultSegment(torasu::ResultSegmentStatus_INVALID_SEGMENT);
+		return new torasu::RenderResult(torasu::RenderResultStatus_INVALID_SEGMENT);
 	}
 }
 

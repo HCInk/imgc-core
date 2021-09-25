@@ -119,11 +119,11 @@ void netImageTest() {
 
 	auto castedRes = rh.evalResult<torasu::tstd::Dbimg>(result);
 
-	torasu::ResultSegmentStatus rss = castedRes.getStatus();
+	torasu::RenderResultStatus rss = castedRes.getStatus();
 
 	std::cout << "STATUS " << rss << std::endl;
 
-	if (rss >= torasu::ResultSegmentStatus::ResultSegmentStatus_OK) {
+	if (rss >= torasu::RenderResultStatus::RenderResultStatus_OK) {
 		torasu::tstd::Dbimg* bimg = castedRes.getResult();
 
 
@@ -330,7 +330,7 @@ void yetAnotherIMGCTest() {
 		// Evaluate Result
 
 		auto castedRes = rh.evalResult<torasu::tstd::Dbimg>(result);
-		torasu::ResultSegmentStatus rss = castedRes.getStatus();
+		torasu::RenderResultStatus rss = castedRes.getStatus();
 
 
 		auto benchEnd = std::chrono::steady_clock::now();
@@ -338,7 +338,7 @@ void yetAnotherIMGCTest() {
 
 		std::cout << "STATUS " << rss << std::endl;
 
-		if (rss >= torasu::ResultSegmentStatus::ResultSegmentStatus_OK) {
+		if (rss >= torasu::RenderResultStatus::RenderResultStatus_OK) {
 			torasu::tstd::Dbimg* bimg = castedRes.getResult();
 
 			std::stringstream out_name;
@@ -420,7 +420,7 @@ void cropdataExample() {
 
 	// Running render based on instruction
 
-	torasu::ResultSegment* rr = rh.runRender(&tree, &rs);
+	torasu::RenderResult* rr = rh.runRender(&tree, &rs);
 
 	// Finding results
 
@@ -478,7 +478,7 @@ void cropExample() {
 
 	// Running render based on instruction
 
-	torasu::ResultSegment* rr = rh.runRender(&tree, &rs);
+	torasu::RenderResult* rr = rh.runRender(&tree, &rs);
 
 	// Finding results
 
@@ -645,7 +645,7 @@ void encodeTorasu() {
 
 	torasu::ResultSettings rs(TORASU_STD_PL_FILE, nullptr);
 
-	std::unique_ptr<torasu::ResultSegment> rr(rh.runRender(tree, &rs));
+	std::unique_ptr<torasu::RenderResult> rr(rh.runRender(tree, &rs));
 
 	auto seg = rh.evalResult<torasu::tstd::Dfile>(rr.get());
 
@@ -776,7 +776,7 @@ void graphicsExample() {
 
 	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
-	std::unique_ptr<torasu::ResultSegment> rr(rh.runRender(&encoded, &rs));
+	std::unique_ptr<torasu::RenderResult> rr(rh.runRender(&encoded, &rs));
 
 	auto seg = rh.evalResult<torasu::tstd::Dfile>(rr.get());
 
@@ -817,11 +817,11 @@ void graphicsExample() {
 
 	auto castedRes = handle.getFrom(rr.get());
 
-	torasu::ResultSegmentStatus rss = castedRes.getStatus();
+	torasu::RenderResultStatus rss = castedRes.getStatus();
 
 	std::cout << "STATUS " << rss << std::endl;
 
-	if (rss >= torasu::ResultSegmentStatus::ResultSegmentStatus_OK) {
+	if (rss >= torasu::RenderResultStatus::RenderResultStatus_OK) {
 		torasu::tstd::Dbimg* bimg = castedRes.getResult();
 
 		unsigned error = lodepng::encode("out.png", bimg->getImageData(), bimg->getWidth(), bimg->getHeight());

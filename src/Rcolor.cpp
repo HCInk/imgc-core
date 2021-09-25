@@ -14,7 +14,7 @@ Rcolor::~Rcolor() {}
 
 torasu::Identifier Rcolor::getType() { return "IMGC::RCOLOR"; }
 
-torasu::ResultSegment* Rcolor::render(torasu::RenderInstruction* ri) {
+torasu::RenderResult* Rcolor::render(torasu::RenderInstruction* ri) {
 	torasu::tools::RenderHelper rh(ri);
 	auto& lirb = rh.lrib;
 
@@ -24,7 +24,7 @@ torasu::ResultSegment* Rcolor::render(torasu::RenderInstruction* ri) {
 		auto fmtSettings = ri->getResultSettings()->getFromat();
 		if ( !( fmtSettings != nullptr
 				&& (fmt = dynamic_cast<torasu::tstd::Dbimg_FORMAT*>(fmtSettings)) )) {
-			return new torasu::ResultSegment(torasu::ResultSegmentStatus_INVALID_FORMAT);
+			return new torasu::RenderResult(torasu::RenderResultStatus_INVALID_FORMAT);
 		}
 
 		torasu::ResultSettings rsNum(TORASU_STD_PL_NUM, nullptr);
@@ -35,10 +35,10 @@ torasu::ResultSegment* Rcolor::render(torasu::RenderInstruction* ri) {
 		auto rendB = rh.enqueueRender(bSrc, &rsNum);
 		auto rendA = rh.enqueueRender(aSrc, &rsNum);
 
-		std::unique_ptr<torasu::ResultSegment> resR(rh.fetchRenderResult(rendR));
-		std::unique_ptr<torasu::ResultSegment> resG(rh.fetchRenderResult(rendG));
-		std::unique_ptr<torasu::ResultSegment> resB(rh.fetchRenderResult(rendB));
-		std::unique_ptr<torasu::ResultSegment> resA(rh.fetchRenderResult(rendA));
+		std::unique_ptr<torasu::RenderResult> resR(rh.fetchRenderResult(rendR));
+		std::unique_ptr<torasu::RenderResult> resG(rh.fetchRenderResult(rendG));
+		std::unique_ptr<torasu::RenderResult> resB(rh.fetchRenderResult(rendB));
+		std::unique_ptr<torasu::RenderResult> resA(rh.fetchRenderResult(rendA));
 
 		// Calculating Result from Results
 
@@ -109,7 +109,7 @@ torasu::ResultSegment* Rcolor::render(torasu::RenderInstruction* ri) {
 		return rh.buildResult(result);
 
 	} else {
-		return new torasu::ResultSegment(torasu::ResultSegmentStatus::ResultSegmentStatus_NON_EXISTENT);
+		return new torasu::RenderResult(torasu::RenderResultStatus::RenderResultStatus_NON_EXISTENT);
 	}
 
 }

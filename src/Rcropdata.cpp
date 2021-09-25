@@ -31,11 +31,11 @@ void Rcropdata::setData(torasu::DataResource* data) {
 	}
 }
 
-torasu::ResultSegment* Rcropdata::render(torasu::RenderInstruction* ri) {
+torasu::RenderResult* Rcropdata::render(torasu::RenderInstruction* ri) {
 	if (ri->getResultSettings()->getPipeline() == IMGC_PL_ALIGN) {
-		return new torasu::ResultSegment(torasu::ResultSegmentStatus_OK, val, false);
+		return new torasu::RenderResult(torasu::RenderResultStatus_OK, val, false);
 	} else {
-		return new torasu::ResultSegment(torasu::ResultSegmentStatus_INVALID_SEGMENT);
+		return new torasu::RenderResult(torasu::RenderResultStatus_INVALID_SEGMENT);
 	}
 }
 

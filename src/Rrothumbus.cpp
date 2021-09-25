@@ -18,7 +18,7 @@ Rrothumbus::~Rrothumbus() {}
 
 torasu::Identifier Rrothumbus::getType() { return "IMGC::RROTHUMBUS"; }
 
-torasu::ResultSegment* Rrothumbus::render(torasu::RenderInstruction* ri) {
+torasu::RenderResult* Rrothumbus::render(torasu::RenderInstruction* ri) {
 	auto* resSettings = ri->getResultSettings();
 	if (resSettings->getPipeline() == TORASU_STD_PL_VIS) {
 		torasu::tools::RenderHelper rh(ri);
@@ -26,7 +26,7 @@ torasu::ResultSegment* Rrothumbus::render(torasu::RenderInstruction* ri) {
 		// Check format
 
 		if (!(dynamic_cast<Dgraphics_FORMAT*>(resSettings->getFromat()))) {
-			return new torasu::ResultSegment(torasu::ResultSegmentStatus_INVALID_FORMAT);
+			return new torasu::RenderResult(torasu::RenderResultStatus_INVALID_FORMAT);
 		}
 
 		// Retrieve rounding
@@ -36,7 +36,7 @@ torasu::ResultSegment* Rrothumbus::render(torasu::RenderInstruction* ri) {
 
 			torasu::ResultSettings numSettings(TORASU_STD_PL_NUM, nullptr);
 
-			std::unique_ptr<torasu::ResultSegment> rndRes(rh.runRender(roundValRnd, &numSettings));
+			std::unique_ptr<torasu::RenderResult> rndRes(rh.runRender(roundValRnd, &numSettings));
 
 			auto fetchedRes = rh.evalResult<torasu::tstd::Dnum>(rndRes.get());
 
@@ -92,7 +92,7 @@ torasu::ResultSegment* Rrothumbus::render(torasu::RenderInstruction* ri) {
 
 		return rh.buildResult(graphics);
 	} else {
-		return new torasu::ResultSegment(torasu::ResultSegmentStatus_INVALID_SEGMENT);
+		return new torasu::RenderResult(torasu::RenderResultStatus_INVALID_SEGMENT);
 	}
 }
 

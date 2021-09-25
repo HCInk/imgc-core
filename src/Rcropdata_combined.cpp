@@ -19,7 +19,7 @@ Rcropdata_combined::~Rcropdata_combined() {}
 
 torasu::Identifier Rcropdata_combined::getType() { return "IMGC::RCROPDATA_COMBINED"; }
 
-torasu::ResultSegment* Rcropdata_combined::render(torasu::RenderInstruction* ri) {
+torasu::RenderResult* Rcropdata_combined::render(torasu::RenderInstruction* ri) {
 	torasu::tools::RenderHelper rh(ri);
 	auto resSettings = ri->getResultSettings();
 	if (resSettings->getPipeline() == IMGC_PL_ALIGN) {
@@ -30,10 +30,10 @@ torasu::ResultSegment* Rcropdata_combined::render(torasu::RenderInstruction* ri)
 		auto rendT = rh.enqueueRender(topRnd, &rsNum);
 		auto rendB = rh.enqueueRender(bottomRnd, &rsNum);
 
-		std::unique_ptr<torasu::ResultSegment> resL(rh.fetchRenderResult(rendL));
-		std::unique_ptr<torasu::ResultSegment> resR(rh.fetchRenderResult(rendR));
-		std::unique_ptr<torasu::ResultSegment> resT(rh.fetchRenderResult(rendT));
-		std::unique_ptr<torasu::ResultSegment> resB(rh.fetchRenderResult(rendB));
+		std::unique_ptr<torasu::RenderResult> resL(rh.fetchRenderResult(rendL));
+		std::unique_ptr<torasu::RenderResult> resR(rh.fetchRenderResult(rendR));
+		std::unique_ptr<torasu::RenderResult> resT(rh.fetchRenderResult(rendT));
+		std::unique_ptr<torasu::RenderResult> resB(rh.fetchRenderResult(rendB));
 
 		auto fetchedL = rh.evalResult<torasu::tstd::Dnum>(resL.get()).getResult();
 		auto fetchedR = rh.evalResult<torasu::tstd::Dnum>(resR.get()).getResult();
@@ -45,9 +45,9 @@ torasu::ResultSegment* Rcropdata_combined::render(torasu::RenderInstruction* ri)
 		double tVal = fetchedT ? fetchedT->getNum() : 0;
 		double bVal = fetchedB ? fetchedB->getNum() : 0;
 
-		return new torasu::ResultSegment(torasu::ResultSegmentStatus_OK, new imgc::Dcropdata(lVal, rVal, tVal, bVal), true);
+		return new torasu::RenderResult(torasu::RenderResultStatus_OK, new imgc::Dcropdata(lVal, rVal, tVal, bVal), true);
 	} else {
-		return new torasu::ResultSegment(torasu::ResultSegmentStatus_INVALID_SEGMENT);
+		return new torasu::RenderResult(torasu::RenderResultStatus_INVALID_SEGMENT);
 	}
 }
 

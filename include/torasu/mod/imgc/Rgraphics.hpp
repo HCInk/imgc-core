@@ -15,7 +15,7 @@ private:
 	Renderable* source;
 
 protected:
-	torasu::ResultSegment* render(torasu::RenderInstruction* ri) override;
+	torasu::RenderResult* render(torasu::RenderInstruction* ri) override;
 
 public:
 	Rgraphics(Dgraphics* graphics);

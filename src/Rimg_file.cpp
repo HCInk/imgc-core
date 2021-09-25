@@ -69,7 +69,7 @@ void Rimg_file::ready(torasu::ReadyInstruction* ri) {
 
 	torasu::ResultSettings rs(TORASU_STD_PL_FILE, nullptr);
 
-	std::unique_ptr<torasu::ResultSegment> rr(rh.runRender(rfile.get(), &rs));
+	std::unique_ptr<torasu::RenderResult> rr(rh.runRender(rfile.get(), &rs));
 
 	auto fileRes = rh.evalResult<torasu::tstd::Dfile>(rr.get());
 
@@ -109,7 +109,7 @@ Rimg_file::~Rimg_file() {}
 
 torasu::Identifier Rimg_file::getType() { return "STD::RIMG_FILE"; }
 
-ResultSegment* Rimg_file::render(RenderInstruction* ri) {
+RenderResult* Rimg_file::render(RenderInstruction* ri) {
 
 	ResultSettings* resSettings = ri->getResultSettings();
 	auto currentPipeline = resSettings->getPipeline();
@@ -128,12 +128,12 @@ ResultSegment* Rimg_file::render(RenderInstruction* ri) {
 				rHeight = bimgFormat->getHeight();
 				// cout << "RIMG RENDER " << rWidth << "x" << rHeight << endl;
 			} else {
-				return new ResultSegment(ResultSegmentStatus_INVALID_FORMAT);
+				return new RenderResult(RenderResultStatus_INVALID_FORMAT);
 			}
 		}
 
 		if (rWidth == 0 || rHeight == 0) {
-			return new ResultSegment(ResultSegmentStatus_OK, new Dbimg(rWidth, rHeight), true);
+			return new RenderResult(RenderResultStatus_OK, new Dbimg(rWidth, rHeight), true);
 		}
 
 		if (rWidth < 0) {
@@ -145,22 +145,22 @@ ResultSegment* Rimg_file::render(RenderInstruction* ri) {
 
 		Dbimg* resultImage = scaler::scaleImg(state->loadedImage.data(), state->srcWidth, state->srcHeight, &fmt, true);
 
-		return new ResultSegment(ResultSegmentStatus_OK, resultImage, true);
+		return new RenderResult(RenderResultStatus_OK, resultImage, true);
 
 
 	} else if (torasu::isPipelineKeyPropertyKey(currentPipeline)) { // optional so properties get skipped if it is no property
 		if (currentPipeline == TORASU_PROPERTY(TORASU_STD_PROP_IMG_WIDTH)) {
-			return new torasu::ResultSegment(torasu::ResultSegmentStatus_OK, new torasu::tstd::Dnum(state->srcWidth), true);
+			return new torasu::RenderResult(torasu::RenderResultStatus_OK, new torasu::tstd::Dnum(state->srcWidth), true);
 		} else if (currentPipeline == TORASU_PROPERTY(TORASU_STD_PROP_IMG_HEIGHT)) {
-			return new torasu::ResultSegment(torasu::ResultSegmentStatus_OK, new torasu::tstd::Dnum(state->srcHeight), true);
+			return new torasu::RenderResult(torasu::RenderResultStatus_OK, new torasu::tstd::Dnum(state->srcHeight), true);
 		} else if (currentPipeline == TORASU_PROPERTY(TORASU_STD_PROP_IMG_RAITO)) {
-			return new torasu::ResultSegment(torasu::ResultSegmentStatus_OK, new torasu::tstd::Dnum((double) state->srcWidth / state->srcHeight), true);
+			return new torasu::RenderResult(torasu::RenderResultStatus_OK, new torasu::tstd::Dnum((double) state->srcWidth / state->srcHeight), true);
 		} else {
 			// Unsupported Property
-			return new torasu::ResultSegment(torasu::ResultSegmentStatus_INVALID_SEGMENT);
+			return new torasu::RenderResult(torasu::RenderResultStatus_INVALID_SEGMENT);
 		}
 	} else {
-		return new ResultSegment(ResultSegmentStatus_INVALID_SEGMENT);
+		return new RenderResult(RenderResultStatus_INVALID_SEGMENT);
 	}
 
 }

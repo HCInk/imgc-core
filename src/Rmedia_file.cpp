@@ -23,7 +23,7 @@ private:
 	std::vector<torasu::Identifier>* ops;
 	const torasu::RenderContextMask* rctxm;
 protected:
-	torasu::ResultSegment* srcRendRes = nullptr;
+	torasu::RenderResult* srcRendRes = nullptr;
 	torasu::tstd::Dfile* srcFile = nullptr;
 	MediaDecoder* decoder = nullptr;
 
@@ -76,7 +76,7 @@ void Rmedia_file::ready(torasu::ReadyInstruction* ri) {
 
 	torasu::ResultSettings fileSettings(TORASU_STD_PL_FILE, nullptr);
 
-	std::unique_ptr<torasu::ResultSegment> rr(rh.runRender(srcRnd.get(), &fileSettings));
+	std::unique_ptr<torasu::RenderResult> rr(rh.runRender(srcRnd.get(), &fileSettings));
 
 	auto castedResultSeg = rh.evalResult<torasu::tstd::Dfile>(rr.get());
 
@@ -105,7 +105,7 @@ void Rmedia_file::ready(torasu::ReadyInstruction* ri) {
 }
 
 
-torasu::ResultSegment* Rmedia_file::render(torasu::RenderInstruction* ri) {
+torasu::RenderResult* Rmedia_file::render(torasu::RenderInstruction* ri) {
 	torasu::ExecutionInterface* ei = ri->getExecutionInterface();
 	torasu::LogInstruction li = ri->getLogInstruction();
 
@@ -150,7 +150,7 @@ torasu::ResultSegment* Rmedia_file::render(torasu::RenderInstruction* ri) {
 
 			torasu::tstd::Dbimg_FORMAT* videoFormat;
 			if (fmt == nullptr || !( videoFormat = dynamic_cast<torasu::tstd::Dbimg_FORMAT*>(fmt) )) {
-				return rh.buildResult(torasu::ResultSegmentStatus_INVALID_FORMAT);
+				return rh.buildResult(torasu::RenderResultStatus_INVALID_FORMAT);
 			}
 
 			torasu::tstd::Dbimg_sequence* vidBuff = nullptr;
@@ -173,7 +173,7 @@ torasu::ResultSegment* Rmedia_file::render(torasu::RenderInstruction* ri) {
 					rh.lrib.logCause(torasu::LogLevel::WARN, "DECODER RETURNED NO FRAME! "
 						"(TIME: " + std::to_string(time) + "-" + std::to_string(time+duration) + ")");
 
-				return rh.buildResult(new torasu::tstd::Dbimg(*videoFormat), torasu::ResultSegmentStatus_OK_WARN);
+				return rh.buildResult(new torasu::tstd::Dbimg(*videoFormat), torasu::RenderResultStatus_OK_WARN);
 			}
 
 			auto firstFrame = frames.begin();
@@ -231,7 +231,7 @@ torasu::ResultSegment* Rmedia_file::render(torasu::RenderInstruction* ri) {
 		}
 	}
 
-	return rh.buildResult(torasu::ResultSegmentStatus_INVALID_SEGMENT);
+	return rh.buildResult(torasu::RenderResultStatus_INVALID_SEGMENT);
 
 }
 

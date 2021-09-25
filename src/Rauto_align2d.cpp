@@ -81,7 +81,7 @@ imgc::Dcropdata* Rauto_align2d::calcAlign(double posX, double posY, double zoomF
 
 }
 
-torasu::ResultSegment* Rauto_align2d::render(torasu::RenderInstruction* ri) {
+torasu::RenderResult* Rauto_align2d::render(torasu::RenderInstruction* ri) {
 
 	torasu::tools::RenderHelper rh(ri);
 	torasu::ResultSettings* resSettings = ri->getResultSettings();
@@ -114,7 +114,7 @@ torasu::ResultSegment* Rauto_align2d::render(torasu::RenderInstruction* ri) {
 
 		auto* cropdata = calcAlign(this->posX, this->posY, this->zoomFactor, ratio, destRatio);
 
-		return new torasu::ResultSegment(torasu::ResultSegmentStatus::ResultSegmentStatus_OK, cropdata, true);
+		return new torasu::RenderResult(torasu::RenderResultStatus::RenderResultStatus_OK, cropdata, true);
 
 	} else {
 		// Running render based on instruction

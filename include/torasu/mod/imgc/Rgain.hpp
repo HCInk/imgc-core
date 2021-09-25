@@ -17,7 +17,7 @@ private:
 	torasu::tools::ManagedSlot<torasu::tstd::NumSlot> rGainVal;
 
 protected:
-	torasu::ResultSegment* render(torasu::RenderInstruction* ri) override;
+	torasu::RenderResult* render(torasu::RenderInstruction* ri) override;
 
 public:
 	Rgain(torasu::tools::RenderableSlot src, torasu::tstd::NumSlot gainVal);

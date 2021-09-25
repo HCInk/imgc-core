@@ -28,7 +28,7 @@ public:
 	torasu::Identifier getType() override;
 
 	void ready(torasu::ReadyInstruction* ri) override;
-	torasu::ResultSegment* render(torasu::RenderInstruction* ri) override;
+	torasu::RenderResult* render(torasu::RenderInstruction* ri) override;
 
 	torasu::ElementMap getElements() override;
 	void setElement(std::string key, torasu::Element* elem) override;

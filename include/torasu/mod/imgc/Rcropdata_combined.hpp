@@ -17,7 +17,7 @@ private:
 	torasu::tools::ManagedSlot<torasu::tstd::NumSlot> bottomRnd;
 
 protected:
-	torasu::ResultSegment* render(torasu::RenderInstruction* ri) override;
+	torasu::RenderResult* render(torasu::RenderInstruction* ri) override;
 
 public:
 	Rcropdata_combined(torasu::tstd::NumSlot left, torasu::tstd::NumSlot right, torasu::tstd::NumSlot top, torasu::tstd::NumSlot bottom);

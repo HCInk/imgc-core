@@ -21,7 +21,7 @@ Rgraphics::~Rgraphics() {}
 
 torasu::Identifier Rgraphics::getType() { return "IMGC::RGRAPHICS"; }
 
-torasu::ResultSegment* Rgraphics::render(torasu::RenderInstruction* ri) {
+torasu::RenderResult* Rgraphics::render(torasu::RenderInstruction* ri) {
 	torasu::tools::RenderHelper rh(ri);
 
 	if (ri->getResultSettings()->getPipeline() == TORASU_STD_PL_VIS) {
@@ -35,7 +35,7 @@ torasu::ResultSegment* Rgraphics::render(torasu::RenderInstruction* ri) {
 
 			auto rid = rh.enqueueRender(source, &rsGraphics);
 
-			std::unique_ptr<torasu::ResultSegment> res(rh.fetchRenderResult(rid));
+			std::unique_ptr<torasu::RenderResult> res(rh.fetchRenderResult(rid));
 
 			auto* graphics = rh.evalResult<imgc::Dgraphics>(res.get()).getResult();
 
@@ -59,15 +59,15 @@ torasu::ResultSegment* Rgraphics::render(torasu::RenderInstruction* ri) {
 						  0x000000);
 			}
 
-			return new torasu::ResultSegment(torasu::ResultSegmentStatus_OK, base, true);
+			return new torasu::RenderResult(torasu::RenderResultStatus_OK, base, true);
 		} else if (dynamic_cast<imgc::Dgraphics_FORMAT*>(reqFormat)) {
-			return new torasu::ResultSegment(torasu::ResultSegmentStatus_OK, graphics.get(), false);
+			return new torasu::RenderResult(torasu::RenderResultStatus_OK, graphics.get(), false);
 		} else {
-			return new torasu::ResultSegment(torasu::ResultSegmentStatus_INVALID_FORMAT);
+			return new torasu::RenderResult(torasu::RenderResultStatus_INVALID_FORMAT);
 		}
 
 	} else {
-		return new torasu::ResultSegment(torasu::ResultSegmentStatus_INVALID_SEGMENT);
+		return new torasu::RenderResult(torasu::RenderResultStatus_INVALID_SEGMENT);
 	}
 
 }

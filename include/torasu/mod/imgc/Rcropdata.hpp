@@ -16,7 +16,7 @@ private:
 	Dcropdata* val;
 
 protected:
-	torasu::ResultSegment* render(torasu::RenderInstruction* ri) override;
+	torasu::RenderResult* render(torasu::RenderInstruction* ri) override;
 
 public:
 	explicit Rcropdata(Dcropdata val);

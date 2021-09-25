@@ -13,10 +13,10 @@ Rgain::~Rgain() {}
 
 torasu::Identifier Rgain::getType() { return "IMGC::RGAIN"; }
 
-torasu::ResultSegment* Rgain::render(torasu::RenderInstruction* ri) {
+torasu::RenderResult* Rgain::render(torasu::RenderInstruction* ri) {
 	torasu::tools::RenderHelper rh(ri);
 	if (!rh.matchPipeline(TORASU_STD_PL_VIS)) {
-		return new torasu::ResultSegment(torasu::ResultSegmentStatus_INVALID_SEGMENT);
+		return new torasu::RenderResult(torasu::RenderResultStatus_INVALID_SEGMENT);
 	}
 
 	auto* format = rh.rs->getFromat();
@@ -25,7 +25,7 @@ torasu::ResultSegment* Rgain::render(torasu::RenderInstruction* ri) {
 		rWidth = bimgFormat->getWidth();
 		rHeight = bimgFormat->getHeight();
 	} else {
-		return new torasu::ResultSegment(torasu::ResultSegmentStatus_INVALID_FORMAT);
+		return new torasu::RenderResult(torasu::RenderResultStatus_INVALID_FORMAT);
 	}
 
 	// Creation of Requests
@@ -37,8 +37,8 @@ torasu::ResultSegment* Rgain::render(torasu::RenderInstruction* ri) {
 
 	// Fetching of requests
 
-	std::unique_ptr<torasu::ResultSegment> srcRndResult(rh.fetchRenderResult(srcRndId));
-	std::unique_ptr<torasu::ResultSegment> gainRndResult(rh.fetchRenderResult(gainRndId));
+	std::unique_ptr<torasu::RenderResult> srcRndResult(rh.fetchRenderResult(srcRndId));
+	std::unique_ptr<torasu::RenderResult> gainRndResult(rh.fetchRenderResult(gainRndId));
 
 	auto srcRes = rh.evalResult<torasu::tstd::Dbimg>(srcRndResult.get());
 	auto gainRes = rh.evalResult<torasu::tstd::Dnum>(gainRndResult.get());
@@ -46,17 +46,17 @@ torasu::ResultSegment* Rgain::render(torasu::RenderInstruction* ri) {
 	torasu::tstd::Dbimg* srcImg = srcRes.getResult();
 
 	if (srcImg == NULL) {
-		return new torasu::ResultSegment(torasu::ResultSegmentStatus_OK_WARN, new torasu::tstd::Dbimg(rWidth, rHeight), true);
+		return new torasu::RenderResult(torasu::RenderResultStatus_OK_WARN, new torasu::tstd::Dbimg(rWidth, rHeight), true);
 	}
 
 	if (gainRes.getResult() == NULL) {
-		return new torasu::ResultSegment(torasu::ResultSegmentStatus_OK_WARN, new torasu::tstd::Dbimg(*srcImg), true);
+		return new torasu::RenderResult(torasu::RenderResultStatus_OK_WARN, new torasu::tstd::Dbimg(*srcImg), true);
 	}
 
 	double gainVal = gainRes.getResult()->getNum();
 
 	if (gainVal == 1) {
-		return new torasu::ResultSegment(torasu::ResultSegmentStatus_OK, new torasu::tstd::Dbimg(*srcImg), true);
+		return new torasu::RenderResult(torasu::RenderResultStatus_OK, new torasu::tstd::Dbimg(*srcImg), true);
 	}
 
 	torasu::tstd::Dbimg* destImg = new torasu::tstd::Dbimg(rWidth, rHeight);
@@ -83,7 +83,7 @@ torasu::ResultSegment* Rgain::render(torasu::RenderInstruction* ri) {
 		destData++;
 	}
 
-	return new torasu::ResultSegment(torasu::ResultSegmentStatus_OK, destImg, true);
+	return new torasu::RenderResult(torasu::RenderResultStatus_OK, destImg, true);
 
 }
 

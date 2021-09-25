@@ -44,7 +44,7 @@ void calcAlign(torasu::Renderable* alignmentProvider, torasu::tools::RenderHelpe
 
 	// Running render based on instruction
 
-	std::unique_ptr<torasu::ResultSegment> rr(rh->runRender(alignmentProvider, &alignSettings));
+	std::unique_ptr<torasu::RenderResult> rr(rh->runRender(alignmentProvider, &alignSettings));
 
 	// Finding results
 
@@ -128,14 +128,14 @@ void align(torasu::tstd::Dbimg* srcImg, torasu::tstd::Dbimg* destImg, Ralign2d_C
 } // namespace
 
 
-torasu::ResultSegment* Ralign2d::render(torasu::RenderInstruction* ri) {
+torasu::RenderResult* Ralign2d::render(torasu::RenderInstruction* ri) {
 	torasu::ResultSettings* resSettings = ri->getResultSettings();
 
 	if (resSettings->getPipeline() == TORASU_STD_PL_VIS) {
 		torasu::tstd::Dbimg_FORMAT* fmt;
 		if ( !( resSettings->getFromat() != nullptr
 				&& (fmt = dynamic_cast<torasu::tstd::Dbimg_FORMAT*>(resSettings->getFromat())) )) {
-			return new torasu::ResultSegment(torasu::ResultSegmentStatus_INVALID_FORMAT);
+			return new torasu::RenderResult(torasu::RenderResultStatus_INVALID_FORMAT);
 		}
 
 		torasu::tools::RenderHelper rh(ri);
@@ -156,7 +156,7 @@ torasu::ResultSegment* Ralign2d::render(torasu::RenderInstruction* ri) {
 		torasu::tstd::Dnum ratio((double)cropData.srcWidth/cropData.srcHeight);
 		modRctx[TORASU_STD_CTX_IMG_RATIO] = &ratio;
 
-		std::unique_ptr<torasu::ResultSegment> srcRes(rh.runRender(rndSrc, &visSettings));
+		std::unique_ptr<torasu::RenderResult> srcRes(rh.runRender(rndSrc, &visSettings));
 
 		// Calculating Result from Results
 
@@ -180,14 +180,14 @@ torasu::ResultSegment* Ralign2d::render(torasu::RenderInstruction* ri) {
 		}
 
 		if (result != NULL) {
-			return new torasu::ResultSegment(torasu::ResultSegmentStatus_OK, result, true);
+			return new torasu::RenderResult(torasu::RenderResultStatus_OK, result, true);
 		} else {
 			torasu::tstd::Dbimg* errRes = new torasu::tstd::Dbimg(*fmt);
-			return new torasu::ResultSegment(torasu::ResultSegmentStatus_OK_WARN, errRes, true);
+			return new torasu::RenderResult(torasu::RenderResultStatus_OK_WARN, errRes, true);
 		}
 
 	} else {
-		return new torasu::ResultSegment(torasu::ResultSegmentStatus_INVALID_SEGMENT);
+		return new torasu::RenderResult(torasu::RenderResultStatus_INVALID_SEGMENT);
 	}
 
 }

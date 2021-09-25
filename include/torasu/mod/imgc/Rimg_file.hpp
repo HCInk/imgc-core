@@ -23,7 +23,7 @@ private:
 	void load(torasu::tools::RenderHelper* rh);
 
 protected:
-	torasu::ResultSegment* render(torasu::RenderInstruction* ri) override;
+	torasu::RenderResult* render(torasu::RenderInstruction* ri) override;
 
 public:
 	explicit Rimg_file(torasu::tools::RenderableSlot file);
