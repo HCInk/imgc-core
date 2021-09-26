@@ -182,8 +182,9 @@ torasu::RenderResult* Rmedia_file::render(torasu::RenderInstruction* ri) {
 				if (rh.mayLog(torasu::WARN))
 					rh.lrib.logCause(torasu::LogLevel::WARN, "DECODER RETURNED NO FRAME! "
 						"(TIME: " + std::to_string(time) + "-" + std::to_string(time+duration) + ")");
-
-				return rh.buildResult(new torasu::tstd::Dbimg(*videoFormat), torasu::RenderResultStatus_OK_WARN);
+				auto* errRes = new torasu::tstd::Dbimg(*videoFormat);
+				errRes->clear();
+				return rh.buildResult(errRes, torasu::RenderResultStatus_OK_WARN);
 			}
 
 			auto firstFrame = frames.begin();
