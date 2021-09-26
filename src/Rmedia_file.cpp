@@ -80,6 +80,16 @@ void Rmedia_file::ready(torasu::ReadyInstruction* ri) {
 
 	auto castedResultSeg = rh.evalResult<torasu::tstd::Dfile>(rr.get());
 
+	if (!castedResultSeg) {
+		constexpr auto message = "Failed loading source-file of media!";
+		if (rh.mayLog(torasu::ERROR)) {
+			torasu::tools::LogInfoRefBuilder lrib(rh.li);
+			lrib.addCause(castedResultSeg.takeInfoTag());
+			rh.li.logger->log(new torasu::LogMessage(torasu::ERROR, message, lrib.build()));
+		}
+		throw std::logic_error(message);
+	}
+
 	auto* obj = new Rmedia_creator_readyobj(
 					new std::vector<torasu::Identifier>({
 						TORASU_STD_PL_VIS, TORASU_STD_PL_AUDIO, 
