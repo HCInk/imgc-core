@@ -628,19 +628,40 @@ void MediaDecoder::drainStream(StreamEntry* stream, DecodingState* decodingState
 	int drainingRequest = avcodec_send_packet(stream->ctx, NULL);
 	if(drainingRequest != 0) return;
 	stream->draining = true;
+
+	AVFrame* flushedFrame = av_frame_alloc();
+	if (flushedFrame == nullptr) throw runtime_error("Failed to allocate av_frame (flush)");
+	std::unique_ptr<AVFrame*, decltype(av_frame_free)*> flushedFrameDeleter(&flushedFrame, av_frame_free);
+
 	while(true) {
-		int response = avcodec_receive_frame(stream->ctx, stream->frame);
+		int response = avcodec_receive_frame(stream->ctx, flushedFrame);
 		if (response == AVERROR(EAGAIN)) {
 			continue;
 		}
 
 		if (response == AVERROR_EOF) {
+			if (stream->codecType == AVMEDIA_TYPE_VIDEO) {
+				// Duplicate last video-frame if last frame is not long enough
+				int64_t endOffset = stream->duration-(stream->frame->pts+stream->frame->pkt_duration);
+				if (endOffset > 0) {
+					stream->frame->pts += stream->frame->pkt_duration;
+					stream->frame->pkt_duration = endOffset;
+					handleFrame(stream, decodingState);
+				}
+			}
 			stream->frameIsPresent = false;
 			break;
 		}
 
 		if (response != 0) {
 			throw runtime_error("non 0 response code from receive frame while draining");
+		}
+
+		// Swap once accepted
+		{
+			AVFrame* nextBuffer = stream->frame;
+			stream->frame = flushedFrame;
+			flushedFrame = nextBuffer;
 		}
 
 		removeCacheFrame(stream->frame->pkt_pos, &stream->cachedFrames);
