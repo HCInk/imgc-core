@@ -284,6 +284,7 @@ private:
 			int finishStat = fr->finish();
 			if (finishStat != 0) {
 				torasu::tools::log_checked(li, torasu::ERROR, "Frame-finish callback exited with non-zero return code (" + std::to_string(finishStat) + ")!");
+				return 1;
 			}
 		}
 
