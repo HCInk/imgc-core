@@ -305,16 +305,14 @@ torasu::tstd::Dbimg* ShapeRenderer::render(torasu::tstd::Dbimg_FORMAT fmt, Dgrap
 					bool risingY = cord.y > prevCord.y;
 					if (risingY) {
 						yLow = floor(prevCord.y);
-						yHigh = ceil(cord.y-1);
+						yHigh = floor(cord.y);
 					} else {
 						yLow = floor(cord.y);
-						yHigh = ceil(prevCord.y-1);
+						yHigh = floor(prevCord.y);
 					}
 
 					if (yLow >= height) continue;
 					if (yHigh < 0) continue;
-					if (yLow < 0) yLow = 0;
-					if (yHigh >= height) yHigh = height-1;
 
 					if (yLow == yHigh) {
 
@@ -332,6 +330,8 @@ torasu::tstd::Dbimg* ShapeRenderer::render(torasu::tstd::Dbimg_FORMAT fmt, Dgrap
 						// 	<< frac.b.x << "#" << frac.b.y << std::endl;
 
 					} else {
+						if (yLow < 0) yLow = 0;
+						if (yHigh >= height) yHigh = height-1;
 
 						double liftFact = (cord.x - prevCord.x)/(cord.y - prevCord.y);
 
@@ -361,7 +361,7 @@ torasu::tstd::Dbimg* ShapeRenderer::render(torasu::tstd::Dbimg_FORMAT fmt, Dgrap
 
 #if IMGC_RGRAPHICS_DBG_SANITY_CHECKS
 							if (frac.a.x == frac.b.x && frac.a.y == frac.b.y) {
-								throw std::runtime_error("Calculated non-line! @ " + std::to_string(frac.a.y) + "#" + std::to_string(frac.a.y));
+								throw std::runtime_error("Calculated non-line! @ " + std::to_string(frac.a.x) + "#" + std::to_string(frac.a.y));
 							}
 #endif
 							fracLine->push_back(frac);
@@ -429,9 +429,9 @@ torasu::tstd::Dbimg* ShapeRenderer::render(torasu::tstd::Dbimg_FORMAT fmt, Dgrap
 #if IMGC_RGRAPHICS_DBG_SANITY_CHECKS
 						if (hasNew) {
 							if (readPtr->a.y < y) {
-								throw std::logic_error("Praticle not in range! (" + std::to_string(y) + " !< " + std::to_string(y) + " < " + std::to_string(y+1));
+								throw std::logic_error("Particle not in range! (" + std::to_string(y) + " !< " + std::to_string(readPtr->a.y) + " < " + std::to_string(y+1) + ")");
 							} else if (readPtr->a.y > y+1) {
-								throw std::logic_error("Praticle not in range! (" + std::to_string(y) + " < " + std::to_string(y) + " !< " + std::to_string(y+1));
+								throw std::logic_error("Particle not in range! (" + std::to_string(y) + " < " + std::to_string(readPtr->a.y) + " !< " + std::to_string(y+1) + ")");
 							}
 						}
 #endif
@@ -496,7 +496,7 @@ torasu::tstd::Dbimg* ShapeRenderer::render(torasu::tstd::Dbimg_FORMAT fmt, Dgrap
 
 #if IMGC_RGRAPHICS_DBG_SANITY_CHECKS
 								// std::cout << " SEGFILL" << segFill << std::endl;
-								if (segFill <= 0 || segFill > 1) {
+								if (segFill < 0 || segFill > 1) {
 									throw std::logic_error("Invalid seg-fill " + std::to_string(segFill));
 								}
 #endif
