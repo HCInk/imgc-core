@@ -682,7 +682,7 @@ void graphicsExample() {
 	// torasu::tstd::Rnum round(1);
 
 	// Rrothumbus roth(&round);
-	Rtext text("S");
+	Rtext text("TEST");
 
 	Rgraphics vecRender(&text);
 
