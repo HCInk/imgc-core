@@ -52,6 +52,7 @@
 #include <torasu/mod/imgc/Rrothombus.hpp>
 #include <torasu/mod/imgc/Rtransform.hpp>
 #include <torasu/mod/imgc/Rcolor.hpp>
+#include <torasu/mod/imgc/Rtext.hpp>
 
 #include "example_tools.hpp"
 
@@ -680,9 +681,10 @@ void graphicsExample() {
 
 	// torasu::tstd::Rnum round(1);
 
-	Rrothumbus roth(&round);
+	// Rrothumbus roth(&round);
+	Rtext text("S");
 
-	Rgraphics vecRender(&roth);
+	Rgraphics vecRender(&text);
 
 	// Rtransform transform(&vecRender, IR(new torasu::tstd::Rmatrix(
 	// 	{
@@ -705,12 +707,23 @@ void graphicsExample() {
 	// 	&rSin, &rCos, 0.0
 	// }, 2 );
 
+	// tstd::Rmatrix transMat({
+	// 	&rCos, IR(new tstd::Rmultiply(&rSin, -1.0)), &rSin,
+	// 	&rSin, &rCos, IR(new tstd::Rmultiply(IR(new tstd::Rsin(IR(new tstd::Rmultiply(&trm, 4)))), 0.3))
+	// }, 2 );
+
+	// tstd::Rmatrix transMat({
+	// 	0.8, 0.0, 0.1,
+	// 	0.0, 0.8, 0.1
+	// }, 2 );
+
 	tstd::Rmatrix transMat({
-		&rCos, IR(new tstd::Rmultiply(&rSin, -1.0)), &rSin,
-		&rSin, &rCos, IR(new tstd::Rsin(IR(new tstd::Rmultiply(&trm, 4))))
+		1.0, 0.0, 0.0,
+		0.0, 1.0, 0.0
 	}, 2 );
 
-	Rtransform transform(&vecRender, &transMat, 1.0/60, 30);
+
+	Rtransform transform(&vecRender, &transMat/* , 1.0/60, 30 */);
 
 	// Rtransform transform(&vecRender, IR(new torasu::tstd::Rmatrix(
 	// 	{
@@ -763,7 +776,8 @@ void graphicsExample() {
 		}
 	});
 
-	imgc::Rmedia_creator encoded(&premulComp, "mp4", 0., 10, 30, 1080*2, 1080*2, 8000*1000, -1, &metadata);
+	imgc::Rmedia_creator encoded(&premulComp, "apng", 0., 0.1, 10, 1080*2, 1080*2, 8000*1000, -1, &metadata);
+	// imgc::Rmedia_creator encoded(&premulComp, "mp4", 0., 10, 30, 1080*2, 1080*2, 8000*1000, -1, &metadata);
 
 	torasu::tstd::LIcore_logger logger;
 	torasu::LogInstruction li(&logger, torasu::LogLevel::DEBUG, torasu::LogInstruction::OPT_PROGRESS);
@@ -786,7 +800,8 @@ void graphicsExample() {
 	std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
 
 	std::cout << "Saving..." << std::endl;
-	std::ofstream sysFile("test.mp4");
+	std::ofstream sysFile("test.png");
+	// std::ofstream sysFile("test.mp4");
 
 	sysFile.write(const_cast<const char*>(reinterpret_cast<char*>(resFile->getFileData())), resFile->getFileSize());
 

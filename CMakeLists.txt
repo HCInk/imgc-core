@@ -9,6 +9,7 @@ if (NOT MINGW AND NOT APPLE)
     set(IMGC_DEBUG_ASAN true)
 endif ()
 
+include_directories(/usr/include/freetype2)
 include_directories(${CMAKE_CURRENT_LIST_DIR}/thirdparty/lodepng)
 
 set(IMGC_SRC
@@ -31,6 +32,7 @@ set(IMGC_SRC
         ${CMAKE_CURRENT_LIST_DIR}/src/ShapeRenderer.cpp
         ${CMAKE_CURRENT_LIST_DIR}/src/Rrothumbus.cpp
         ${CMAKE_CURRENT_LIST_DIR}/src/Rcolor.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/src/Rtext.cpp
         ${CMAKE_CURRENT_LIST_DIR}/src/Rtransform.cpp
         ${CMAKE_CURRENT_LIST_DIR}/src/Transform.cpp)
 
