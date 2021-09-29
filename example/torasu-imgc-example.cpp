@@ -7,52 +7,8 @@
 
 #include <torasu/torasu.hpp>
 #include <torasu/render_tools.hpp>
-#include <torasu/std/pipeline_names.hpp>
-#include <torasu/std/context_names.hpp>
-#include <torasu/std/property_names.hpp>
-#include <torasu/std/EIcore_runner.hpp>
-#include <torasu/std/LIcore_logger.hpp>
-#include <torasu/std/Dstring.hpp>
-#include <torasu/std/Dbimg.hpp>
-#include <torasu/std/Daudio_buffer.hpp>
-#include <torasu/std/Dnum.hpp>
-#include <torasu/std/Dfile.hpp>
-#include <torasu/std/Rlocal_file.hpp>
-#include <torasu/std/Rnet_file.hpp>
-#include <torasu/std/Rmultiply.hpp>
-#include <torasu/std/Rproperty.hpp>
-#include <torasu/std/Rnum.hpp>
-#include <torasu/std/Rstring.hpp>
-#include <torasu/std/Rmix_pipelines.hpp>
-#include <torasu/std/Rmod_rctx.hpp>
-#include <torasu/std/Rrctx_value.hpp>
-#include <torasu/std/Rdivide.hpp>
-#include <torasu/std/Rfloor_mod.hpp>
-#include <torasu/std/Radd.hpp>
-#include <torasu/std/Rsin.hpp>
-#include <torasu/std/Rsubtract.hpp>
-#include <torasu/std/Rstring_map.hpp>
-#include <torasu/std/Rstring_replace.hpp>
-#include <torasu/std/Rmatrix.hpp>
-#include <torasu/std/Rerror.hpp>
-
-#include <torasu/mod/imgc/pipeline_names.hpp>
-#include <torasu/mod/imgc/Rimg_file.hpp>
-#include <torasu/mod/imgc/Rmedia_file.hpp>
-#include <torasu/mod/imgc/Rmedia_creator.hpp>
-#include <torasu/mod/imgc/MediaDecoder.hpp>
-#include <torasu/mod/imgc/MediaEncoder.hpp>
-#include <torasu/mod/imgc/Ralign2d.hpp>
-#include <torasu/mod/imgc/Rauto_align2d.hpp>
-#include <torasu/mod/imgc/Rgain.hpp>
-#include <torasu/mod/imgc/Dcropdata.hpp>
-#include <torasu/mod/imgc/Rcropdata.hpp>
-#include <torasu/mod/imgc/Rcropdata_combined.hpp>
-#include <torasu/mod/imgc/Rgraphics.hpp>
-#include <torasu/mod/imgc/Rrothombus.hpp>
-#include <torasu/mod/imgc/Rtransform.hpp>
-#include <torasu/mod/imgc/Rcolor.hpp>
-#include <torasu/mod/imgc/Rtext.hpp>
+#include <torasu/std/torasu_full.hpp>
+#include <torasu/mod/imgc/imgc_full.hpp>
 
 #include "example_tools.hpp"
 
