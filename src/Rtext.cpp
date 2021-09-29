@@ -22,7 +22,7 @@ struct PointInfo {
 };
 
 struct Character {
-	std::vector<PointInfo> points;
+	std::vector<std::vector<PointInfo>> points;
 	double width;
 	double xPosition;
 
@@ -195,61 +195,76 @@ void Rtext::ready(torasu::ReadyInstruction* ri) {
 		character.width = glyph->advance.x;
 		auto outline = glyph->outline;
 
-		PointInfo lastPoint;
-		PointInfo nextPoint;
-		std::vector<PointInfo>& drawGroup = character.points;
-		int consecutiveControls = 0;
-		size_t sourcePointCount = outline.n_points;
-		for (size_t pi = 0; pi < sourcePointCount; pi++) {
-			{ // Reading next point
-				lastPoint = nextPoint;
-				auto ftPoint = outline.points[pi];
-				nextPoint.cord = {static_cast<double>(ftPoint.x)/sacleFactor, static_cast<double>(ftPoint.y)/sacleFactor*-1+1};
-				auto tag = outline.tags[pi];
-				// If bit~0 is unset, the point is 'off' the curve, i.e., a Bezier
-				// control point, while it is 'on' if set.
-				nextPoint.isControl = !(tag & 0x1);
-				// Bit~1 is meaningful for 'off' points only.  If set, it indicates a
-				// third-order Bezier arc control point; and a second-order control
-				// point if unset.
-				nextPoint.isCubic = tag & 0x2;
-			}
+		std::vector<std::vector<PointInfo>>& characterPoints = character.points;
+		
+		size_t currentOffset = 0;
+		size_t contourCount = outline.n_contours;
+		// size_t contourCount = 1;
+		for (size_t ci = 0; ci < contourCount; ci++) {
+			std::vector<PointInfo>& drawGroup = characterPoints.emplace_back();
 
-			if (nextPoint.isControl) {
-				if (pi == 0) {
-					nextPoint.isControl = false;
-				} else {
-					consecutiveControls++;
-					// Interpolate if neccesary
-					if (nextPoint.isCubic ? consecutiveControls > 2 : consecutiveControls > 1) {
-						PointInfo interpolation;
-						interpolation.cord = {
-							(lastPoint.cord.x + nextPoint.cord.x)/2,
-							(lastPoint.cord.y + nextPoint.cord.y)/2
-						};
-						interpolation.isControl = false;
-						drawGroup.push_back(interpolation);
-						if (debugLog) {
-							rh.li.logger->log(torasu::DEBUG, "outline-pt \t" + std::to_string(nextPoint.cord.x) + "\t" + std::to_string(nextPoint.cord.y) + "\tINTER");
-						}
-						consecutiveControls = 1;
-					}
+			int nextOffset = outline.contours[ci]+1;
+			// int nextOffset = outline.n_points;
+
+			int consecutiveControls = 0;
+			PointInfo lastPoint;
+			PointInfo nextPoint;
+
+			FT_Vector* sourcePoints = outline.points+currentOffset;
+			size_t sourcePointCount = nextOffset-currentOffset;
+			for (size_t pi = 0; pi < sourcePointCount; pi++) {
+				{ // Reading next point
+					lastPoint = nextPoint;
+					auto ftPoint = sourcePoints[pi];
+					nextPoint.cord = {static_cast<double>(ftPoint.x)/sacleFactor, static_cast<double>(ftPoint.y)/sacleFactor*-1+1};
+					auto tag = outline.tags[pi];
+					// If bit~0 is unset, the point is 'off' the curve, i.e., a Bezier
+					// control point, while it is 'on' if set.
+					nextPoint.isControl = !(tag & 0x1);
+					// Bit~1 is meaningful for 'off' points only.  If set, it indicates a
+					// third-order Bezier arc control point; and a second-order control
+					// point if unset.
+					nextPoint.isCubic = tag & 0x2;
 				}
-			} else {
-				consecutiveControls = 0;
+
+				if (nextPoint.isControl) {
+					if (pi == 0) {
+						nextPoint.isControl = false;
+					} else {
+						consecutiveControls++;
+						// Interpolate if neccesary
+						if (nextPoint.isCubic ? consecutiveControls > 2 : consecutiveControls > 1) {
+							PointInfo interpolation;
+							interpolation.cord = {
+								(lastPoint.cord.x + nextPoint.cord.x)/2,
+								(lastPoint.cord.y + nextPoint.cord.y)/2
+							};
+							interpolation.isControl = false;
+							drawGroup.push_back(interpolation);
+							if (debugLog) {
+								rh.li.logger->log(torasu::DEBUG, "outline-pt \t" + std::to_string(nextPoint.cord.x) + "\t" + std::to_string(nextPoint.cord.y) + "\tINTER");
+							}
+							consecutiveControls = 1;
+						}
+					}
+				} else {
+					consecutiveControls = 0;
+				}
+
+				drawGroup.push_back(nextPoint);
+
+				if (debugLog) {
+					std::string label = nextPoint.isControl ? (nextPoint.isCubic ? "CTL-3" : "CTL-2") : "DIRECT";
+					rh.li.logger->log(torasu::DEBUG, "outline-pt \t" + std::to_string(nextPoint.cord.x) + "\t" + std::to_string(nextPoint.cord.y) + "\t" + label);
+				}
+
 			}
 
-			drawGroup.push_back(nextPoint);
-
-			if (debugLog) {
-				std::string label = nextPoint.isControl ? (nextPoint.isCubic ? "CTL-3" : "CTL-2") : "DIRECT";
-				rh.li.logger->log(torasu::DEBUG, "outline-pt \t" + std::to_string(nextPoint.cord.x) + "\t" + std::to_string(nextPoint.cord.y) + "\t" + label);
+			if (!drawGroup.empty()) {
+				drawGroup.push_back(drawGroup.front());
 			}
 
-		}
-
-		if (!drawGroup.empty()) {
-			drawGroup.push_back(drawGroup.front());
+			currentOffset = nextOffset;
 		}
 
 		cursorX += static_cast<double>(character.width)/sacleFactor;
@@ -281,68 +296,70 @@ torasu::RenderResult* Rtext::render(torasu::RenderInstruction* ri) {
 
 		std::vector<imgc::Dgraphics::GSection> sections;
 		for (Character glyph : textState->characters) {
-			const auto& drawGroup = glyph.points;
+			const auto& characterPoints = glyph.points;
 			double xOffset = glyph.xPosition;
 
-			std::vector<imgc::Dgraphics::GSegment> segments;
-			imgc::Dgraphics::GSegment currSegment;
+			for (const auto& drawGroup : characterPoints) {
+				std::vector<imgc::Dgraphics::GSegment> segments;
+				imgc::Dgraphics::GSegment currSegment;
 
-			int procState = 0;
-			size_t pointCount = drawGroup.size();
-			const PointInfo* pointData = drawGroup.data();
-			for (size_t pi = 0; pi < pointCount; pi++) {
-				PointInfo point = pointData[pi];
-				point.cord.x += xOffset;
-				point.cord.x *= xScale;
+				int procState = 0;
+				size_t pointCount = drawGroup.size();
+				const PointInfo* pointData = drawGroup.data();
+				for (size_t pi = 0; pi < pointCount; pi++) {
+					PointInfo point = pointData[pi];
+					point.cord.x += xOffset;
+					point.cord.x *= xScale;
 
-				if (procState <= 0) { // set-up start segment
-					currSegment.a = point.cord;
-					procState = 1;
-					continue;
-				}
+					if (procState <= 0) { // set-up start segment
+						currSegment.a = point.cord;
+						procState = 1;
+						continue;
+					}
 
 
-				if (point.isControl) {
-					if (point.isCubic) {
-						if (procState >= 2) {
-							currSegment.cb = point.cord;
-							procState = 3;
+					if (point.isControl) {
+						if (point.isCubic) {
+							if (procState >= 2) {
+								currSegment.cb = point.cord;
+								procState = 3;
+							} else {
+								currSegment.ca = point.cord;
+								procState = 2;
+							}
 						} else {
-							currSegment.ca = point.cord;
+							// Get next cord: This works since the last point is never a control point, guarteed at read-time
+							currSegment.b = pointData[pi+1].cord;
+							currSegment.b.x += xOffset;
+							currSegment.b.x *= xScale;
+
+							// Convert quadratic to cubic
+							currSegment.ca = {
+								currSegment.a.x + 2.0/3.0*(point.cord.x - currSegment.a.x),
+								currSegment.a.y + 2.0/3.0*(point.cord.y - currSegment.a.y)
+							};
+							currSegment.cb = {
+								currSegment.b.x + 2.0/3.0*(point.cord.x - currSegment.b.x),
+								currSegment.b.y + 2.0/3.0*(point.cord.y - currSegment.b.y)
+							};
+
 							procState = 2;
 						}
 					} else {
-						// Get next cord: This works since the last point is never a control point, guarteed at read-time
-						currSegment.b = pointData[pi+1].cord;
-						currSegment.b.x += xOffset;
-						currSegment.b.x *= xScale;
-
-						// Convert quadratic to cubic
-						currSegment.ca = {
-							currSegment.a.x + 2.0/3.0*(point.cord.x - currSegment.a.x),
-							currSegment.a.y + 2.0/3.0*(point.cord.y - currSegment.a.y)
-						};
-						currSegment.cb = {
-							currSegment.b.x + 2.0/3.0*(point.cord.x - currSegment.b.x),
-							currSegment.b.y + 2.0/3.0*(point.cord.y - currSegment.b.y)
-						};
-
-						procState = 2;
+						currSegment.b = point.cord;
+						if (procState == 1) { 
+							// Set control points if there has no control point been there yet to write it
+							currSegment.ca = currSegment.a;
+							currSegment.cb = currSegment.b;
+						}
+						procState = 1;
+						segments.push_back(currSegment);
+						currSegment.a = currSegment.b;
 					}
-				} else {
-					currSegment.b = point.cord;
-					if (procState == 1) { 
-						// Set control points if there has no control point been there yet to write it
-						currSegment.ca = currSegment.a;
-						currSegment.cb = currSegment.b;
-					}
-					procState = 1;
-					segments.push_back(currSegment);
-					currSegment.a = currSegment.b;
 				}
+				
+				sections.push_back(imgc::Dgraphics::GSection(segments));
 			}
-			
-			sections.push_back(imgc::Dgraphics::GSection(segments));
 		}
 
 		auto* graphics = new Dgraphics({
