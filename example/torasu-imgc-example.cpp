@@ -723,7 +723,7 @@ void graphicsExample() {
 	}, 2 );
 
 
-	Rtransform transform(&vecRender, &transMat/* , 1.0/60, 30 */);
+	Rtransform transform(IR(new imgc::Rauto_align2d(&vecRender, 0, 0, 0)), &transMat/* , 1.0/60, 30 */);
 
 	// Rtransform transform(&vecRender, IR(new torasu::tstd::Rmatrix(
 	// 	{

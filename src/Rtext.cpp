@@ -10,6 +10,7 @@
 
 #include <torasu/std/pipeline_names.hpp>
 #include <torasu/std/property_names.hpp>
+#include <torasu/std/Dnum.hpp>
 
 #include <torasu/mod/imgc/Dgraphics.hpp>
 
@@ -264,8 +265,8 @@ void Rtext::ready(torasu::ReadyInstruction* ri) {
 torasu::RenderResult* Rtext::render(torasu::RenderInstruction* ri) {
 	auto* resSettings = ri->getResultSettings();
  
-	if (resSettings->getPipeline() == TORASU_STD_PL_VIS) {
-		torasu::tools::RenderHelper rh(ri);
+	torasu::tools::RenderHelper rh(ri);
+	if (rh.matchPipeline(TORASU_STD_PL_VIS)) {
 
 		// Check format
 
@@ -351,6 +352,9 @@ torasu::RenderResult* Rtext::render(torasu::RenderInstruction* ri) {
 		});
 
 		return rh.buildResult(graphics);
+	} else if (rh.matchPipeline(TORASU_PROPERTY(TORASU_STD_PROP_IMG_RAITO))) {
+		auto* textState = static_cast<TextState*>(ri->getReadyState());
+		return rh.buildResult(new torasu::tstd::Dnum(textState->totalWidth));
 	} else {
 		return new torasu::RenderResult(torasu::RenderResultStatus_INVALID_SEGMENT);
 	}
