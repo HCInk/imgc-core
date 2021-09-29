@@ -62,14 +62,13 @@ torasu::RenderResult* Rgraphics::render(torasu::RenderInstruction* ri) {
 			return new torasu::RenderResult(torasu::RenderResultStatus_OK, base, true);
 		} else if (dynamic_cast<imgc::Dgraphics_FORMAT*>(reqFormat)) {
 			return new torasu::RenderResult(torasu::RenderResultStatus_OK, graphics.get(), false);
-		} else {
-			return new torasu::RenderResult(torasu::RenderResultStatus_INVALID_FORMAT);
 		}
 
-	} else {
-		return new torasu::RenderResult(torasu::RenderResultStatus_INVALID_SEGMENT);
 	}
 
+	// TODO proper way to pass a render result (while also preserving logs)
+	std::unique_ptr<torasu::RenderResult> result(rh.runRender(source, rh.rs));
+	return new torasu::RenderResult(result->getStatus(), result->ejectOrClone(), new torasu::RenderContextMask(*result->getResultMask()));
 }
 
 torasu::ElementMap Rgraphics::getElements() {
