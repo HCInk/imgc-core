@@ -639,7 +639,7 @@ void graphicsExample() {
 
 	// Rrothumbus roth(&round);
 	// Rtext text("0");
-	Rtext text(IR(new torasu::tstd::Rnumber_string(&time)));
+	Rtext text(IR(new torasu::tstd::Rnumber_string(&time, 1, 2)));
 
 	Rgraphics vecRender(&text);
 
@@ -685,7 +685,7 @@ void graphicsExample() {
 	}, 2 );
 
 
-	Rtransform transform(IR(new imgc::Rauto_align2d(&vecRender, 0, 0, 0)), &transMat, 1.0/60, 30);
+	Rtransform transform(IR(new imgc::Rauto_align2d(&vecRender, 0, 0, 0)), &transMat /*,  1.0/60, 15 */);
 
 	// Rtransform transform(&vecRender, IR(new torasu::tstd::Rmatrix(
 	// 	{
@@ -702,22 +702,22 @@ void graphicsExample() {
 
 	// RGB-EFFECT: OFF
 
-	// auto& comp = preComp;
-	// auto& premulComp = premulMaybe;
+	auto& comp = preComp;
+	auto& premulComp = premulMaybe;
 
 	// RGB-EFFECT: ON
 
-	auto& redFr = premulMaybe;
-	tstd::Rmod_rctx greenFr(&premulMaybe, IR( new tstd::Radd(&time, 1.0/60) ), TORASU_STD_CTX_TIME, TORASU_STD_PL_NUM);
-	tstd::Rmod_rctx blueFr(&premulMaybe, IR( new tstd::Radd(&time, 2.0/60) ), TORASU_STD_CTX_TIME, TORASU_STD_PL_NUM);
+	// auto& redFr = premulMaybe;
+	// tstd::Rmod_rctx greenFr(&premulMaybe, IR( new tstd::Radd(&time, 1.0/60) ), TORASU_STD_CTX_TIME, TORASU_STD_PL_NUM);
+	// tstd::Rmod_rctx blueFr(&premulMaybe, IR( new tstd::Radd(&time, 2.0/60) ), TORASU_STD_CTX_TIME, TORASU_STD_PL_NUM);
 
-	tstd::Rmultiply red(&redFr, IR(new imgc::Rcolor(1.0, 0.0, 0.0, 1.0)));
-	tstd::Rmultiply green(&greenFr, IR(new imgc::Rcolor(0.0, 1.0, 0.0, 1.0)));
-	tstd::Rmultiply blue(&blueFr, IR(new imgc::Rcolor(0.0, 0.0, 1.0, 1.0)));
+	// tstd::Rmultiply red(&redFr, IR(new imgc::Rcolor(1.0, 0.0, 0.0, 1.0)));
+	// tstd::Rmultiply green(&greenFr, IR(new imgc::Rcolor(0.0, 1.0, 0.0, 1.0)));
+	// tstd::Rmultiply blue(&blueFr, IR(new imgc::Rcolor(0.0, 0.0, 1.0, 1.0)));
 
-	tstd::Radd comp(&red, IR( new tstd::Radd(&green, &blue)));
+	// tstd::Radd comp(&red, IR( new tstd::Radd(&green, &blue)));
 
-	auto& premulComp = comp;
+	// auto& premulComp = comp;
 
 	torasu::tstd::Rstring artist("John Doe");
 
@@ -739,7 +739,7 @@ void graphicsExample() {
 	});
 
 	// imgc::Rmedia_creator encoded(&premulComp, "apng", 0., 0.1, 10, 1080*2, 1080*2, 8000*1000, -1, &metadata);
-	imgc::Rmedia_creator encoded(&premulComp, "mp4", 0., 10, 30, 1080*2, 1080*2, 8000*1000, -1, &metadata);
+	imgc::Rmedia_creator encoded(&premulComp, "mp4", 0., 12, 30, 1080*2, 1080*2, 8000*1000, -1, &metadata);
 
 	torasu::tstd::LIcore_logger logger;
 	torasu::LogInstruction li(&logger, torasu::LogLevel::INFO, torasu::LogInstruction::OPT_PROGRESS);
