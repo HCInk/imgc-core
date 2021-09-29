@@ -638,7 +638,7 @@ void graphicsExample() {
 	// torasu::tstd::Rnum round(1);
 
 	// Rrothumbus roth(&round);
-	// Rtext text("0.000000");
+	// Rtext text("0");
 	Rtext text(IR(new torasu::tstd::Rnumber_string(&time)));
 
 	Rgraphics vecRender(&text);
@@ -674,13 +674,18 @@ void graphicsExample() {
 	// 	0.0, 0.8, 0.1
 	// }, 2 );
 
+	// tstd::Rmatrix transMat({
+	// 	1.0, 0.0, 0.0,
+	// 	0.0, 1.0, 0.0
+	// }, 2 );
+
 	tstd::Rmatrix transMat({
 		1.0, 0.0, 0.0,
-		0.0, 1.0, 0.0
+		0.0, 1.0, IR(new tstd::Rmultiply(IR(new tstd::Rsin(IR(new tstd::Rmultiply(&trm, 2)))), 0.1))
 	}, 2 );
 
 
-	Rtransform transform(IR(new imgc::Rauto_align2d(&vecRender, 0, 0, 0)), &transMat/* , 1.0/60, 30 */);
+	Rtransform transform(IR(new imgc::Rauto_align2d(&vecRender, 0, 0, 0)), &transMat, 1.0/60, 30);
 
 	// Rtransform transform(&vecRender, IR(new torasu::tstd::Rmatrix(
 	// 	{
@@ -697,22 +702,22 @@ void graphicsExample() {
 
 	// RGB-EFFECT: OFF
 
-	auto& comp = preComp;
-	auto& premulComp = premulMaybe;
+	// auto& comp = preComp;
+	// auto& premulComp = premulMaybe;
 
 	// RGB-EFFECT: ON
 
-	// auto& redFr = premulMaybe;
-	// tstd::Rmod_rctx greenFr(&premulMaybe, IR( new tstd::Radd(&time, 1.0/60) ), TORASU_STD_CTX_TIME, TORASU_STD_PL_NUM);
-	// tstd::Rmod_rctx blueFr(&premulMaybe, IR( new tstd::Radd(&time, 2.0/60) ), TORASU_STD_CTX_TIME, TORASU_STD_PL_NUM);
+	auto& redFr = premulMaybe;
+	tstd::Rmod_rctx greenFr(&premulMaybe, IR( new tstd::Radd(&time, 1.0/60) ), TORASU_STD_CTX_TIME, TORASU_STD_PL_NUM);
+	tstd::Rmod_rctx blueFr(&premulMaybe, IR( new tstd::Radd(&time, 2.0/60) ), TORASU_STD_CTX_TIME, TORASU_STD_PL_NUM);
 
-	// tstd::Rmultiply red(&redFr, IR(new imgc::Rcolor(1.0, 0.0, 0.0, 1.0)));
-	// tstd::Rmultiply green(&greenFr, IR(new imgc::Rcolor(0.0, 1.0, 0.0, 1.0)));
-	// tstd::Rmultiply blue(&blueFr, IR(new imgc::Rcolor(0.0, 0.0, 1.0, 1.0)));
+	tstd::Rmultiply red(&redFr, IR(new imgc::Rcolor(1.0, 0.0, 0.0, 1.0)));
+	tstd::Rmultiply green(&greenFr, IR(new imgc::Rcolor(0.0, 1.0, 0.0, 1.0)));
+	tstd::Rmultiply blue(&blueFr, IR(new imgc::Rcolor(0.0, 0.0, 1.0, 1.0)));
 
-	// tstd::Radd comp(&red, IR( new tstd::Radd(&green, &blue)));
+	tstd::Radd comp(&red, IR( new tstd::Radd(&green, &blue)));
 
-	// auto& premulComp = comp;
+	auto& premulComp = comp;
 
 	torasu::tstd::Rstring artist("John Doe");
 

@@ -14,11 +14,23 @@
 
 #include <torasu/mod/imgc/Dgraphics.hpp>
 
+#define DEBUG_HIDE_MAIN false
+#define DEBUG_EXTRA_DATA false
+#define DEBUG_SHOW_POINTS false
+
+#if DEBUG_SHOW_POINTS
+	#define DEBUG_EXTRA_DATA true
+#endif
+
 namespace {
 struct PointInfo {
 	imgc::Dgraphics::GCoordinate cord;
 	bool isControl;
 	bool isCubic;
+#if DEBUG_EXTRA_DATA
+	bool isInterpolation = false;
+#endif
+
 };
 
 struct Character {
@@ -198,24 +210,22 @@ void Rtext::ready(torasu::ReadyInstruction* ri) {
 		std::vector<std::vector<PointInfo>>& characterPoints = character.points;
 		
 		size_t currentOffset = 0;
+		// size_t currentOffset = outline.contours[0]+1;
 		size_t contourCount = outline.n_contours;
 		// size_t contourCount = 1;
 		for (size_t ci = 0; ci < contourCount; ci++) {
 			std::vector<PointInfo>& drawGroup = characterPoints.emplace_back();
 
-			int nextOffset = outline.contours[ci]+1;
+			size_t nextOffset = outline.contours[ci]+1;
 			// int nextOffset = outline.n_points;
 
 			int consecutiveControls = 0;
 			PointInfo lastPoint;
 			PointInfo nextPoint;
-
-			FT_Vector* sourcePoints = outline.points+currentOffset;
-			size_t sourcePointCount = nextOffset-currentOffset;
-			for (size_t pi = 0; pi < sourcePointCount; pi++) {
+			for (size_t pi = currentOffset; pi < nextOffset; pi++) {
 				{ // Reading next point
 					lastPoint = nextPoint;
-					auto ftPoint = sourcePoints[pi];
+					auto ftPoint = outline.points[pi];
 					nextPoint.cord = {static_cast<double>(ftPoint.x)/sacleFactor, static_cast<double>(ftPoint.y)/sacleFactor*-1+1};
 					auto tag = outline.tags[pi];
 					// If bit~0 is unset, the point is 'off' the curve, i.e., a Bezier
@@ -225,7 +235,13 @@ void Rtext::ready(torasu::ReadyInstruction* ri) {
 					// third-order Bezier arc control point; and a second-order control
 					// point if unset.
 					nextPoint.isCubic = tag & 0x2;
+
+					if (debugLog) {
+						std::string label = nextPoint.isControl ? (nextPoint.isCubic ? "CTL-3" : "CTL-2") : "DIRECT";
+						rh.li.logger->log(torasu::DEBUG, "next-pt \t" + std::to_string(pi) + "\t" + std::to_string(ftPoint.x) + "\t" + std::to_string(ftPoint.y) + "\t" + label);
+					}
 				}
+
 
 				if (nextPoint.isControl) {
 					if (pi == 0) {
@@ -240,9 +256,12 @@ void Rtext::ready(torasu::ReadyInstruction* ri) {
 								(lastPoint.cord.y + nextPoint.cord.y)/2
 							};
 							interpolation.isControl = false;
+#if DEBUG_EXTRA_DATA
+							interpolation.isInterpolation = true;
+#endif
 							drawGroup.push_back(interpolation);
 							if (debugLog) {
-								rh.li.logger->log(torasu::DEBUG, "outline-pt \t" + std::to_string(nextPoint.cord.x) + "\t" + std::to_string(nextPoint.cord.y) + "\tINTER");
+								rh.li.logger->log(torasu::DEBUG, "outline-pt \t" + std::to_string(interpolation.cord.x) + "\t" + std::to_string(interpolation.cord.y) + "\tINTER");
 							}
 							consecutiveControls = 1;
 						}
@@ -251,13 +270,13 @@ void Rtext::ready(torasu::ReadyInstruction* ri) {
 					consecutiveControls = 0;
 				}
 
-				drawGroup.push_back(nextPoint);
-
 				if (debugLog) {
 					std::string label = nextPoint.isControl ? (nextPoint.isCubic ? "CTL-3" : "CTL-2") : "DIRECT";
 					rh.li.logger->log(torasu::DEBUG, "outline-pt \t" + std::to_string(nextPoint.cord.x) + "\t" + std::to_string(nextPoint.cord.y) + "\t" + label);
 				}
 
+				// nextPoint.isControl = false;
+				drawGroup.push_back(nextPoint);
 			}
 
 			if (!drawGroup.empty()) {
@@ -317,8 +336,15 @@ torasu::RenderResult* Rtext::render(torasu::RenderInstruction* ri) {
 						continue;
 					}
 
-
 					if (point.isControl) {
+#if DEBUG_SHOW_POINTS
+						sections.push_back(Dgraphics::GSection::fromPolys({
+							{point.cord.x, point.cord.y+0.01},
+							{point.cord.x+0.01, point.cord.y},
+							{point.cord.x-0.01, point.cord.y},
+							{point.cord.x, point.cord.y-0.01},
+						}));
+#endif
 						if (point.isCubic) {
 							if (procState >= 2) {
 								currSegment.cb = point.cord;
@@ -346,6 +372,23 @@ torasu::RenderResult* Rtext::render(torasu::RenderInstruction* ri) {
 							procState = 2;
 						}
 					} else {
+#if DEBUG_SHOW_POINTS
+						if (point.isInterpolation) {
+							sections.push_back(Dgraphics::GSection::fromPolys({
+								{point.cord.x+0.005, point.cord.y+0.01},
+								{point.cord.x-0.005, point.cord.y+0.01},
+								{point.cord.x+0.005, point.cord.y-0.01},
+								{point.cord.x-0.005, point.cord.y-0.01},
+							}));
+						} else {
+							sections.push_back(Dgraphics::GSection::fromPolys({
+								{point.cord.x+0.01, point.cord.y+0.01},
+								{point.cord.x-0.01, point.cord.y+0.01},
+								{point.cord.x+0.01, point.cord.y-0.01},
+								{point.cord.x-0.01, point.cord.y-0.01},
+							}));
+						}
+#endif
 						currSegment.b = point.cord;
 						if (procState == 1) { 
 							// Set control points if there has no control point been there yet to write it
@@ -357,8 +400,9 @@ torasu::RenderResult* Rtext::render(torasu::RenderInstruction* ri) {
 						currSegment.a = currSegment.b;
 					}
 				}
-				
+#if !DEBUG_HIDE_MAIN
 				sections.push_back(imgc::Dgraphics::GSection(segments));
+#endif
 			}
 		}
 
