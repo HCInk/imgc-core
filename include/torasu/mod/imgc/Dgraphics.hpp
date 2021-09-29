@@ -43,6 +43,8 @@ public:
 
 	public:
 		explicit GSection(std::vector<GSegment> segments);
+
+		static GSection fromPolys(std::vector<GCoordinate> polys);
 	};
 
 	/**

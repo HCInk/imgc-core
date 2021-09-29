@@ -61,5 +61,24 @@ Dgraphics::GShape::GShape(GSection section, std::vector<GCoordinate> bounds)
 Dgraphics::GObject::GObject(GShape shape)
 	: shape(shape) {}
 
+Dgraphics::GSection Dgraphics::GSection::fromPolys(std::vector<GCoordinate> polys) {
+	if (polys.empty()) return GSection({});
+	std::vector<GSegment> segments;
+
+	GSegment current;
+	current.a = polys.back();
+	current.ca = current.a;
+
+	for (auto poly : polys) {
+		current.b = poly;
+		current.cb = poly;
+		segments.push_back(current);
+		current.a = poly;
+		current.ca = poly;
+	}
+
+	return GSection(segments);
+}
+
 } // namespace imgc
 
