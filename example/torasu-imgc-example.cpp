@@ -638,6 +638,7 @@ void graphicsExample() {
 	// torasu::tstd::Rnum round(1);
 
 	// Rrothumbus roth(&round);
+	// Rtext text("0.000000");
 	Rtext text(IR(new torasu::tstd::Rnumber_string(&time)));
 
 	Rgraphics vecRender(&text);
@@ -736,7 +737,7 @@ void graphicsExample() {
 	imgc::Rmedia_creator encoded(&premulComp, "mp4", 0., 10, 30, 1080*2, 1080*2, 8000*1000, -1, &metadata);
 
 	torasu::tstd::LIcore_logger logger;
-	torasu::LogInstruction li(&logger, torasu::LogLevel::DEBUG, torasu::LogInstruction::OPT_PROGRESS);
+	torasu::LogInstruction li(&logger, torasu::LogLevel::INFO, torasu::LogInstruction::OPT_PROGRESS);
 	auto* runner = new torasu::tstd::EIcore_runner((size_t)25);
 	torasu::ExecutionInterface* ei = runner->createInterface();
 	torasu::RenderContext rctx;

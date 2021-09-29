@@ -84,17 +84,10 @@ void Rtext::ready(torasu::ReadyInstruction* ri) {
 
 	torasu::tools::RenderHelper rh(ri);
 
-	auto* textState = new TextState(
-					new std::vector<torasu::Identifier>({
-						TORASU_STD_PL_VIS, TORASU_PROPERTY(TORASU_STD_PROP_IMG_RAITO)}), 
-					rh.takeResMask());
-	ri->setState(textState);
-
+	// Get Text
 	std::string str;
-
-	torasu::ResultSettings numSettings(TORASU_STD_PL_STRING, nullptr);
-
-	std::unique_ptr<torasu::RenderResult> rndRes(rh.runRender(textRnd, &numSettings));
+	torasu::ResultSettings stringRs(TORASU_STD_PL_STRING, nullptr);
+	std::unique_ptr<torasu::RenderResult> rndRes(rh.runRender(textRnd, &stringRs));
 
 	auto fetchedRes = rh.evalResult<torasu::tstd::Dstring>(rndRes.get());
 
@@ -106,6 +99,13 @@ void Rtext::ready(torasu::ReadyInstruction* ri) {
 		}
 		rh.lrib.hasError = true;
 	}
+
+	// Register State
+	auto* textState = new TextState(
+					new std::vector<torasu::Identifier>({
+						TORASU_STD_PL_VIS, TORASU_PROPERTY(TORASU_STD_PROP_IMG_RAITO)}), 
+					rh.takeResMask());
+	ri->setState(textState);
 
 	// Create graphics
 	bool debugLog = rh.mayLog(torasu::DEBUG);
