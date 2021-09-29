@@ -23,6 +23,10 @@
 #endif
 
 namespace {
+
+// XXX Temporary padding for text, while rendering outside of ordinary cordinates is not possible
+constexpr double padding = 0.1;
+
 struct PointInfo {
 	imgc::Dgraphics::GCoordinate cord;
 	bool isControl;
@@ -291,7 +295,7 @@ void Rtext::ready(torasu::ReadyInstruction* ri) {
 
 	FT_Done_FreeType(library);
 
-	textState->totalWidth = cursorX;
+	textState->totalWidth = cursorX + (padding*2);
 
 }
 
@@ -311,12 +315,12 @@ torasu::RenderResult* Rtext::render(torasu::RenderInstruction* ri) {
 		// Draw characters from state
 		auto* textState = static_cast<TextState*>(ri->getReadyState());
 
-		double xScale = 1.0/textState->totalWidth;
+		double xScale = (1.0)/textState->totalWidth;
 
 		std::vector<imgc::Dgraphics::GSection> sections;
 		for (Character glyph : textState->characters) {
 			const auto& characterPoints = glyph.points;
-			double xOffset = glyph.xPosition;
+			double xOffset = glyph.xPosition + padding;
 
 			for (const auto& drawGroup : characterPoints) {
 				std::vector<imgc::Dgraphics::GSegment> segments;
@@ -329,6 +333,8 @@ torasu::RenderResult* Rtext::render(torasu::RenderInstruction* ri) {
 					PointInfo point = pointData[pi];
 					point.cord.x += xOffset;
 					point.cord.x *= xScale;
+					point.cord.y /= 1+padding*2;
+					point.cord.y += padding;
 
 					if (procState <= 0) { // set-up start segment
 						currSegment.a = point.cord;
@@ -358,6 +364,8 @@ torasu::RenderResult* Rtext::render(torasu::RenderInstruction* ri) {
 							currSegment.b = pointData[pi+1].cord;
 							currSegment.b.x += xOffset;
 							currSegment.b.x *= xScale;
+							currSegment.b.y /= 1+padding*2;
+							currSegment.b.y += padding;
 
 							// Convert quadratic to cubic
 							currSegment.ca = {
@@ -415,7 +423,7 @@ torasu::RenderResult* Rtext::render(torasu::RenderInstruction* ri) {
 		return rh.buildResult(graphics);
 	} else if (rh.matchPipeline(TORASU_PROPERTY(TORASU_STD_PROP_IMG_RAITO))) {
 		auto* textState = static_cast<TextState*>(ri->getReadyState());
-		return rh.buildResult(new torasu::tstd::Dnum(textState->totalWidth));
+		return rh.buildResult(new torasu::tstd::Dnum(textState->totalWidth/(1+padding*2)));
 	} else {
 		return new torasu::RenderResult(torasu::RenderResultStatus_INVALID_SEGMENT);
 	}
