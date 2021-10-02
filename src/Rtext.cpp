@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <queue>
+#include <wchar.h>
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
@@ -25,7 +26,38 @@
 namespace {
 
 // XXX Temporary padding for text, while rendering outside of ordinary cordinates is not possible
-constexpr double padding = 0.1;
+constexpr double padding = 0.35;
+
+inline uint32_t nextCharUtf8(const char* utf8, size_t* index) {
+	utf8 += *index;
+	size_t i = 0;
+	uint32_t buff = static_cast<uint8_t>(*utf8);
+	while(i < 4) {
+		utf8++;
+		i++;
+		(*index)++;
+		// characters that begin with binary 10xxxxxx... are continuations; all other
+		// characters should begin a new utf32 char (assuming valid utf8 input)
+		if (*utf8 == 0x00 || (*utf8 & 0xc0) != 0x80) break;
+		buff <<= 6;
+		buff |= static_cast<uint8_t>(*utf8) & 0x3F;
+	}
+	// Apply mask to each result
+	switch (i) {
+	case 2:
+		buff &= 0x000007FF;
+		break;
+	case 3:
+		buff &= 0x0000FFFF;
+		break;
+	case 4:
+		buff &= 0x001FFFFF;
+		break;
+	default:
+		break;
+	}
+	return buff;
+}
 
 struct PointInfo {
 	imgc::Dgraphics::GCoordinate cord;
@@ -137,7 +169,7 @@ void Rtext::ready(torasu::ReadyInstruction* ri) {
 	}
 
 	error = FT_New_Face( library,
-						"/usr/share/fonts/noto/NotoSans-BlackItalic.ttf",
+						"/usr/share/fonts/adobe-source-han-sans/SourceHanSansJP-Bold.otf",
 						0,
 						&face );
 	if ( error == FT_Err_Cannot_Open_Resource ) {
@@ -189,11 +221,12 @@ void Rtext::ready(torasu::ReadyInstruction* ri) {
 	size_t numChars = str.length();
 	const char* cstr = str.c_str();
 	
-	for ( size_t i = 0; i < numChars; i++ ) {
-		FT_UInt  glyph_index;
+	for ( size_t i = 0; i < numChars;) {
+		auto nextChar = nextCharUtf8(cstr, &i);
 
+		FT_UInt  glyph_index;
 		/* retrieve glyph index from character code */
-		glyph_index = FT_Get_Char_Index( face, cstr[i] );
+		glyph_index = FT_Get_Char_Index( face, nextChar/* cstr[i] */ );
 
 		/* load glyph image into the slot (erase previous one) */
 		error = FT_Load_Glyph( face, glyph_index, FT_LOAD_DEFAULT );
@@ -333,8 +366,8 @@ torasu::RenderResult* Rtext::render(torasu::RenderInstruction* ri) {
 					PointInfo point = pointData[pi];
 					point.cord.x += xOffset;
 					point.cord.x *= xScale;
-					point.cord.y /= 1+padding*2;
 					point.cord.y += padding;
+					point.cord.y /= 1+padding*2;
 
 					if (procState <= 0) { // set-up start segment
 						currSegment.a = point.cord;
@@ -364,8 +397,8 @@ torasu::RenderResult* Rtext::render(torasu::RenderInstruction* ri) {
 							currSegment.b = pointData[pi+1].cord;
 							currSegment.b.x += xOffset;
 							currSegment.b.x *= xScale;
-							currSegment.b.y /= 1+padding*2;
 							currSegment.b.y += padding;
+							currSegment.b.y /= 1+padding*2;
 
 							// Convert quadratic to cubic
 							currSegment.ca = {

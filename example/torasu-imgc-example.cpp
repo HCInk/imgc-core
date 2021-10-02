@@ -638,8 +638,15 @@ void graphicsExample() {
 	// torasu::tstd::Rnum round(1);
 
 	// Rrothumbus roth(&round);
-	// Rtext text("0");
-	Rtext text(IR(new torasu::tstd::Rnumber_string(&time, 1, 2)));
+	Rtext text("トラス");
+	// torasu::tstd::Rnumber_string timeDisplay(&time, 1, 2);
+	// Rtext text(IR(new torasu::tstd::Rstring_concat(
+	// 	IR( new torasu::tstd::Rstring_map({
+	// 		{"0", "T+"},
+	// 		{"1", &timeDisplay}
+	// 	}) ), 
+	// 	IR( new torasu::tstd::Rrctx_value(torasu::tstd::Rstring_concat::RCTX_KEY_VALUE, TORASU_STD_PL_STRING))
+	// )));
 
 	Rgraphics vecRender(&text);
 
@@ -685,7 +692,7 @@ void graphicsExample() {
 	}, 2 );
 
 
-	Rtransform transform(IR(new imgc::Rauto_align2d(&vecRender, 0, 0, 0)), &transMat /*,  1.0/60, 15 */);
+	Rtransform transform(IR(new imgc::Rauto_align2d(&vecRender, 0, 0, 0)), &transMat/* ,  1.0/60, 15 */);
 
 	// Rtransform transform(&vecRender, IR(new torasu::tstd::Rmatrix(
 	// 	{
@@ -738,8 +745,8 @@ void graphicsExample() {
 		}
 	});
 
-	// imgc::Rmedia_creator encoded(&premulComp, "apng", 0., 0.1, 10, 1080*2, 1080*2, 8000*1000, -1, &metadata);
-	imgc::Rmedia_creator encoded(&premulComp, "mp4", 0., 12, 30, 1080*2, 1080*2, 8000*1000, -1, &metadata);
+	imgc::Rmedia_creator encoded(&premulComp, "apng", 0., 0.1, 10, 1080*2, 1080*2, 8000*1000, -1, &metadata);
+	// imgc::Rmedia_creator encoded(&premulComp, "mp4", 0., 12, 60, 1080*2, 1080*2, 8000*1000, -1, &metadata);
 
 	torasu::tstd::LIcore_logger logger;
 	torasu::LogInstruction li(&logger, torasu::LogLevel::INFO, torasu::LogInstruction::OPT_PROGRESS);
@@ -762,8 +769,8 @@ void graphicsExample() {
 	std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
 
 	std::cout << "Saving..." << std::endl;
-	// std::ofstream sysFile("test.png");
-	std::ofstream sysFile("test.mp4");
+	std::ofstream sysFile("test.png");
+	// std::ofstream sysFile("test.mp4");
 
 	sysFile.write(const_cast<const char*>(reinterpret_cast<char*>(resFile->getFileData())), resFile->getFileSize());
 
