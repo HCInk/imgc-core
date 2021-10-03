@@ -24,7 +24,9 @@ Rtransform::Rtransform(torasu::tools::RenderableSlot source, torasu::tools::Rend
 
 Rtransform::~Rtransform() {}
 
-torasu::Identifier Rtransform::getType() { return "IMGC::RTRANSFORM"; }
+torasu::Identifier Rtransform::getType() {
+	return "IMGC::RTRANSFORM";
+}
 
 torasu::RenderResult* Rtransform::render(torasu::RenderInstruction* ri) {
 
@@ -60,7 +62,7 @@ torasu::RenderResult* Rtransform::render(torasu::RenderInstruction* ri) {
 			// 		if (torasu::tstd::Dnum* timeNum = dynamic_cast<torasu::tstd::Dnum*>(foundDuration)) {
 			// 			baseDuration = *timeNum;
 			// 		}
-					
+
 			// 	}
 			// }
 
@@ -74,10 +76,10 @@ torasu::RenderResult* Rtransform::render(torasu::RenderInstruction* ri) {
 				auto shutterRendered = rh.evalResult<torasu::tstd::Dnum>(shutterRes.get());
 
 				if (shutterRendered) {
-					interpolationDuration = baseDuration.getNum() * shutterRendered.getResult()->getNum();	
+					interpolationDuration = baseDuration.getNum() * shutterRendered.getResult()->getNum();
 				} else {
 					validTransform = false;
-					if (rh.mayLog(torasu::WARN)) 
+					if (rh.mayLog(torasu::WARN))
 						lirb.logCause(torasu::WARN, "Sub render failed to provide shutter, will not interpolate transformation", shutterRendered.takeInfoTag());
 				}
 
@@ -89,10 +91,10 @@ torasu::RenderResult* Rtransform::render(torasu::RenderInstruction* ri) {
 						interpolationCount = imaxRendered.getResult()->getNum();
 					} else {
 						validTransform = false;
-						if (rh.mayLog(torasu::WARN)) 
-							lirb.logCause(torasu::WARN, 
-								"Sub render failed to provide shutter-interpolation-count, will use default interpoltion-max (" + std::to_string(interpolationCount) + ")", 
-								imaxRendered.takeInfoTag());
+						if (rh.mayLog(torasu::WARN))
+							lirb.logCause(torasu::WARN,
+										  "Sub render failed to provide shutter-interpolation-count, will use default interpoltion-max (" + std::to_string(interpolationCount) + ")",
+										  imaxRendered.takeInfoTag());
 					}
 				}
 			}
@@ -115,7 +117,7 @@ torasu::RenderResult* Rtransform::render(torasu::RenderInstruction* ri) {
 					if (torasu::tstd::Dnum* timeNum = dynamic_cast<torasu::tstd::Dnum*>(foundTime)) {
 						baseTime = *timeNum;
 					}
-					
+
 				}
 			}
 
@@ -143,7 +145,7 @@ torasu::RenderResult* Rtransform::render(torasu::RenderInstruction* ri) {
 					matrices[i] = *transform.getResult();
 				} else {
 					validTransform = false;
-					if (rh.mayLog(torasu::WARN)) 
+					if (rh.mayLog(torasu::WARN))
 						lirb.logCause(torasu::WARN, "Sub render failed to provide transformation, will not transform image", transform.takeInfoTag());
 				}
 			}

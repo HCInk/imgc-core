@@ -16,7 +16,9 @@ Rrothumbus::Rrothumbus(Renderable* roundVal)
 
 Rrothumbus::~Rrothumbus() {}
 
-torasu::Identifier Rrothumbus::getType() { return "IMGC::RROTHUMBUS"; }
+torasu::Identifier Rrothumbus::getType() {
+	return "IMGC::RROTHUMBUS";
+}
 
 torasu::RenderResult* Rrothumbus::render(torasu::RenderInstruction* ri) {
 	auto* resSettings = ri->getResultSettings();

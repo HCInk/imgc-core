@@ -7,12 +7,14 @@
 
 namespace imgc {
 
-Rcolor::Rcolor(torasu::tstd::NumSlot r, torasu::tstd::NumSlot g, torasu::tstd::NumSlot b, torasu::tstd::NumSlot a) 
+Rcolor::Rcolor(torasu::tstd::NumSlot r, torasu::tstd::NumSlot g, torasu::tstd::NumSlot b, torasu::tstd::NumSlot a)
 	: SimpleRenderable(false, true), rSrc(r), gSrc(g), bSrc(b), aSrc(a) {}
 
 Rcolor::~Rcolor() {}
 
-torasu::Identifier Rcolor::getType() { return "IMGC::RCOLOR"; }
+torasu::Identifier Rcolor::getType() {
+	return "IMGC::RCOLOR";
+}
 
 torasu::RenderResult* Rcolor::render(torasu::RenderInstruction* ri) {
 	torasu::tools::RenderHelper rh(ri);

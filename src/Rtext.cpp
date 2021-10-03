@@ -88,7 +88,7 @@ protected:
 	double totalWidth;
 	size_t stateSize = 0;
 
-	TextState(std::vector<torasu::Identifier>* ops, const torasu::RenderContextMask* rctxm) 
+	TextState(std::vector<torasu::Identifier>* ops, const torasu::RenderContextMask* rctxm)
 		: ops(ops), rctxm(rctxm) {}
 
 public:
@@ -125,7 +125,9 @@ Rtext::Rtext(torasu::tstd::StringSlot text)
 
 Rtext::~Rtext() {}
 
-torasu::Identifier Rtext::getType() { return "IMGC::RTEXT"; }
+torasu::Identifier Rtext::getType() {
+	return "IMGC::RTEXT";
+}
 
 void Rtext::ready(torasu::ReadyInstruction* ri) {
 	if (textRnd.get() == nullptr) throw std::logic_error("Text renderable set yet!");
@@ -150,9 +152,9 @@ void Rtext::ready(torasu::ReadyInstruction* ri) {
 
 	// Register State
 	auto* textState = new TextState(
-					new std::vector<torasu::Identifier>({
-						TORASU_STD_PL_VIS, TORASU_PROPERTY(TORASU_STD_PROP_IMG_RAITO)}), 
-					rh.takeResMask());
+	new std::vector<torasu::Identifier>({
+		TORASU_STD_PL_VIS, TORASU_PROPERTY(TORASU_STD_PROP_IMG_RAITO)}),
+	rh.takeResMask());
 	ri->setState(textState);
 
 	// Create graphics
@@ -164,14 +166,14 @@ void Rtext::ready(torasu::ReadyInstruction* ri) {
 
 
 	error = FT_Init_FreeType( &library );
-	if ( error ) { 
+	if ( error ) {
 		throw std::runtime_error("Error initializing freetype: " + std::to_string(error));
 	}
 
 	error = FT_New_Face( library,
-						"/usr/share/fonts/adobe-source-han-sans/SourceHanSansJP-Bold.otf",
-						0,
-						&face );
+						 "/usr/share/fonts/adobe-source-han-sans/SourceHanSansJP-Bold.otf",
+						 0,
+						 &face );
 	if ( error == FT_Err_Cannot_Open_Resource ) {
 		throw std::runtime_error("Error opening font frace: Cannot open resource");
 	} else if ( error == FT_Err_Unknown_File_Format ) {
@@ -179,7 +181,7 @@ void Rtext::ready(torasu::ReadyInstruction* ri) {
 	} else if ( error ) {
 		throw std::runtime_error("Error opening font frace: " + std::to_string(error));
 	}
-	
+
 	// FT_Size_RequestRec sizeRequest = {
 	// 	FT_Size_Request_Type::FT_SIZE_REQUEST_TYPE_MAX,
 	// 	1000,
@@ -201,11 +203,11 @@ void Rtext::ready(torasu::ReadyInstruction* ri) {
 	//   1000 );   /* pixel_height          */
 
 	error = FT_Set_Char_Size(
-		face,    /* handle to face object           */
-		0,       /* char_width in 1/64th of points  */
-		1000*64,   /* char_height in 1/64th of points */
-		1000,     /* horizontal device resolution    */
-		1000 );   /* vertical device resolution      */
+				face,    /* handle to face object           */
+				0,       /* char_width in 1/64th of points  */
+				1000*64,   /* char_height in 1/64th of points */
+				1000,     /* horizontal device resolution    */
+				1000 );   /* vertical device resolution      */
 	constexpr int sacleFactor = 64*1000*10;
 
 	if ( error ) {
@@ -220,7 +222,7 @@ void Rtext::ready(torasu::ReadyInstruction* ri) {
 
 	size_t numChars = str.length();
 	const char* cstr = str.c_str();
-	
+
 	for ( size_t i = 0; i < numChars;) {
 		auto nextChar = nextCharUtf8(cstr, &i);
 
@@ -239,13 +241,13 @@ void Rtext::ready(torasu::ReadyInstruction* ri) {
 
 		if (debugLog)
 			rh.li.logger->log(torasu::DEBUG, "Loaded glyph " + std::to_string(i));
-		
+
 		character.xPosition = cursorX;
 		character.width = glyph->advance.x;
 		auto outline = glyph->outline;
 
 		std::vector<std::vector<PointInfo>>& characterPoints = character.points;
-		
+
 		size_t currentOffset = 0;
 		// size_t currentOffset = outline.contours[0]+1;
 		size_t contourCount = outline.n_contours;
@@ -260,7 +262,8 @@ void Rtext::ready(torasu::ReadyInstruction* ri) {
 			PointInfo lastPoint;
 			PointInfo nextPoint;
 			for (size_t pi = currentOffset; pi < nextOffset; pi++) {
-				{ // Reading next point
+				{
+					// Reading next point
 					lastPoint = nextPoint;
 					auto ftPoint = outline.points[pi];
 					nextPoint.cord = {static_cast<double>(ftPoint.x)/sacleFactor, static_cast<double>(ftPoint.y)/sacleFactor*-1+1};
@@ -335,7 +338,7 @@ void Rtext::ready(torasu::ReadyInstruction* ri) {
 
 torasu::RenderResult* Rtext::render(torasu::RenderInstruction* ri) {
 	auto* resSettings = ri->getResultSettings();
- 
+
 	torasu::tools::RenderHelper rh(ri);
 	if (rh.matchPipeline(TORASU_STD_PL_VIS)) {
 
@@ -431,7 +434,7 @@ torasu::RenderResult* Rtext::render(torasu::RenderInstruction* ri) {
 						}
 #endif
 						currSegment.b = point.cord;
-						if (procState == 1) { 
+						if (procState == 1) {
 							// Set control points if there has no control point been there yet to write it
 							currSegment.ca = currSegment.a;
 							currSegment.cb = currSegment.b;
@@ -449,7 +452,7 @@ torasu::RenderResult* Rtext::render(torasu::RenderInstruction* ri) {
 
 		auto* graphics = new Dgraphics({
 			Dgraphics::GObject(
-				Dgraphics::GShape(sections, {{0,0}, {0,1}, {1,1}, {1,0}})
+			Dgraphics::GShape(sections, {{0,0}, {0,1}, {1,1}, {1,0}})
 			)
 		});
 

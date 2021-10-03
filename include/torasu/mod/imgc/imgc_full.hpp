@@ -3,10 +3,10 @@
 
 /*
 
-		 ___ __  __  ____  ____ 
+		 ___ __  __  ____  ____
 		|_ _|  \/  |/ ___|/ ___|
-		| || |\/| | |  _| |    
-		| || |  | | |_| | |___ 
+		| || |\/| | |  _| |
+		| || |  | | |_| | |___
 		|___|_|  |_|\____|\____|
 
 			IMGC FULL-HEADER
@@ -27,7 +27,7 @@
 
 //
 // DATA-TYPES
-// 
+//
 
 #include <torasu/mod/imgc/Dcropdata.hpp>
 #include <torasu/mod/imgc/Dgraphics.hpp>

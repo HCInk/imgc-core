@@ -28,8 +28,8 @@ extern "C" {
 namespace imgc {
 
 struct LongRational {
-    int64_t num; ///< Numerator
-    int64_t den; ///< Denominator
+	int64_t num; ///< Numerator
+	int64_t den; ///< Denominator
 };
 
 struct SegmentRequest {
@@ -100,12 +100,16 @@ private:
 	std::list<FFmpegLogger> loggers;
 
 	class LogInstructionSession {
-	private: 
+	private:
 		MediaDecoder* dec;
 	public:
-		LogInstructionSession(MediaDecoder* dec, torasu::LogInstruction* li) 
-			: dec(dec) {dec->li = li;}
-		~LogInstructionSession() {dec->li = nullptr;}
+		LogInstructionSession(MediaDecoder* dec, torasu::LogInstruction* li)
+			: dec(dec) {
+			dec->li = li;
+		}
+		~LogInstructionSession() {
+			dec->li = nullptr;
+		}
 	};
 public:
 	MediaDecoder(std::string path);

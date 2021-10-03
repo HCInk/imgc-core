@@ -19,7 +19,9 @@ Rgraphics::Rgraphics(Renderable* graphics)
 
 Rgraphics::~Rgraphics() {}
 
-torasu::Identifier Rgraphics::getType() { return "IMGC::RGRAPHICS"; }
+torasu::Identifier Rgraphics::getType() {
+	return "IMGC::RGRAPHICS";
+}
 
 torasu::RenderResult* Rgraphics::render(torasu::RenderInstruction* ri) {
 	torasu::tools::RenderHelper rh(ri);

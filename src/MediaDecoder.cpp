@@ -107,8 +107,8 @@ void MediaDecoder::prepare() {
 		if (li != nullptr) {
 			FFmpegLogger::logMessageChecked(*li, avcl, level, msg, vl, 500);
 		} else {
-			std::cout << "MediaDecoder: (Unexpected message) " 
-				<< FFmpegLogger::formatLine(avcl, level, msg, vl, 500) << std::endl;
+			std::cout << "MediaDecoder: (Unexpected message) "
+					  << FFmpegLogger::formatLine(avcl, level, msg, vl, 500) << std::endl;
 		}
 	};
 
@@ -160,9 +160,9 @@ void MediaDecoder::prepare() {
 
 		entry->duration = stream->duration;
 
-		if (stream->duration != AV_NOPTS_VALUE 
-			&& ((double) this->duration.num / this->duration.den) < ((double) stream->duration*stream->time_base.num / stream->time_base.den)) {
-			this->duration = {stream->duration*stream->time_base.num, stream->time_base.den};
+		if (stream->duration != AV_NOPTS_VALUE
+				&& ((double) this->duration.num / this->duration.den) < ((double) stream->duration*stream->time_base.num / stream->time_base.den)) {
+			this->duration = {stream->duration* stream->time_base.num, stream->time_base.den};
 		}
 
 		// Sets pkt_timebase so timestamps can be corrected (anyone knows why this isnt set by default?)
@@ -179,9 +179,9 @@ void MediaDecoder::prepare() {
 			}
 
 		} else {
-			torasu::tools::log_checked(*li, torasu::WARN, "CANT FIND CODEC FOR STREAM " 
-				+ std::to_string(stream->id) 
-				+ " (TYPE " + std::to_string(stream->codecpar->codec_type) + ")");
+			torasu::tools::log_checked(*li, torasu::WARN, "CANT FIND CODEC FOR STREAM "
+									   + std::to_string(stream->id)
+									   + " (TYPE " + std::to_string(stream->codecpar->codec_type) + ")");
 		}
 
 		if (!entry->ctx) {
@@ -276,7 +276,7 @@ void MediaDecoder::removeCacheFrame(int64_t pos, std::vector<BufferedFrame>* lis
 
 // Use AVFrane for scaling, instead of using manual parameters
 #define VID_FRAME_SCALE_AVFRAME true
-// First convert frame into libav-buffer (with a padding for swsscale) and then into the destination-buffer, instead doing a direct conversion into 
+// First convert frame into libav-buffer (with a padding for swsscale) and then into the destination-buffer, instead doing a direct conversion into
 #define VID_FRAME_SCALE_INDIRECT true
 
 void MediaDecoder::extractVideoFrame(StreamEntry* stream, uint8_t* outPt) {
@@ -289,7 +289,7 @@ void MediaDecoder::extractVideoFrame(StreamEntry* stream, uint8_t* outPt) {
 
 		if (!sws_scaler_ctx) throw runtime_error("Failed to create sws_scaler_ctx!");
 	}
-	
+
 #if VID_FRAME_SCALE_AVFRAME
 	int status;
 	if (scaled_frame == nullptr) {
@@ -304,7 +304,7 @@ void MediaDecoder::extractVideoFrame(StreamEntry* stream, uint8_t* outPt) {
 	}
 
 	status = sws_scale(sws_scaler_ctx, stream->frame->data, stream->frame->linesize, 0, rHeight, scaled_frame->data,
-			  scaled_frame->linesize);
+					   scaled_frame->linesize);
 	if (status < 0) throw std::runtime_error("Error scaling frame! (" + std::to_string(status) + ")");
 
 	uint8_t* linePtr = scaled_frame->data[0];
@@ -443,9 +443,9 @@ void MediaDecoder::handleFrame(StreamEntry* stream, DecodingState* decodingState
 	} */
 
 	if (!decodingState->videoDone && stream->index == video_stream_index) {
-		// Check if frame is inside of range or in the case of a requesting contents after the stream-limit, if the frame is the last one 
-		if (checkFrameTargetBound(stream->frame, targetPosition, targetPositionEnd) 
-			|| ( (targetPosition >= stream->duration) && (stream->frame->pts+stream->frame->pkt_duration) == stream->duration) ) {
+		// Check if frame is inside of range or in the case of a requesting contents after the stream-limit, if the frame is the last one
+		if (checkFrameTargetBound(stream->frame, targetPosition, targetPositionEnd)
+				|| ( (targetPosition >= stream->duration) && (stream->frame->pts+stream->frame->pkt_duration) == stream->duration) ) {
 			if (decodingState->videoReadUntil > stream->frame->pts) {
 				return;
 			}

@@ -17,14 +17,16 @@ Rcropdata_combined::Rcropdata_combined(torasu::tstd::NumSlot left, torasu::tstd:
 
 Rcropdata_combined::~Rcropdata_combined() {}
 
-torasu::Identifier Rcropdata_combined::getType() { return "IMGC::RCROPDATA_COMBINED"; }
+torasu::Identifier Rcropdata_combined::getType() {
+	return "IMGC::RCROPDATA_COMBINED";
+}
 
 torasu::RenderResult* Rcropdata_combined::render(torasu::RenderInstruction* ri) {
 	torasu::tools::RenderHelper rh(ri);
 	auto resSettings = ri->getResultSettings();
 	if (resSettings->getPipeline() == IMGC_PL_ALIGN) {
 		torasu::ResultSettings rsNum(TORASU_STD_PL_NUM, nullptr);
-		
+
 		auto rendL = rh.enqueueRender(leftRnd, &rsNum);
 		auto rendR = rh.enqueueRender(rightRnd, &rsNum);
 		auto rendT = rh.enqueueRender(topRnd, &rsNum);

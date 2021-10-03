@@ -23,7 +23,9 @@ Ralign2d::Ralign2d(torasu::tools::RenderableSlot rndSrc, torasu::tools::Renderab
 
 Ralign2d::~Ralign2d() {}
 
-torasu::Identifier Ralign2d::getType() { return "IMGC::RALIGN2D"; }
+torasu::Identifier Ralign2d::getType() {
+	return "IMGC::RALIGN2D";
+}
 
 namespace {
 
@@ -35,8 +37,8 @@ struct Ralign2d_CROPDATA {
 };
 
 void calcAlign(torasu::Renderable* alignmentProvider, torasu::tools::RenderHelper* rh,
-						 uint32_t destWidth, uint32_t destHeight,
-						 Ralign2d_CROPDATA* outCropData) {
+			   uint32_t destWidth, uint32_t destHeight,
+			   Ralign2d_CROPDATA* outCropData) {
 
 	// Creating instruction to get alignment
 
@@ -175,8 +177,8 @@ torasu::RenderResult* Ralign2d::render(torasu::RenderInstruction* ri) {
 			auto benchEnd = std::chrono::steady_clock::now();
 			if (rh.mayLog(torasu::DEBUG))
 				rh.li.logger->log(torasu::LogLevel::DEBUG, " Align Time = "
-							   + std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(benchEnd - benchBegin).count()) + "[ms] "
-							   + std::to_string(std::chrono::duration_cast<std::chrono::microseconds>(benchEnd - benchBegin).count()) + "[us]");
+								  + std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(benchEnd - benchBegin).count()) + "[ms] "
+								  + std::to_string(std::chrono::duration_cast<std::chrono::microseconds>(benchEnd - benchBegin).count()) + "[us]");
 		}
 
 		if (result != NULL) {

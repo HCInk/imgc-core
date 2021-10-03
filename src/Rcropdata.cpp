@@ -16,7 +16,9 @@ Rcropdata::~Rcropdata() {
 	delete val;
 }
 
-torasu::Identifier Rcropdata::getType() { return "IMGC::RCROPDATA"; }
+torasu::Identifier Rcropdata::getType() {
+	return "IMGC::RCROPDATA";
+}
 
 torasu::DataResource* Rcropdata::getData() {
 	return val;

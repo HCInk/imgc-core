@@ -82,14 +82,14 @@ void transform(const uint8_t* src, uint8_t* dest, uint32_t width, uint32_t heigh
 				srcBuffPtr++;
 			}
 		}
-		
+
 		for (uint32_t i = 0; i < (width+1)*channels; i++) {
 			(*srcBuffPtr) = 0.0;
 			srcBuffPtr++;
 		}
-		
+
 	}
-	
+
 	const float* srcBuffPtr = srcBuffVec.data();
 #endif
 
@@ -158,14 +158,14 @@ void transformMix(const uint8_t* src, uint8_t* dest, uint32_t width, uint32_t he
 				srcBuffPtr++;
 			}
 		}
-		
+
 		for (uint32_t i = 0; i < (width+1)*channels; i++) {
 			(*srcBuffPtr) = 0.0;
 			srcBuffPtr++;
 		}
-		
+
 	}
-	
+
 	const float* srcBuffPtr = srcBuffVec.data();
 #endif
 
@@ -180,7 +180,7 @@ void transformMix(const uint8_t* src, uint8_t* dest, uint32_t width, uint32_t he
 			for (size_t t = 0; t < nTransforms; t++) {
 
 				auto invCords = invCordsArr[t];
-				
+
 
 				double xRel = xDest*invCords[0] + yDest*invCords[1] + invCords[2];
 				double yRel = xDest*invCords[3] + yDest*invCords[4] + invCords[5];
@@ -198,11 +198,11 @@ void transformMix(const uint8_t* src, uint8_t* dest, uint32_t width, uint32_t he
 				// 	dest++;
 				// }
 
-	#if PREBUF
+#if PREBUF
 				pixelCollect<float>(accu, srcBuffPtr, xAbs, yAbs, width, height, width+1, false);
-	#else
+#else
 				pixelCollect<uint8_t>(accu, src, xAbs, yAbs, widthSub, heightSub, width, true);
-	#endif
+#endif
 			}
 
 			for (uint32_t c = 0; c < channels; c++) {

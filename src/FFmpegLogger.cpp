@@ -47,7 +47,7 @@ torasu::LogLevel FFmpegLogger::getLogLevel(int ffmpegLevel) {
 
 void FFmpegLogger::logMessageChecked(torasu::LogInstruction li, void* avcl, int ffmpegLevel, const char* fmt, va_list vl, size_t strMaxize) {
 	auto torasuLevel = getLogLevel(ffmpegLevel);
-	if (li.level <= torasuLevel) 
+	if (li.level <= torasuLevel)
 		li.logger->log(torasuLevel, FFmpegLogger::formatLine(avcl, ffmpegLevel, fmt, vl, strMaxize));
 }
 

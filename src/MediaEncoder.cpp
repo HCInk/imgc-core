@@ -24,7 +24,7 @@ struct IOOpaque {
 	// std::ofstream* ofstream;
 	FileBuilder fb;
 	torasu::LogInstruction li;
-	
+
 	IOOpaque(torasu::LogInstruction li) : li(li) {}
 };
 
@@ -372,9 +372,9 @@ public:
 						int64_t totalFrames = (duration-offset)*time_base.den/time_base.num;
 						int64_t pendingFrames = fetchQueue.size();
 						int64_t currentFrame = fetchPlayhead - pendingFrames;
-						li.logger->log(new torasu::LogProgress( 
-							totalFrames, currentFrame, pendingFrames,
-							"Rendering frame " + std::to_string(fetchPlayhead) + "/" + std::to_string(totalFrames)));
+						li.logger->log(new torasu::LogProgress(
+										   totalFrames, currentFrame, pendingFrames,
+										   "Rendering frame " + std::to_string(fetchPlayhead) + "/" + std::to_string(totalFrames)));
 					}
 				} else if (callbackStat == 1) {
 					if (needsNewFrame) throw std::runtime_error("Frame callback exited with postpone-code (1), but the flag needsNow is set");
@@ -542,9 +542,9 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request, torasu::LogInst
 
 	if (li.level <= torasu::INFO) {
 		li.logger->log(torasu::INFO, std::string() + "FMT SELECTED:\n"
-			  "	name: " + oformat.name + "\n"
-			  "	video_codec: " + avcodec_get_name(oformat.video_codec) + "\n"
-			  "	audio_codec: " + avcodec_get_name(oformat.audio_codec) );
+					   "	name: " + oformat.name + "\n"
+					   "	video_codec: " + avcodec_get_name(oformat.video_codec) + "\n"
+					   "	audio_codec: " + avcodec_get_name(oformat.audio_codec) );
 	}
 
 	formatCtx->oformat = &oformat;

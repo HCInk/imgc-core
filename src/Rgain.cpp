@@ -11,7 +11,9 @@ Rgain::Rgain(torasu::tools::RenderableSlot src, torasu::tstd::NumSlot gainVal)
 
 Rgain::~Rgain() {}
 
-torasu::Identifier Rgain::getType() { return "IMGC::RGAIN"; }
+torasu::Identifier Rgain::getType() {
+	return "IMGC::RGAIN";
+}
 
 torasu::RenderResult* Rgain::render(torasu::RenderInstruction* ri) {
 	torasu::tools::RenderHelper rh(ri);

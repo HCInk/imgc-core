@@ -30,7 +30,9 @@ Rmedia_creator::Rmedia_creator(torasu::tools::RenderableSlot src, torasu::tstd::
 
 Rmedia_creator::~Rmedia_creator() {}
 
-torasu::Identifier Rmedia_creator::getType() { return "IMGC::RMEDIA_CREATOR"; }
+torasu::Identifier Rmedia_creator::getType() {
+	return "IMGC::RMEDIA_CREATOR";
+}
 
 torasu::RenderResult* Rmedia_creator::render(torasu::RenderInstruction* ri) {
 	if (ri->getResultSettings()->getPipeline() == TORASU_STD_PL_FILE) {
@@ -41,7 +43,7 @@ torasu::RenderResult* Rmedia_creator::render(torasu::RenderInstruction* ri) {
 
 		MediaEncoder::EncodeRequest req;
 
-		bool logProgress = rh.li.options & torasu::LogInstruction::OPT_PROGRESS; 
+		bool logProgress = rh.li.options & torasu::LogInstruction::OPT_PROGRESS;
 		if (logProgress) rh.li.logger->log(new torasu::LogProgress(-1, 0, "Loading video-params..."));
 
 		{

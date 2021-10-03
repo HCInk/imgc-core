@@ -27,7 +27,7 @@ protected:
 	torasu::tstd::Dfile* srcFile = nullptr;
 	MediaDecoder* decoder = nullptr;
 
-	Rmedia_creator_readyobj(std::vector<torasu::Identifier>* ops, const torasu::RenderContextMask* rctxm) 
+	Rmedia_creator_readyobj(std::vector<torasu::Identifier>* ops, const torasu::RenderContextMask* rctxm)
 		: ops(ops), rctxm(rctxm) {}
 public:
 	~Rmedia_creator_readyobj() {
@@ -46,7 +46,7 @@ public:
 
 	virtual size_t size() const override {
 		size_t size = 0;
-		
+
 		if (srcFile != nullptr) size += srcFile->getFileSize();
 
 		return size;
@@ -65,7 +65,9 @@ Rmedia_file::Rmedia_file(torasu::tools::RenderableSlot src)
 
 Rmedia_file::~Rmedia_file() {}
 
-torasu::Identifier Rmedia_file::getType() { return "IMGC::RMEDIA_FILE"; }
+torasu::Identifier Rmedia_file::getType() {
+	return "IMGC::RMEDIA_FILE";
+}
 
 void Rmedia_file::ready(torasu::ReadyInstruction* ri) {
 	if (srcRnd.get() == NULL) throw std::logic_error("Source renderable set loaded yet!");
@@ -91,11 +93,11 @@ void Rmedia_file::ready(torasu::ReadyInstruction* ri) {
 	}
 
 	auto* obj = new Rmedia_creator_readyobj(
-					new std::vector<torasu::Identifier>({
-						TORASU_STD_PL_VIS, TORASU_STD_PL_AUDIO, 
-						TORASU_PROPERTY(TORASU_STD_PROP_IMG_WIDTH), TORASU_PROPERTY(TORASU_STD_PROP_IMG_HEIGHT), 
-						TORASU_PROPERTY(TORASU_STD_PROP_IMG_RAITO), TORASU_PROPERTY(TORASU_STD_PROP_DURATION)}), 
-					castedResultSeg.getResultMask());
+	new std::vector<torasu::Identifier>({
+		TORASU_STD_PL_VIS, TORASU_STD_PL_AUDIO,
+		TORASU_PROPERTY(TORASU_STD_PROP_IMG_WIDTH), TORASU_PROPERTY(TORASU_STD_PROP_IMG_HEIGHT),
+		TORASU_PROPERTY(TORASU_STD_PROP_IMG_RAITO), TORASU_PROPERTY(TORASU_STD_PROP_DURATION)}),
+	castedResultSeg.getResultMask());
 
 	ri->setState(obj);
 
@@ -181,7 +183,7 @@ torasu::RenderResult* Rmedia_file::render(torasu::RenderInstruction* ri) {
 			if (frames.size() <= 0) {
 				if (rh.mayLog(torasu::WARN))
 					rh.lrib.logCause(torasu::LogLevel::WARN, "DECODER RETURNED NO FRAME! "
-						"(TIME: " + std::to_string(time) + "-" + std::to_string(time+duration) + ")");
+									 "(TIME: " + std::to_string(time) + "-" + std::to_string(time+duration) + ")");
 				auto* errRes = new torasu::tstd::Dbimg(*videoFormat);
 				errRes->clear();
 				return rh.buildResult(errRes, torasu::RenderResultStatus_OK_WARN);
@@ -224,7 +226,7 @@ torasu::RenderResult* Rmedia_file::render(torasu::RenderInstruction* ri) {
 			return rh.buildResult(audBuff);
 
 		}
-		
+
 
 	} else if (torasu::isPipelineKeyPropertyKey(currentPipeline)) { // optional so properties get skipped if it is no property
 		if (currentPipeline == TORASU_PROPERTY(TORASU_STD_PROP_IMG_WIDTH)) {

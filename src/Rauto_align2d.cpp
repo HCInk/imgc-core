@@ -26,7 +26,9 @@ Rauto_align2d::~Rauto_align2d() {
 	delete internalAlign;
 }
 
-torasu::Identifier Rauto_align2d::getType() { return "IMGC::RAUTO_ALIGN2D"; }
+torasu::Identifier Rauto_align2d::getType() {
+	return "IMGC::RAUTO_ALIGN2D";
+}
 
 imgc::Dcropdata* Rauto_align2d::calcAlign(double posX, double posY, double zoomFactor, double srcRatio,
 		double destRatio) const {
