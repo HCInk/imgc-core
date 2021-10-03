@@ -28,19 +28,26 @@ namespace {
 // XXX Temporary padding for text, while rendering outside of ordinary cordinates is not possible
 constexpr double padding = 0.35;
 
-inline uint32_t nextCharUtf8(const char* utf8, size_t* index) {
-	utf8 += *index;
+/**
+ * @brief  Retrieves next Unicode-codepoint from utf-8
+ * @param  utf8: Input string (utf-8/null-terminated) at position to read
+ * 					- will be updated to next character to read
+ * @retval The Unicode-codepoint that has been read (the first of the sequence),
+ * 			0x00 if there is no more to read
+ */
+inline uint32_t nextCharUtf8(const char** utf8) {
 	size_t i = 0;
-	uint32_t buff = static_cast<uint8_t>(*utf8);
-	while(i < 4) {
-		utf8++;
+	uint32_t buff = static_cast<uint8_t>(**utf8);
+	if (buff == 0x00) return 0x00;
+	for (;;) {
+		(*utf8)++;
 		i++;
-		(*index)++;
 		// characters that begin with binary 10xxxxxx... are continuations; all other
 		// characters should begin a new utf32 char (assuming valid utf8 input)
-		if (*utf8 == 0x00 || (*utf8 & 0xc0) != 0x80) break;
+		char nextVal = **utf8;
+		if (i >= 4 || *utf8 == 0x00 || (nextVal & 0xc0) != 0x80) break;
 		buff <<= 6;
-		buff |= static_cast<uint8_t>(*utf8) & 0x3F;
+		buff |= nextVal & 0x3F;
 	}
 	// Apply mask to each result
 	switch (i) {
@@ -220,11 +227,11 @@ void Rtext::ready(torasu::ReadyInstruction* ri) {
 
 	auto& characters = textState->characters;
 
-	size_t numChars = str.length();
 	const char* cstr = str.c_str();
 
-	for ( size_t i = 0; i < numChars;) {
-		auto nextChar = nextCharUtf8(cstr, &i);
+	for (size_t gi = 0;; gi++) {
+		auto nextChar = nextCharUtf8(&cstr);
+		if (nextChar == 0x00) break;
 
 		FT_UInt  glyph_index;
 		/* retrieve glyph index from character code */
@@ -233,14 +240,14 @@ void Rtext::ready(torasu::ReadyInstruction* ri) {
 		/* load glyph image into the slot (erase previous one) */
 		error = FT_Load_Glyph( face, glyph_index, FT_LOAD_DEFAULT );
 		if ( error ) {
-			throw std::runtime_error("Error loading glyph " + std::to_string(i) + ": " + std::to_string(error));
+			throw std::runtime_error("Error loading glyph " + std::to_string(gi) + ": " + std::to_string(error));
 		}
 
 		Character& character = characters.emplace_back();
 		auto glyph = face->glyph;
 
 		if (debugLog)
-			rh.li.logger->log(torasu::DEBUG, "Loaded glyph " + std::to_string(i));
+			rh.li.logger->log(torasu::DEBUG, "Loaded glyph " + std::to_string(gi));
 
 		character.xPosition = cursorX;
 		character.width = glyph->advance.x;
