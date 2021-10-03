@@ -143,7 +143,7 @@ void Rtext::ready(torasu::ReadyInstruction* ri) {
 
 	// Get Text
 	std::string str;
-	torasu::ResultSettings stringRs(TORASU_STD_PL_STRING, nullptr);
+	torasu::ResultSettings stringRs(TORASU_STD_PL_STRING, torasu::tools::NO_FORMAT);
 	std::unique_ptr<torasu::RenderResult> rndRes(rh.runRender(textRnd, &stringRs));
 
 	auto fetchedRes = rh.evalResult<torasu::tstd::Dstring>(rndRes.get());
@@ -344,14 +344,12 @@ void Rtext::ready(torasu::ReadyInstruction* ri) {
 
 
 torasu::RenderResult* Rtext::render(torasu::RenderInstruction* ri) {
-	auto* resSettings = ri->getResultSettings();
-
 	torasu::tools::RenderHelper rh(ri);
 	if (rh.matchPipeline(TORASU_STD_PL_VIS)) {
 
 		// Check format
 
-		if (!(dynamic_cast<Dgraphics_FORMAT*>(resSettings->getFromat()))) {
+		if (!rh.getFormat<Dgraphics_FORMAT>()) {
 			return new torasu::RenderResult(torasu::RenderResultStatus_INVALID_FORMAT);
 		}
 

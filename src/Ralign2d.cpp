@@ -42,7 +42,7 @@ void calcAlign(torasu::Renderable* alignmentProvider, torasu::tools::RenderHelpe
 
 	// Creating instruction to get alignment
 
-	torasu::ResultSettings alignSettings(IMGC_PL_ALIGN, nullptr);
+	torasu::ResultSettings alignSettings(IMGC_PL_ALIGN, torasu::tools::NO_FORMAT);
 
 	// Running render based on instruction
 
@@ -134,13 +134,11 @@ torasu::RenderResult* Ralign2d::render(torasu::RenderInstruction* ri) {
 	torasu::ResultSettings* resSettings = ri->getResultSettings();
 
 	if (resSettings->getPipeline() == TORASU_STD_PL_VIS) {
+		torasu::tools::RenderHelper rh(ri);
 		torasu::tstd::Dbimg_FORMAT* fmt;
-		if ( !( resSettings->getFromat() != nullptr
-				&& (fmt = dynamic_cast<torasu::tstd::Dbimg_FORMAT*>(resSettings->getFromat())) )) {
+		if (!(fmt = rh.getFormat<torasu::tstd::Dbimg_FORMAT>())) {
 			return new torasu::RenderResult(torasu::RenderResultStatus_INVALID_FORMAT);
 		}
-
-		torasu::tools::RenderHelper rh(ri);
 
 		Ralign2d_CROPDATA cropData;
 
@@ -150,7 +148,7 @@ torasu::RenderResult* Ralign2d::render(torasu::RenderInstruction* ri) {
 
 		torasu::tstd::Dbimg_FORMAT srcFmt(cropData.srcWidth, cropData.srcHeight);
 
-		torasu::ResultSettings visSettings(TORASU_STD_PL_VIS, &srcFmt);
+		torasu::tools::ResultSettingsSingleFmt visSettings(TORASU_STD_PL_VIS, &srcFmt);
 
 		// Render-context modification
 

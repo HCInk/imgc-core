@@ -23,13 +23,11 @@ torasu::RenderResult* Rcolor::render(torasu::RenderInstruction* ri) {
 	if (ri->getResultSettings()->getPipeline() == TORASU_STD_PL_VIS) {
 
 		torasu::tstd::Dbimg_FORMAT* fmt;
-		auto fmtSettings = ri->getResultSettings()->getFromat();
-		if ( !( fmtSettings != nullptr
-				&& (fmt = dynamic_cast<torasu::tstd::Dbimg_FORMAT*>(fmtSettings)) )) {
+		if (!(fmt = rh.getFormat<torasu::tstd::Dbimg_FORMAT>())) {
 			return new torasu::RenderResult(torasu::RenderResultStatus_INVALID_FORMAT);
 		}
 
-		torasu::ResultSettings rsNum(TORASU_STD_PL_NUM, nullptr);
+		torasu::ResultSettings rsNum(TORASU_STD_PL_NUM, torasu::tools::NO_FORMAT);
 		// Sub-Renderings
 
 		auto rendR = rh.enqueueRender(rSrc, &rsNum);

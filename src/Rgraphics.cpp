@@ -27,12 +27,13 @@ torasu::RenderResult* Rgraphics::render(torasu::RenderInstruction* ri) {
 	torasu::tools::RenderHelper rh(ri);
 
 	if (ri->getResultSettings()->getPipeline() == TORASU_STD_PL_VIS) {
-		auto* reqFormat = ri->getResultSettings()->getFromat();
-
-		if (auto* fmt = dynamic_cast<torasu::tstd::Dbimg_FORMAT*>(reqFormat)) {
-
+		auto formats = rh.getFormats<imgc::Dgraphics_FORMAT, torasu::tstd::Dbimg_FORMAT>();
+		if (formats.primary != nullptr) {
+			return new torasu::RenderResult(torasu::RenderResultStatus_OK, graphics.get(), false);
+		} else if (formats.secondary != nullptr) {
+			auto* fmt = formats.secondary;
 			Dgraphics_FORMAT graphicsFmt;
-			torasu::ResultSettings rsGraphics(TORASU_STD_PL_VIS, &graphicsFmt);
+			torasu::tools::ResultSettingsSingleFmt rsGraphics(TORASU_STD_PL_VIS, &graphicsFmt);
 
 
 			auto rid = rh.enqueueRender(source, &rsGraphics);
@@ -62,8 +63,8 @@ torasu::RenderResult* Rgraphics::render(torasu::RenderInstruction* ri) {
 			}
 
 			return new torasu::RenderResult(torasu::RenderResultStatus_OK, base, true);
-		} else if (dynamic_cast<imgc::Dgraphics_FORMAT*>(reqFormat)) {
-			return new torasu::RenderResult(torasu::RenderResultStatus_OK, graphics.get(), false);
+		} else {
+			return rh.buildResult(torasu::RenderResultStatus_INVALID_FORMAT);
 		}
 
 	}

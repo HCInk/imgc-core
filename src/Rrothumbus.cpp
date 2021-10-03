@@ -27,7 +27,7 @@ torasu::RenderResult* Rrothumbus::render(torasu::RenderInstruction* ri) {
 
 		// Check format
 
-		if (!(dynamic_cast<Dgraphics_FORMAT*>(resSettings->getFromat()))) {
+		if (!rh.getFormat<Dgraphics_FORMAT>()) {
 			return new torasu::RenderResult(torasu::RenderResultStatus_INVALID_FORMAT);
 		}
 
@@ -36,7 +36,7 @@ torasu::RenderResult* Rrothumbus::render(torasu::RenderInstruction* ri) {
 		double rounding;
 		if (roundValRnd != nullptr) {
 
-			torasu::ResultSettings numSettings(TORASU_STD_PL_NUM, nullptr);
+			torasu::ResultSettings numSettings(TORASU_STD_PL_NUM, torasu::tools::NO_FORMAT);
 
 			std::unique_ptr<torasu::RenderResult> rndRes(rh.runRender(roundValRnd, &numSettings));
 

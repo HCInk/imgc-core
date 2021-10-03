@@ -67,7 +67,7 @@ void Rimg_file::ready(torasu::ReadyInstruction* ri) {
 
 	// Render File
 
-	torasu::ResultSettings rs(TORASU_STD_PL_FILE, nullptr);
+	torasu::ResultSettings rs(TORASU_STD_PL_FILE, torasu::tools::NO_FORMAT);
 
 	std::unique_ptr<torasu::RenderResult> rr(rh.runRender(rfile.get(), &rs));
 
@@ -112,20 +112,17 @@ torasu::Identifier Rimg_file::getType() {
 }
 
 RenderResult* Rimg_file::render(RenderInstruction* ri) {
-
-	ResultSettings* resSettings = ri->getResultSettings();
-	auto currentPipeline = resSettings->getPipeline();
+	torasu::tools::RenderHelper rh(ri);
 
 	auto* state = static_cast<Rimg_file_readyobj*>(ri->getReadyState());
 
-	if (currentPipeline == TORASU_STD_PL_VIS) {
-		auto* format = resSettings->getFromat();
+	if (rh.matchPipeline(TORASU_STD_PL_VIS)) {
 		int32_t rWidth, rHeight;
-		if (format == NULL) {
+		if ((*rh.rs->getFormats()) == nullptr) {
 			rWidth = -1;
 			rHeight = -1;
 		} else {
-			if (auto* bimgFormat = dynamic_cast<Dbimg_FORMAT*>(format)) {
+			if (auto* bimgFormat = rh.getFormat<torasu::tstd::Dbimg_FORMAT>()) {
 				rWidth = bimgFormat->getWidth();
 				rHeight = bimgFormat->getHeight();
 				// cout << "RIMG RENDER " << rWidth << "x" << rHeight << endl;
@@ -150,12 +147,12 @@ RenderResult* Rimg_file::render(RenderInstruction* ri) {
 		return new RenderResult(RenderResultStatus_OK, resultImage, true);
 
 
-	} else if (torasu::isPipelineKeyPropertyKey(currentPipeline)) { // optional so properties get skipped if it is no property
-		if (currentPipeline == TORASU_PROPERTY(TORASU_STD_PROP_IMG_WIDTH)) {
+	} else if (rh.isProperty()) { // optional so properties get skipped if it is no property
+		if (rh.matchProperty(TORASU_STD_PROP_IMG_WIDTH)) {
 			return new torasu::RenderResult(torasu::RenderResultStatus_OK, new torasu::tstd::Dnum(state->srcWidth), true);
-		} else if (currentPipeline == TORASU_PROPERTY(TORASU_STD_PROP_IMG_HEIGHT)) {
+		} else if (rh.matchProperty(TORASU_STD_PROP_IMG_HEIGHT)) {
 			return new torasu::RenderResult(torasu::RenderResultStatus_OK, new torasu::tstd::Dnum(state->srcHeight), true);
-		} else if (currentPipeline == TORASU_PROPERTY(TORASU_STD_PROP_IMG_RAITO)) {
+		} else if (rh.matchProperty(TORASU_STD_PROP_IMG_RAITO)) {
 			return new torasu::RenderResult(torasu::RenderResultStatus_OK, new torasu::tstd::Dnum((double) state->srcWidth / state->srcHeight), true);
 		} else {
 			// Unsupported Property

@@ -48,9 +48,9 @@ torasu::RenderResult* Rmedia_creator::render(torasu::RenderInstruction* ri) {
 
 		{
 			bool doMetadata = metadataSlot.get() != nullptr;
-			torasu::ResultSettings textSettings(TORASU_STD_PL_STRING, nullptr);
-			torasu::ResultSettings numSettings(TORASU_STD_PL_NUM, nullptr);
-			torasu::ResultSettings metadataSettings(TORASU_STD_PL_MAP, nullptr);
+			torasu::ResultSettings textSettings(TORASU_STD_PL_STRING, torasu::tools::NO_FORMAT);
+			torasu::ResultSettings numSettings(TORASU_STD_PL_NUM, torasu::tools::NO_FORMAT);
+			torasu::ResultSettings metadataSettings(TORASU_STD_PL_MAP, torasu::tools::NO_FORMAT);
 
 			auto formatRid = rh.enqueueRender(formatRnd, &textSettings);
 			auto beginRid = rh.enqueueRender(beginRnd, &numSettings);
@@ -121,7 +121,7 @@ torasu::RenderResult* Rmedia_creator::render(torasu::RenderInstruction* ri) {
 		torasu::tstd::Dnum frameRatio((double) req.width / req.height);
 
 		torasu::tstd::Dbimg_FORMAT visFmt(req.width, req.height);
-		torasu::ResultSettings visSettings(TORASU_STD_PL_VIS, &visFmt);
+		torasu::tools::ResultSettingsSingleFmt visSettings(TORASU_STD_PL_VIS, &visFmt);
 
 		size_t countPending = 0;
 
@@ -172,7 +172,7 @@ torasu::RenderResult* Rmedia_creator::render(torasu::RenderInstruction* ri) {
 				auto* durRctxVal = new torasu::tstd::Dnum(audReq->getDuration());
 				(*modRctx)[TORASU_STD_CTX_DURATION] = durRctxVal;
 
-				auto* audSettings = new torasu::ResultSettings(TORASU_STD_PL_AUDIO, audReq->getFormat());
+				auto* audSettings = new torasu::tools::ResultSettingsSingleFmt(TORASU_STD_PL_AUDIO, audReq->getFormat());
 
 				auto rid = rh.enqueueRender(srcRnd.get(), audSettings, modRctx);
 

@@ -76,7 +76,7 @@ void Rmedia_file::ready(torasu::ReadyInstruction* ri) {
 
 	// Render File
 
-	torasu::ResultSettings fileSettings(TORASU_STD_PL_FILE, nullptr);
+	torasu::ResultSettings fileSettings(TORASU_STD_PL_FILE, torasu::tools::NO_FORMAT);
 
 	std::unique_ptr<torasu::RenderResult> rr(rh.runRender(srcRnd.get(), &fileSettings));
 
@@ -155,13 +155,11 @@ torasu::RenderResult* Rmedia_file::render(torasu::RenderInstruction* ri) {
 			}
 		}
 
-		auto* fmt = segmentSettings->getFromat();
-
 		if (currentPipeline == TORASU_STD_PL_VIS) {
 			// Render video
 
 			torasu::tstd::Dbimg_FORMAT* videoFormat;
-			if (fmt == nullptr || !( videoFormat = dynamic_cast<torasu::tstd::Dbimg_FORMAT*>(fmt) )) {
+			if (!(videoFormat = rh.getFormat<torasu::tstd::Dbimg_FORMAT>())) {
 				return rh.buildResult(torasu::RenderResultStatus_INVALID_FORMAT);
 			}
 

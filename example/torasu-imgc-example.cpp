@@ -54,7 +54,7 @@ void netImageTest() {
 
 
 	torasu::tstd::Dbimg_FORMAT format(400, 400);
-	torasu::ResultSettings rsImg(TORASU_STD_PL_VIS, &format);
+	torasu::tools::ResultSettingsSingleFmt rsImg(TORASU_STD_PL_VIS, &format);
 
 	std::cout << "RENDER BEGIN" << std::endl;
 	/*for (int i = 0; i < 120; i++) {
@@ -249,7 +249,7 @@ void yetAnotherIMGCTest() {
 
 	// Dbimg_FORMAT format(1340, 1200);
 	torasu::tstd::Dbimg_FORMAT format(1340, 1200);
-	torasu::ResultSettings rsImg(TORASU_STD_PL_VIS, &format);
+	torasu::tools::ResultSettingsSingleFmt rsImg(TORASU_STD_PL_VIS, &format);
 
 	// Rendering Results
 
@@ -373,7 +373,7 @@ void cropdataExample() {
 
 	// Creating instruction
 
-	torasu::ResultSettings rs(IMGC_PL_ALIGN, nullptr);
+	torasu::ResultSettings rs(IMGC_PL_ALIGN, torasu::tools::NO_FORMAT);
 
 	// Running render based on instruction
 
@@ -426,7 +426,7 @@ void cropExample() {
 	// torasu::tstd::Dbimg_FORMAT format(500, 600); // Now Works
 	torasu::tstd::Dbimg_FORMAT format(600, 500); // Now Works
 
-	torasu::ResultSettings rs(TORASU_STD_PL_VIS, &format);
+	torasu::tools::ResultSettingsSingleFmt rs(TORASU_STD_PL_VIS, &format);
 
 	// Creating render-context
 
@@ -600,7 +600,7 @@ void encodeTorasu() {
 	torasu::RenderContext rctx;
 	torasu::tools::RenderHelper rh(ei, li, &rctx);
 
-	torasu::ResultSettings rs(TORASU_STD_PL_FILE, nullptr);
+	torasu::ResultSettings rs(TORASU_STD_PL_FILE, torasu::tools::NO_FORMAT);
 
 	std::unique_ptr<torasu::RenderResult> rr(rh.runRender(tree, &rs));
 
@@ -755,7 +755,7 @@ void graphicsExample() {
 	torasu::RenderContext rctx;
 	torasu::tools::RenderHelper rh(ei, li, &rctx);
 
-	torasu::ResultSettings rs(TORASU_STD_PL_FILE, nullptr);
+	torasu::ResultSettings rs(TORASU_STD_PL_FILE, torasu::tools::NO_FORMAT);
 
 	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 

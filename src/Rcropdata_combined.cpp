@@ -25,7 +25,7 @@ torasu::RenderResult* Rcropdata_combined::render(torasu::RenderInstruction* ri) 
 	torasu::tools::RenderHelper rh(ri);
 	auto resSettings = ri->getResultSettings();
 	if (resSettings->getPipeline() == IMGC_PL_ALIGN) {
-		torasu::ResultSettings rsNum(TORASU_STD_PL_NUM, nullptr);
+		torasu::ResultSettings rsNum(TORASU_STD_PL_NUM, torasu::tools::NO_FORMAT);
 
 		auto rendL = rh.enqueueRender(leftRnd, &rsNum);
 		auto rendR = rh.enqueueRender(rightRnd, &rsNum);

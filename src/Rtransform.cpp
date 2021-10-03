@@ -36,9 +36,7 @@ torasu::RenderResult* Rtransform::render(torasu::RenderInstruction* ri) {
 	auto resSettings = ri->getResultSettings();
 	if (resSettings->getPipeline() == TORASU_STD_PL_VIS) {
 		torasu::tstd::Dbimg_FORMAT* fmt;
-		auto fmtSettings = resSettings->getFromat();
-		if ( !( fmtSettings != nullptr
-				&& (fmt = dynamic_cast<torasu::tstd::Dbimg_FORMAT*>(fmtSettings)) )) {
+		if (!(fmt = rh.getFormat<torasu::tstd::Dbimg_FORMAT>())) {
 			return new torasu::RenderResult(torasu::RenderResultStatus_INVALID_FORMAT);
 		}
 
@@ -70,7 +68,7 @@ torasu::RenderResult* Rtransform::render(torasu::RenderInstruction* ri) {
 			torasu::tstd::Dnum baseDuration = 1;
 
 			if (baseDuration.getNum() > 0) {
-				torasu::ResultSettings rsNum(TORASU_STD_PL_NUM, nullptr);;
+				torasu::ResultSettings rsNum(TORASU_STD_PL_NUM, torasu::tools::NO_FORMAT);
 
 				std::unique_ptr<torasu::RenderResult> shutterRes(rh.runRender(shutter, &rsNum));
 				auto shutterRendered = rh.evalResult<torasu::tstd::Dnum>(shutterRes.get());
@@ -127,7 +125,7 @@ torasu::RenderResult* Rtransform::render(torasu::RenderInstruction* ri) {
 
 			if (doBench) bench = std::chrono::steady_clock::now();
 
-			torasu::ResultSettings rsVec(TORASU_STD_PL_VEC, nullptr);
+			torasu::tools::ResultSettingsSingleFmt rsVec(TORASU_STD_PL_VEC, nullptr);
 
 			for (size_t i = 0; i < interpolationCount; i++) {
 				torasu::RenderContext* modRctx = &rctxs.emplace_back(*rh.rctx);
@@ -157,7 +155,7 @@ torasu::RenderResult* Rtransform::render(torasu::RenderInstruction* ri) {
 
 		// Calculate source
 
-		torasu::ResultSettings rsImg(TORASU_STD_PL_VIS, fmt);
+		torasu::tools::ResultSettingsSingleFmt rsImg(TORASU_STD_PL_VIS, fmt);
 
 		std::unique_ptr<torasu::RenderResult> resS(rh.runRender(source, &rsImg));
 		auto source = rh.evalResult<torasu::tstd::Dbimg>(resS.get());

@@ -21,20 +21,18 @@ torasu::RenderResult* Rgain::render(torasu::RenderInstruction* ri) {
 		return new torasu::RenderResult(torasu::RenderResultStatus_INVALID_SEGMENT);
 	}
 
-	auto* format = rh.rs->getFromat();
-	uint32_t rWidth, rHeight;
-	if (auto* bimgFormat = dynamic_cast<torasu::tstd::Dbimg_FORMAT*>(format)) {
-		rWidth = bimgFormat->getWidth();
-		rHeight = bimgFormat->getHeight();
-	} else {
+	torasu::tstd::Dbimg_FORMAT* bimgFormat;
+	if (!(bimgFormat = rh.getFormat<torasu::tstd::Dbimg_FORMAT>())) {
 		return new torasu::RenderResult(torasu::RenderResultStatus_INVALID_FORMAT);
 	}
+	uint32_t rWidth = bimgFormat->getWidth();
+	uint32_t rHeight = bimgFormat->getHeight();
 
 	// Creation of Requests
-	torasu::ResultSettings rsVis(TORASU_STD_PL_VIS, format);
+	torasu::tools::ResultSettingsSingleFmt rsVis(TORASU_STD_PL_VIS, bimgFormat);
 	auto srcRndId = rh.enqueueRender(rSrc, &rsVis);
 
-	torasu::ResultSettings rsNum(TORASU_STD_PL_NUM, nullptr);
+	torasu::ResultSettings rsNum(TORASU_STD_PL_NUM, torasu::tools::NO_FORMAT);
 	auto gainRndId = rh.enqueueRender(rGainVal, &rsNum);
 
 	// Fetching of requests
