@@ -19,7 +19,7 @@ Rauto_align2d::Rauto_align2d(torasu::tools::RenderableSlot rndSrc, double posX, 
 	: SimpleRenderable(true, false),
 	  rndSrc(rndSrc), posX(posX), posY(posY), zoomFactor(zoomFactor), ratio(ratio) {
 
-	internalAlign = new Ralign2d(rndSrc, this);
+	internalAlign = new Ralign2d(this->rndSrc.get(), this);
 }
 
 Rauto_align2d::~Rauto_align2d() {
