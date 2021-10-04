@@ -666,7 +666,7 @@ void graphicsExample() {
 
 	tstd::Rmatrix boxMove({
 		1.0, 0.0, 0.0,
-		0.0, 0.1, IR(new tstd::Rsubtract(IR(new tstd::Rfloor_mod(&blockPos, 2.4)), 1.05)),
+		0.0, 0.1, IR(new tstd::Rsubtract(IR(new tstd::Rfloor_mod(&blockPos, 2.4)), 1.2)),
 	}, 2);
 
 	imgc::Rtransform movedBox(&box, &boxMove/* ,  1.0/60, 3 */);
@@ -813,8 +813,8 @@ void graphicsExample() {
 		}
 	});
 
-	imgc::Rmedia_creator encoded(&premulComp, "apng", 0., 0.1, 10, 1080*2, 1080*2, 8000*1000, -1, &metadata);
-	// imgc::Rmedia_creator encoded(&premulComp, "mp4", 0., 12, 60, 1080*2, 1080*2, 8000*1000, -1, &metadata);
+	// imgc::Rmedia_creator encoded(&premulComp, "apng", 0., 0.1, 10, 1080*2, 1080*2, 8000*1000, -1, &metadata);
+	imgc::Rmedia_creator encoded(&premulComp, "mp4", 0., 12, 60, 1080*2, 1080*2, 8000*1000, -1, &metadata);
 
 	torasu::tstd::LIcore_logger logger;
 	torasu::LogInstruction li(&logger, torasu::LogLevel::INFO, torasu::LogInstruction::OPT_PROGRESS);
@@ -837,8 +837,8 @@ void graphicsExample() {
 	std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
 
 	std::cout << "Saving..." << std::endl;
-	std::ofstream sysFile("test.png");
-	// std::ofstream sysFile("test.mp4");
+	// std::ofstream sysFile("test.png");
+	std::ofstream sysFile("test.mp4");
 
 	sysFile.write(const_cast<const char*>(reinterpret_cast<char*>(resFile->getFileData())), resFile->getFileSize());
 
