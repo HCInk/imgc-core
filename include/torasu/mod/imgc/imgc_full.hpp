@@ -50,6 +50,7 @@
 #include <torasu/mod/imgc/Rrothombus.hpp>
 #include <torasu/mod/imgc/Rcolor.hpp>
 #include <torasu/mod/imgc/Rtext.hpp>
+#include <torasu/mod/imgc/Rlayer.hpp>
 
 // MEDIA
 #include <torasu/mod/imgc/Rimg_file.hpp>

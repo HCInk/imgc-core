@@ -178,7 +178,8 @@ void Rtext::ready(torasu::ReadyInstruction* ri) {
 	}
 
 	error = FT_New_Face( library,
-						 "/usr/share/fonts/adobe-source-han-sans/SourceHanSansJP-Bold.otf",
+						 //  "/usr/share/fonts/adobe-source-han-sans/SourceHanSansJP-Bold.otf",
+						 "/usr/share/fonts/noto/NotoSans-BlackItalic.ttf",
 						 0,
 						 &face );
 	if ( error == FT_Err_Cannot_Open_Resource ) {

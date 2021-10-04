@@ -33,6 +33,7 @@ set(IMGC_SRC
         ${CMAKE_CURRENT_LIST_DIR}/src/Rrothumbus.cpp
         ${CMAKE_CURRENT_LIST_DIR}/src/Rcolor.cpp
         ${CMAKE_CURRENT_LIST_DIR}/src/Rtext.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/src/Rlayer.cpp
         ${CMAKE_CURRENT_LIST_DIR}/src/Rtransform.cpp
         ${CMAKE_CURRENT_LIST_DIR}/src/Transform.cpp)
 
