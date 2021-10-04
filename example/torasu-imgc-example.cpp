@@ -628,7 +628,7 @@ void graphicsExample() {
 
 	torasu::tstd::Rrctx_value time(TORASU_STD_CTX_TIME, TORASU_STD_PL_NUM);
 
-	torasu::tstd::Rmultiply trm(&time, 40*5);
+	torasu::tstd::Rmultiply trm(&time, 180);
 
 	torasu::tstd::Rsin sinVal(&trm);
 
@@ -637,17 +637,75 @@ void graphicsExample() {
 
 	// torasu::tstd::Rnum round(1);
 
-	// Rrothumbus roth(&round);
-	Rtext text("トラス");
-	// torasu::tstd::Rnumber_string timeDisplay(&time, 1, 2);
-	// Rtext text(IR(new torasu::tstd::Rstring_concat(
-	// 	IR( new torasu::tstd::Rstring_map({
-	// 		{"0", "T+"},
-	// 		{"1", &timeDisplay}
-	// 	}) ),
-	// 	IR( new torasu::tstd::Rrctx_value(torasu::tstd::Rstring_concat::RCTX_KEY_VALUE, TORASU_STD_PL_STRING))
-	// )));
+	Rgraphics box(new Dgraphics({
+		Dgraphics::GObject(Dgraphics::GShape(
+							   Dgraphics::GSection::fromPolys(
+		{{0, 0}, {1, 0}, {1, 1}, {0, 1}}
+							   ),
+		{{0, 0}, {1, 0}, {1, 1}, {0, 1}}
+						   ))
+	}));
 
+	auto& posA = sinVal;
+	tstd::Rsin posB(IR(new tstd::Radd(&trm, 45)));
+
+	tstd::Rsubtract scale(&posA, &posB);
+	tstd::Rmultiply sacleAdj(&scale, 0.5);
+
+	tstd::Rmatrix boxTrans({
+		&sacleAdj, 0.0, IR(new tstd::Rsubtract(&posA, &sacleAdj)),
+		0.0, 1.0, 0.0,
+	}, 2);
+
+	Rtransform transBox(&box, &boxTrans/* , 1.0/60, 15 */);
+
+	tstd::Radd blockOffset(IR(new tstd::Rmultiply(&time, 2.0)),
+						   IR(new tstd::Rrctx_value(TORASU_STD_CTX_IT, TORASU_STD_PL_NUM)));
+
+	tstd::Rmultiply blockPos(&blockOffset, 0.4);
+
+	tstd::Rmatrix boxMove({
+		1.0, 0.0, 0.0,
+		0.0, 0.1, IR(new tstd::Rsubtract(IR(new tstd::Rfloor_mod(&blockPos, 2.4)), 1.05)),
+	}, 2);
+
+	imgc::Rtransform movedBox(&box, &boxMove/* ,  1.0/60, 3 */);
+
+	tstd::Rlist spinnerChars({
+		IR(new tstd::Rstring("|")),
+		IR(new tstd::Rstring("/")),
+		IR(new tstd::Rstring("—")),
+		IR(new tstd::Rstring("\\")),
+	});
+
+	// torasu::tstd::Rnumber_string spinnerChars(IR(new tstd::Rrctx_value(TORASU_STD_CTX_IT, TORASU_STD_PL_NUM)), 2);
+
+	tstd::Rmod_rctx spinnerChar(&spinnerChars, IR(new tstd::Rfloor_mod(IR(new tstd::Rmultiply(&time, 8)), 4)), TORASU_STD_CTX_IT, TORASU_STD_PL_NUM);
+
+	imgc::Rtext spinnerTxt(&spinnerChar);
+	imgc::Rauto_align2d spinner(IR(new imgc::Rgraphics(&spinnerTxt)), 0, 0, 0);
+
+	imgc::Rlayer moveBoxes(IR(new tstd::Rlist({
+		&movedBox,
+		&movedBox,
+		&movedBox,
+		&movedBox,
+		&movedBox,
+		&movedBox
+	})));
+
+	Rrothumbus roth(&round);
+	// Rtext text("トラス");
+	torasu::tstd::Rnumber_string timeDisplay(&time, 1, 2);
+	Rtext text(IR(new torasu::tstd::Rstring_concat(
+	IR( new torasu::tstd::Rstring_map({
+		{"0", "T+"},
+		{"1", &timeDisplay}
+	}) ),
+	IR( new torasu::tstd::Rrctx_value(torasu::tstd::Rstring_concat::RCTX_KEY_VALUE, TORASU_STD_PL_STRING))
+				  )));
+
+	Rgraphics circle(&roth);
 	Rgraphics vecRender(&text);
 
 	// Rtransform transform(&vecRender, IR(new torasu::tstd::Rmatrix(
@@ -692,7 +750,7 @@ void graphicsExample() {
 	}, 2 );
 
 
-	Rtransform transform(IR(new imgc::Rauto_align2d(&vecRender, 0, 0, 0)), &transMat/* ,  1.0/60, 15 */);
+	Rtransform transform(IR(new imgc::Rauto_align2d(&vecRender, 0, 0, 0)), &transMat/* , 1.0/60, 15 */);
 
 	// Rtransform transform(&vecRender, IR(new torasu::tstd::Rmatrix(
 	// 	{
@@ -702,7 +760,17 @@ void graphicsExample() {
 	// )));
 	// Rtransform transform(&vecRender, IR(new torasu::tstd::Rerror("Test!")));
 
-	auto& preComp = transform;
+	tstd::Rlist layerList({
+		IR(new Rtransform( &circle, IR(new tstd::Rmatrix({0.2, 0.0, 0.8, 0.0, 0.2, 0.8},2)) )),
+		IR(new Rtransform( &spinner, IR(new tstd::Rmatrix({0.2, 0.0, -0.8, 0.0, 0.2, -0.8},2)) )),
+		IR(new Rtransform( &moveBoxes, IR(new tstd::Rmatrix({0.04, 0.0, -0.92, 0.0, 0.4, 0.0},2)) )),
+		IR(new Rtransform( &transBox, IR(new tstd::Rmatrix({0.4, 0.0, -0.5, 0.0, 0.04, 0.86},2)) )),
+		IR(new Rtransform( &transBox, IR(new tstd::Rmatrix({0.4, 0.0, 0.5, 0.0, 0.04, -0.86},2)) )),
+		&transform
+	});
+	Rlayer layers(&layerList);
+
+	auto& preComp = layers;
 
 	imgc::Rcolor white(1.0,1.0,1.0,1.0);
 	torasu::tstd::Rsubtract premulMaybe(&white, &preComp);
