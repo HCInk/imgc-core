@@ -58,18 +58,18 @@ void calcInvCords(double invCords[9], torasu::tstd::Dmatrix transformMatrix) {
 } // namespace
 
 
-void transform(const uint8_t* src, uint8_t* dest, uint32_t width, uint32_t height, torasu::tstd::Dmatrix transformMatrix) {
+void transform(const uint8_t* src, uint8_t* dest, uint32_t srcWidth, uint32_t srcHeight, uint32_t destWidth, uint32_t destHeight, torasu::tstd::Dmatrix transformMatrix) {
 	double invCords[9];
 	calcInvCords(invCords, transformMatrix);
 
 #if PREBUF
-	std::vector<float> srcBuffVec((width+1)*(height+1)*channels);
+	std::vector<float> srcBuffVec((srcWidth+1)*(srcHeight+1)*channels);
 
 	{
 		const uint8_t* srcPtr = src;
 		float* srcBuffPtr = srcBuffVec.data();
-		for (uint32_t y = 0; y < height; y++) {
-			for (uint32_t x = 0; x < width; x++) {
+		for (uint32_t y = 0; y < srcHeight; y++) {
+			for (uint32_t x = 0; x < srcWidth; x++) {
 				for (uint32_t c = 0; c < channels; c++) {
 					(*srcBuffPtr) = static_cast<float>(*srcPtr);
 					srcBuffPtr++;
@@ -83,7 +83,7 @@ void transform(const uint8_t* src, uint8_t* dest, uint32_t width, uint32_t heigh
 			}
 		}
 
-		for (uint32_t i = 0; i < (width+1)*channels; i++) {
+		for (uint32_t i = 0; i < (srcWidth+1)*channels; i++) {
 			(*srcBuffPtr) = 0.0;
 			srcBuffPtr++;
 		}
@@ -93,17 +93,19 @@ void transform(const uint8_t* src, uint8_t* dest, uint32_t width, uint32_t heigh
 	const float* srcBuffPtr = srcBuffVec.data();
 #endif
 
-	int32_t widthSub = width-1;
-	int32_t heightSub = height-1;
-	for (uint32_t y = 0; y < height; y++) {
-		double yDest = static_cast<double>(y) / heightSub;
-		for (uint32_t x = 0; x < width; x++) {
-			double xDest = static_cast<double>(x) / widthSub;
+	const int32_t srcWidthSub = srcWidth-1;
+	const int32_t srcHeightSub = srcHeight-1;
+	const int32_t destWidthSub = destWidth-1;
+	const int32_t destHeightSub = destHeight-1;
+	for (uint32_t y = 0; y < destHeight; y++) {
+		double yDest = static_cast<double>(y) / destHeightSub;
+		for (uint32_t x = 0; x < destWidth; x++) {
+			double xDest = static_cast<double>(x) / destWidthSub;
 
 			double xRel = xDest*invCords[0] + yDest*invCords[1] + invCords[2];
 			double yRel = xDest*invCords[3] + yDest*invCords[4] + invCords[5];
-			double xAbs = xRel*widthSub;
-			double yAbs = yRel*heightSub;
+			double xAbs = xRel*srcWidthSub;
+			double yAbs = yRel*srcHeightSub;
 
 			// const uint8_t* localSrc;
 			// if (xSrc >= 0 && xSrc <= 1 && ySrc >= 0 && ySrc <= 1) {
@@ -118,9 +120,9 @@ void transform(const uint8_t* src, uint8_t* dest, uint32_t width, uint32_t heigh
 
 			float accu[4] = {0,0,0,0};
 #if PREBUF
-			pixelCollect<float>(accu, srcBuffPtr, xAbs, yAbs, width, height, width+1, false);
+			pixelCollect<float>(accu, srcBuffPtr, xAbs, yAbs, srcWidth, srcHeight, srcWidth+1, false);
 #else
-			pixelCollect<uint8_t>(accu, src, xAbs, yAbs, widthSub, heightSub, width, true);
+			pixelCollect<uint8_t>(accu, src, xAbs, yAbs, srcWidthSub, srcHeightSub, srcWidth, true);
 #endif
 			for (uint32_t c = 0; c < channels; c++) {
 				(*dest) = static_cast<uint8_t>(accu[c]);
@@ -131,7 +133,7 @@ void transform(const uint8_t* src, uint8_t* dest, uint32_t width, uint32_t heigh
 	}
 }
 
-void transformMix(const uint8_t* src, uint8_t* dest, uint32_t width, uint32_t height, const torasu::tstd::Dmatrix* transArray, size_t nTransforms) {
+void transformMix(const uint8_t* src, uint8_t* dest, uint32_t srcWidth, uint32_t srcHeight, uint32_t destWidth, uint32_t destHeight, const torasu::tstd::Dmatrix* transArray, size_t nTransforms) {
 	std::vector<double[9]> invCordsVec(nTransforms);
 	auto invCordsArr = invCordsVec.data();
 	for (size_t t = 0; t < nTransforms; t++) {
@@ -139,13 +141,13 @@ void transformMix(const uint8_t* src, uint8_t* dest, uint32_t width, uint32_t he
 	}
 
 #if PREBUF
-	std::vector<float> srcBuffVec((width+1)*(height+1)*channels);
+	std::vector<float> srcBuffVec((srcWidth+1)*(srcHeight+1)*channels);
 
 	{
 		const uint8_t* srcPtr = src;
 		float* srcBuffPtr = srcBuffVec.data();
-		for (uint32_t y = 0; y < height; y++) {
-			for (uint32_t x = 0; x < width; x++) {
+		for (uint32_t y = 0; y < srcHeight; y++) {
+			for (uint32_t x = 0; x < srcWidth; x++) {
 				for (uint32_t c = 0; c < channels; c++) {
 					(*srcBuffPtr) = static_cast<float>(*srcPtr);
 					srcBuffPtr++;
@@ -159,7 +161,7 @@ void transformMix(const uint8_t* src, uint8_t* dest, uint32_t width, uint32_t he
 			}
 		}
 
-		for (uint32_t i = 0; i < (width+1)*channels; i++) {
+		for (uint32_t i = 0; i < (srcWidth+1)*channels; i++) {
 			(*srcBuffPtr) = 0.0;
 			srcBuffPtr++;
 		}
@@ -169,12 +171,14 @@ void transformMix(const uint8_t* src, uint8_t* dest, uint32_t width, uint32_t he
 	const float* srcBuffPtr = srcBuffVec.data();
 #endif
 
-	size_t widthSub = width-1;
-	size_t heightSub = height-1;
-	for (uint32_t y = 0; y < height; y++) {
-		double yDest = static_cast<double>(y) / heightSub;
-		for (uint32_t x = 0; x < width; x++) {
-			double xDest = static_cast<double>(x) / widthSub;
+	const int32_t srcWidthSub = srcWidth-1;
+	const int32_t srcHeightSub = srcHeight-1;
+	const int32_t destWidthSub = destWidth-1;
+	const int32_t destHeightSub = destHeight-1;
+	for (uint32_t y = 0; y < destHeight; y++) {
+		double yDest = static_cast<double>(y) / destHeightSub;
+		for (uint32_t x = 0; x < destWidth; x++) {
+			double xDest = static_cast<double>(x) / destWidthSub;
 
 			float accu[4] = {0,0,0,0};
 			for (size_t t = 0; t < nTransforms; t++) {
@@ -184,8 +188,8 @@ void transformMix(const uint8_t* src, uint8_t* dest, uint32_t width, uint32_t he
 
 				double xRel = xDest*invCords[0] + yDest*invCords[1] + invCords[2];
 				double yRel = xDest*invCords[3] + yDest*invCords[4] + invCords[5];
-				double xAbs = xRel*widthSub;
-				double yAbs = yRel*heightSub;
+				double xAbs = xRel*srcWidthSub;
+				double yAbs = yRel*srcHeightSub;
 
 				// const uint8_t* localSrc;
 				// if (xSrc >= 0 && xSrc <= 1 && ySrc >= 0 && ySrc <= 1) {
@@ -199,9 +203,9 @@ void transformMix(const uint8_t* src, uint8_t* dest, uint32_t width, uint32_t he
 				// }
 
 #if PREBUF
-				pixelCollect<float>(accu, srcBuffPtr, xAbs, yAbs, width, height, width+1, false);
+				pixelCollect<float>(accu, srcBuffPtr, xAbs, yAbs, srcWidth, srcHeight, srcWidth+1, false);
 #else
-				pixelCollect<uint8_t>(accu, src, xAbs, yAbs, widthSub, heightSub, width, true);
+				pixelCollect<uint8_t>(accu, src, xAbs, yAbs, srcWidthSub, srcHeightSub, srcWidth, true);
 #endif
 			}
 
