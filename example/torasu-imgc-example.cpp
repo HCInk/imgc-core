@@ -816,8 +816,8 @@ void graphicsExample() {
 	// imgc::Rmedia_creator encoded(&premulComp, "apng", 0., 0.1, 10, 1080*2, 1080*2, 8000*1000, -1, &metadata);
 	imgc::Rmedia_creator encoded(&premulComp, "mp4", 0., 12, 60, 1080*2, 1080*2, 8000*1000, -1, &metadata);
 
-	torasu::tstd::LIcore_logger logger;
-	torasu::LogInstruction li(&logger, torasu::LogLevel::INFO, torasu::LogInstruction::OPT_PROGRESS);
+	torasu::tstd::LIcore_logger logger(torasu::tstd::LIcore_logger::FANCY);
+	torasu::LogInstruction li(&logger, torasu::LogLevel::INFO, torasu::LogInstruction::OPT_PROGRESS/* |torasu::LogInstruction::OPT_RUNNER_BENCH */);
 	auto* runner = new torasu::tstd::EIcore_runner((size_t)25);
 	torasu::ExecutionInterface* ei = runner->createInterface();
 	torasu::RenderContext rctx;
@@ -846,28 +846,26 @@ void graphicsExample() {
 
 	std::cout << "Saved." << std::endl;
 
-
-
 	/*
 		torasu::tstd::Dbimg_FORMAT format(1080*2, 1080*2);
 		// torasu::tstd::Dbimg_FORMAT format(30*3, 30*3);
-
-		auto handle = rib.addSegmentWithHandle<torasu::tstd::Dbimg>(TORASU_STD_PL_VIS, &format);
+		torasu::tools::ResultSettingsSingleFmt imgRs(TORASU_STD_PL_VIS, &format);
 
 		std::cout << "RENDER BEGIN" << std::endl;
 
 		std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
 		torasu::tstd::Dnum rndTime = 2.0;
-		torasu::RenderContext rctx;
+		torasu::tstd::Dnum ratio = 1.0;
 		rctx[TORASU_STD_CTX_TIME] = &rndTime;
-		std::unique_ptr<torasu::RenderResult> rr (rib.runRender(&comp, &rctx, ei, li));
+		rctx[TORASU_STD_CTX_IMG_RATIO] = &ratio;
+		std::unique_ptr<torasu::RenderResult> rr(rh.runRender(&comp, &imgRs));
 
 		std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 		std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
 		std::cout << "RENDER FIN" << std::endl;
 
-		auto castedRes = handle.getFrom(rr.get());
+		auto castedRes = rh.evalResult<torasu::tstd::Dbimg>(rr.get());
 
 		torasu::RenderResultStatus rss = castedRes.getStatus();
 
