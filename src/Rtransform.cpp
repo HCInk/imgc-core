@@ -17,6 +17,36 @@
 
 #include <torasu/mod/imgc/Transform.hpp>
 
+namespace {
+
+inline constexpr void recordMinMax(double in, double* min, double* max) {
+	if (*min > in) *min = in;
+	if (*max < in) *max = in;
+}
+
+inline constexpr void evalMatrixMinMax(double nums[6], double posX, double posY, double* xMin, double* xMax, double* yMin, double* yMax) {
+	recordMinMax(nums[0]*posX+nums[1]*posY+nums[2], xMin, xMax);
+	recordMinMax(nums[3]*posX+nums[4]*posY+nums[5], yMin, yMax);
+}
+
+inline torasu::tstd::Dmatrix createMatrixFromCrop(torasu::tstd::Dbimg::CropInfo crop, uint32_t originalWidth, uint32_t originalHeight) {
+	double leftOff = static_cast<double>(-crop.left)/originalWidth;
+	double rightOff = static_cast<double>(-crop.right)/originalWidth;
+	double bottomOff = static_cast<double>(-crop.bottom)/originalHeight;
+	double topOff = static_cast<double>(-crop.top)/originalHeight;
+
+	double totalX = 1+leftOff+rightOff;
+	double totalY = 1+bottomOff+topOff;
+	return torasu::tstd::Dmatrix({
+		1/totalX, 0, (leftOff-rightOff)/totalX,
+		0, 1/totalY, (bottomOff-topOff)/totalY,
+		0, 0, 1
+	}, 3);
+}
+
+} // namespace
+
+
 namespace imgc {
 
 Rtransform::Rtransform(torasu::tools::RenderableSlot source, torasu::tools::RenderableSlot transform, torasu::tstd::NumSlot shutter, torasu::tstd::NumSlot interpolationLimit)
@@ -104,6 +134,10 @@ torasu::RenderResult* Rtransform::render(torasu::RenderInstruction* ri) {
 
 		double maxSizeX = 0;
 		double maxSizeY = 0;
+		double destMinX = INFINITY;
+		double destMaxX = -INFINITY;
+		double destMinY = INFINITY;
+		double destMaxY = -INFINITY;
 
 		// Calculate transform-vector(s)
 
@@ -144,12 +178,33 @@ torasu::RenderResult* Rtransform::render(torasu::RenderInstruction* ri) {
 
 				if (transform) {
 					const auto& matrix = *transform.getResult();
-					matrices[i] = matrix;
-					const auto nums = matrix.getNums();
-					const double xScale = nums[0].getNum();
-					if (maxSizeX < xScale) maxSizeX = xScale;
-					const double yScale = nums[4].getNum();
-					if (maxSizeY < yScale) maxSizeY = yScale;
+					double nums[6];
+					{
+						// Copy to a more usable array
+						const auto dnums = matrix.getNums();
+						for (size_t iNum = 0; iNum < 6; iNum++) {
+							nums[iNum] = dnums[iNum].getNum();
+						}
+					}
+					matrices[i] = torasu::tstd::Dmatrix({
+						nums[0], nums[1], nums[2],
+						nums[3], nums[4], nums[5],
+						0, 0, 1,
+					}, 3);
+					{
+						// Calculate source-scaling
+						const double xScale = std::abs(nums[0]);
+						if (maxSizeX < xScale) maxSizeX = xScale;
+						const double yScale = std::abs(nums[4]);
+						if (maxSizeY < yScale) maxSizeY = yScale;
+					}
+					{
+						// Calculate image extremities
+						evalMatrixMinMax(nums, 1, 1, &destMinX, &destMaxX, &destMinY, &destMaxY);
+						evalMatrixMinMax(nums, 1, -1, &destMinX, &destMaxX, &destMinY, &destMaxY);
+						evalMatrixMinMax(nums, -1, 1, &destMinX, &destMaxX, &destMinY, &destMaxY);
+						evalMatrixMinMax(nums, -1, -1, &destMinX, &destMaxX, &destMinY, &destMaxY);
+					}
 				} else {
 					validTransform = false;
 					if (rh.mayLog(torasu::WARN))
@@ -163,13 +218,14 @@ torasu::RenderResult* Rtransform::render(torasu::RenderInstruction* ri) {
 		}
 
 		// Calculate source
-		const uint32_t destWidth = fmt->getWidth();
-		const uint32_t destHeight = fmt->getHeight();
-		const uint32_t srcWidth = std::ceil(maxSizeX*destWidth);
-		const uint32_t srcHeight = std::ceil(maxSizeY*destHeight);
+		const uint32_t fullDestWidth = fmt->getWidth();
+		const uint32_t fullDestHeight = fmt->getHeight();
+		const uint32_t srcWidth = std::ceil(maxSizeX*fullDestWidth);
+		const uint32_t srcHeight = std::ceil(maxSizeY*fullDestHeight);
 
 		if (srcWidth == 0 || srcHeight == 0) {
-			torasu::tstd::Dbimg* result = new torasu::tstd::Dbimg(destWidth, destHeight);
+			// TODO proper-bail-out
+			torasu::tstd::Dbimg* result = new torasu::tstd::Dbimg(fullDestWidth, fullDestHeight);
 			result->clear();
 			return rh.buildResult(result, validTransform ? torasu::RenderResultStatus_OK : torasu::RenderResultStatus_OK_WARN);
 		}
@@ -183,14 +239,38 @@ torasu::RenderResult* Rtransform::render(torasu::RenderInstruction* ri) {
 
 		if (source) {
 			torasu::tstd::Dbimg* src = source.getResult();
-			torasu::tstd::Dbimg* result = new torasu::tstd::Dbimg(destWidth, destHeight);
+			torasu::tstd::Dbimg* result;
+			if (const auto* requestedCrop = fmt->getCropInfo()) {
+				torasu::tstd::Dbimg::CropInfo crop;
+				crop.left = std::max(requestedCrop->left,
+									 static_cast<int32_t>(std::floor((destMinX+1)/2*fullDestWidth)));
+				crop.right = std::max(requestedCrop->right,
+									  static_cast<int32_t>(std::ceil((1-destMaxX)/2*fullDestWidth)));
+				crop.bottom = std::max(requestedCrop->bottom,
+									   static_cast<int32_t>(std::floor((destMinY+1)/2*fullDestHeight)));
+				crop.top = std::max(requestedCrop->top,
+									static_cast<int32_t>(std::ceil((1-destMaxY)/2*fullDestHeight)));
+				if (static_cast<int32_t>(fullDestHeight) <= crop.left+crop.right || static_cast<int32_t>(fullDestHeight) <= crop.top+crop.bottom) {
+					// TODO proper-bail-out
+					crop = *requestedCrop;
+				}
+
+				result = new torasu::tstd::Dbimg(fullDestWidth-crop.left-crop.right, fullDestHeight-crop.bottom-crop.top, new auto(crop));
+
+				auto postScaleMatrix = createMatrixFromCrop(crop, fullDestWidth, fullDestHeight);
+				for (size_t iMat = 0; iMat < matrices.size(); iMat++) {
+					matrices[iMat] = matrices[iMat].multiplyByMatrix(postScaleMatrix);
+				}
+			} else {
+				result = new torasu::tstd::Dbimg(fullDestWidth, fullDestHeight);
+			}
 
 			if (doBench) bench = std::chrono::steady_clock::now();
 
 			if (interpolationDuration > 0) {
-				imgc::transform::transformMix(src->getImageData(), result->getImageData(), srcWidth, srcHeight, destWidth, destHeight, matrices.data(), interpolationCount);
+				imgc::transform::transformMix(src->getImageData(), result->getImageData(), srcWidth, srcHeight, result->getWidth(), result->getHeight(), matrices.data(), interpolationCount);
 			} else {
-				imgc::transform::transform(src->getImageData(), result->getImageData(), srcWidth, srcHeight, destWidth, destHeight, *matrices.data());
+				imgc::transform::transform(src->getImageData(), result->getImageData(), srcWidth, srcHeight, result->getWidth(), result->getHeight(), *matrices.data());
 			}
 
 			if (doBench) li.logger->log(torasu::LogLevel::DEBUG,
