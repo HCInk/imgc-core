@@ -46,8 +46,9 @@ torasu::RenderResult* Rlayer::render(torasu::RenderInstruction* ri) {
 		if (layerCount <= 0) {
 			return rh.buildResult(torasu::RenderResultStatus_INVALID_SEGMENT);
 		}
-
-		torasu::tstd::Dbimg_FORMAT imgFmt(fmt->getWidth(), fmt->getHeight());
+		uint32_t destWidth = fmt->getWidth();
+		uint32_t destHeight = fmt->getHeight();
+		torasu::tstd::Dbimg_FORMAT imgFmt(destWidth, destHeight, new torasu::tstd::Dbimg::CropInfo());
 		torasu::tools::ResultSettingsSingleFmt visFmt(TORASU_STD_PL_VIS, &imgFmt);
 		std::vector<torasu::RenderContext> rctxBuffer(layerCount, *rh.rctx);
 		std::vector<torasu::tstd::Dnum> numBuffer(layerCount);
@@ -62,7 +63,6 @@ torasu::RenderResult* Rlayer::render(torasu::RenderInstruction* ri) {
 		}
 		std::unique_ptr<torasu::tstd::Dbimg> resultImg;
 		uint8_t* imgData;
-		size_t pixelCount;
 
 		for (int64_t layerIndex = layerCount-1; layerIndex >= 0; layerIndex--) {
 			std::unique_ptr<torasu::RenderResult> rr(rh.fetchRenderResult(rids[layerIndex]));
@@ -79,28 +79,58 @@ torasu::RenderResult* Rlayer::render(torasu::RenderInstruction* ri) {
 				rh.lrib.hasError = true;
 				continue;
 			}
+
+			torasu::tstd::Dbimg* nextLayerImg = res.getResult();
+
 			if (!resultImg) {
-				resultImg = std::unique_ptr<torasu::tstd::Dbimg>(res.ejectOrCloneResult());
-				imgData = resultImg->getImageData();
-				pixelCount = resultImg->getWidth()*resultImg->getHeight();
-				continue;
+				if (nextLayerImg->getCropInfo() == nullptr ||
+						(nextLayerImg->getCropInfo()->left == 0 && nextLayerImg->getCropInfo()->right == 0 &&
+						 nextLayerImg->getCropInfo()->top == 0 && nextLayerImg->getCropInfo()->bottom == 0)) {
+					resultImg = std::unique_ptr<torasu::tstd::Dbimg>(res.ejectOrCloneResult());
+					imgData = resultImg->getImageData();
+					continue;
+				} else {
+					resultImg = std::unique_ptr<torasu::tstd::Dbimg>(new torasu::tstd::Dbimg(destWidth, destHeight));
+					resultImg->clear();
+					imgData = resultImg->getImageData();
+				}
 			}
 
+
 			uint8_t* bottomLayerData = imgData;
-			uint8_t* topLayerData = res.getResult()->getImageData();
+			uint8_t* topLayerData = nextLayerImg->getImageData();
+			uint32_t srcWidth = nextLayerImg->getWidth();
+			uint32_t srcHeight = nextLayerImg->getHeight();
+			uint32_t offRight, offBottom;
+			if (const torasu::tstd::Dbimg::CropInfo* cropInfo = nextLayerImg->getCropInfo()) {
+				offRight = cropInfo->right;
+				offBottom = cropInfo->bottom;
+			} else {
+				offRight = 0;
+				offBottom = 0;
+			}
 
-			for (int64_t i = pixelCount*4-1; i >= 3; ) {
-				// ALPHA
-				uint16_t alpha = topLayerData[i];
-				uint16_t alphaInv = 0xFF - alpha;
-				bottomLayerData[i] = 0xFF - alphaInv*(0xFF-bottomLayerData[i])/0xFF;
-				i--;
+			uint32_t lineSkip = (destWidth-srcWidth)*4;
+			size_t iSrc = (srcWidth*srcHeight)*4-1;
+			size_t iDest = (destWidth*destHeight-(destWidth*offBottom+offRight))*4-1;
+			for (uint32_t y = 0; y < srcHeight; y++) {
+				for (uint32_t x = 0; x < srcWidth; x++) {
+					// ALPHA
 
-				// BLUE / GREEN / RED
-				for (size_t c = 0; c < 3; c++) {
-					bottomLayerData[i] = (alpha*topLayerData[i] + alphaInv*bottomLayerData[i]) / 0xFF;
-					i--;
+					uint16_t alpha = topLayerData[iSrc];
+					uint16_t alphaInv = 0xFF - alpha;
+					bottomLayerData[iDest] = 0xFF - alphaInv*(0xFF-bottomLayerData[iDest])/0xFF;
+					iDest--;
+					iSrc--;
+
+					// BLUE / GREEN / RED
+					for (size_t c = 0; c < 3; c++) {
+						bottomLayerData[iDest] = (alpha*topLayerData[iSrc] + alphaInv*bottomLayerData[iDest]) / 0xFF;
+						iDest--;
+						iSrc--;
+					}
 				}
+				iDest -= lineSkip;
 			}
 
 		}
