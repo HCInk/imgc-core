@@ -125,7 +125,8 @@ void transform(const uint8_t* src, uint8_t* dest, uint32_t srcWidth, uint32_t sr
 			pixelCollect<uint8_t>(accu, src, xAbs, yAbs, srcWidthSub, srcHeightSub, srcWidth, true);
 #endif
 			for (uint32_t c = 0; c < channels; c++) {
-				(*dest) = static_cast<uint8_t>(accu[c]);
+				// (*dest) = static_cast<uint8_t>(accu[c]);
+				(*dest) = static_cast<uint8_t>(std::round(accu[c]));
 				dest++;
 			}
 
