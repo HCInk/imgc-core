@@ -20,6 +20,7 @@ if (EMSCRIPTEN)
 endif()
 
 set(IMGC_SRC
+		${CMAKE_CURRENT_LIST_DIR}/src/imgc-index.cpp
 		${CMAKE_CURRENT_LIST_DIR}/thirdparty/lodepng/lodepng.cpp
 		${CMAKE_CURRENT_LIST_DIR}/src/Rimg_file.cpp
         ${CMAKE_CURRENT_LIST_DIR}/src/FFmpegLogger.cpp

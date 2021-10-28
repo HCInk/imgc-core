@@ -5,6 +5,10 @@
 #include <torasu/std/Dbimg.hpp>
 #include <torasu/std/pipeline_names.hpp>
 
+namespace {
+static const auto IDENT = "IMGC::RCOLOR";
+} // namespace
+
 namespace imgc {
 
 Rcolor::Rcolor(torasu::tstd::NumSlot r, torasu::tstd::NumSlot g, torasu::tstd::NumSlot b, torasu::tstd::NumSlot a)
@@ -13,7 +17,7 @@ Rcolor::Rcolor(torasu::tstd::NumSlot r, torasu::tstd::NumSlot g, torasu::tstd::N
 Rcolor::~Rcolor() {}
 
 torasu::Identifier Rcolor::getType() {
-	return "IMGC::RCOLOR";
+	return IDENT;
 }
 
 torasu::RenderResult* Rcolor::render(torasu::RenderInstruction* ri) {
@@ -130,5 +134,44 @@ void Rcolor::setElement(std::string key, Element* elem) {
 	if (torasu::tools::trySetRenderableSlot("a", &aSrc, false, key, elem)) return;
 	throw torasu::tools::makeExceptSlotDoesntExist(key);
 }
+
+
+namespace {
+
+static const torasu::ElementFactory::SlotDescriptor SLOT_INDEX[] = {
+	{.id = "r", .label = {.name = "Red", .description = "Red component of color"}, .optional = false, .renderable = true},
+	{.id = "g", .label = {.name = "Green", .description = "Green component of color"}, .optional = false, .renderable = true},
+	{.id = "b", .label = {.name = "Blue", .description = "Blue component of color"}, .optional = false, .renderable = true},
+	{.id = "a", .label = {.name = "Alpha", .description = "Alpha component of color"}, .optional = false, .renderable = true},
+};
+
+static class : public torasu::ElementFactory {
+	torasu::Identifier getType() const override {
+		return IDENT;
+	}
+
+	torasu::UserLabel getLabel() const override {
+		return {
+			.name = "Color",
+			.description = "Defines a color"
+		};
+	}
+
+	torasu::Element* create(torasu::DataResource** data, const torasu::ElementMap& elements) const override {
+		std::unique_ptr<Rcolor> elem(new Rcolor(1.0,1.0,1.0,1.0));
+		for (auto slot : elements) {
+			elem->setElement(slot.first, slot.second);
+		}
+		return elem.release();
+	}
+
+	SlotIndex getSlotIndex() const override {
+		return {.slotIndex = SLOT_INDEX, .slotCount = sizeof(SLOT_INDEX)/sizeof(ElementFactory::SlotDescriptor)};
+	}
+} FACTORY_INSTANCE;
+
+} // namespace
+
+const torasu::ElementFactory* const Rcolor::FACTORY = &FACTORY_INSTANCE;
 
 } // namespace imgc
