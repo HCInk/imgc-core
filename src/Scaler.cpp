@@ -2,7 +2,7 @@
 
 namespace imgc::scaler {
 
-torasu::tstd::Dbimg* scaleImg(u_int8_t* srcData, uint32_t srcWidth, uint32_t srcHeight, torasu::tstd::Dbimg_FORMAT* fmt, bool copySame) {
+torasu::tstd::Dbimg* scaleImg(uint8_t* srcData, uint32_t srcWidth, uint32_t srcHeight, torasu::tstd::Dbimg_FORMAT* fmt, bool copySame) {
 
 	auto destWidth = fmt->getWidth();
 	auto destHeight = fmt->getHeight();

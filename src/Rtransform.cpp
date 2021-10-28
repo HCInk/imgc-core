@@ -77,7 +77,7 @@ torasu::RenderResult* Rtransform::render(torasu::RenderInstruction* ri) {
 		size_t interpolationCount = 256;
 
 		auto li = ri->getLogInstruction();
-		std::chrono::_V2::steady_clock::time_point bench;
+		std::chrono::steady_clock::time_point bench;
 		bool doBench = li.level <= torasu::LogLevel::DEBUG;
 
 		if (shutter.get() != nullptr) {

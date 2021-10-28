@@ -17,7 +17,7 @@ namespace imgc::scaler {
  * 						or return NULL if thats the case (false)
  * @retval The scaled image or NULL of no scaling is required
  */
-torasu::tstd::Dbimg* scaleImg(u_int8_t* srcData, uint32_t srcWidth, uint32_t srcHeight, torasu::tstd::Dbimg_FORMAT* fmt, bool copySame=false);
+torasu::tstd::Dbimg* scaleImg(uint8_t* srcData, uint32_t srcWidth, uint32_t srcHeight, torasu::tstd::Dbimg_FORMAT* fmt, bool copySame=false);
 
 /**
  * @brief Scales the given image

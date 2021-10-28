@@ -24,7 +24,7 @@ namespace tstd = torasu::tstd;
 
 namespace imgc::examples {
 
-inline const char* printCode(u_int8_t value, const char** codeSet) {
+inline const char* printCode(uint8_t value, const char** codeSet) {
 
 	if (value > 0xf2) {
 		return codeSet[3];

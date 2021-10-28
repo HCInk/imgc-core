@@ -134,11 +134,15 @@ void transform(const uint8_t* src, uint8_t* dest, uint32_t srcWidth, uint32_t sr
 	}
 }
 
+struct TransformMatrix {
+	double values[9];
+};
+
 void transformMix(const uint8_t* src, uint8_t* dest, uint32_t srcWidth, uint32_t srcHeight, uint32_t destWidth, uint32_t destHeight, const torasu::tstd::Dmatrix* transArray, size_t nTransforms) {
-	std::vector<double[9]> invCordsVec(nTransforms);
+	std::vector<TransformMatrix> invCordsVec(nTransforms);
 	auto invCordsArr = invCordsVec.data();
 	for (size_t t = 0; t < nTransforms; t++) {
-		calcInvCords(invCordsArr[t], transArray[t]);
+		calcInvCords(invCordsArr[t].values, transArray[t]);
 	}
 
 #if PREBUF
@@ -184,7 +188,7 @@ void transformMix(const uint8_t* src, uint8_t* dest, uint32_t srcWidth, uint32_t
 			float accu[4] = {0,0,0,0};
 			for (size_t t = 0; t < nTransforms; t++) {
 
-				auto invCords = invCordsArr[t];
+				auto invCords = invCordsArr[t].values;
 
 
 				double xRel = xDest*invCords[0] + yDest*invCords[1] + invCords[2];
