@@ -78,7 +78,7 @@ torasu::RenderResult* Rgraphics::render(torasu::RenderInstruction* ri) {
 torasu::ElementMap Rgraphics::getElements() {
 	torasu::ElementMap map;
 
-	if (graphics != nullptr) {
+	if (graphics == nullptr || source != nullptr) {
 		map["src"] = source;
 	}
 
