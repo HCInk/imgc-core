@@ -15,9 +15,9 @@
 
 namespace imgc {
 
-Rauto_align2d::Rauto_align2d(torasu::tools::RenderableSlot rndSrc, double posX, double posY, double zoomFactor, double ratio)
-	: SimpleRenderable(true, false),
-	  rndSrc(rndSrc), posX(posX), posY(posY), zoomFactor(zoomFactor), ratio(ratio) {
+Rauto_align2d::Rauto_align2d(torasu::tools::RenderableSlot rndSrc, torasu::tstd::NumSlot posX, torasu::tstd::NumSlot posY, torasu::tstd::NumSlot zoomFactor, torasu::tstd::NumSlot ratio)
+	: SimpleRenderable(false, true),
+	  rndSrc(rndSrc), rndPosX(posX), rndPosY(posY), rndZoomFactor(zoomFactor), rndCustomRatio(ratio) {
 
 	internalAlign = new Ralign2d(this->rndSrc.get(), this);
 }
@@ -89,14 +89,85 @@ torasu::RenderResult* Rauto_align2d::render(torasu::RenderInstruction* ri) {
 	torasu::ResultSettings* resSettings = ri->getResultSettings();
 
 	if (resSettings->getPipeline() == IMGC_PL_ALIGN) {
+		torasu::ResultSettings numberSettings(TORASU_STD_PL_NUM, torasu::tools::NO_FORMAT);
+
+		double posX;
+		double posY;
+		double zoomFactor;
 		double ratio;
-		if (this->ratio == 0) {
+
+		bool useCustomRatio = rndCustomRatio.get() != nullptr;
+
+		torasu::ExecutionInterface::ResultPair resultVector[4];
+
+		resultVector[0] = {.renderId = rh.enqueueRender(rndPosX, &numberSettings)};
+		resultVector[1] = {.renderId = rh.enqueueRender(rndPosY, &numberSettings)};
+		resultVector[2] = {.renderId = rh.enqueueRender(rndZoomFactor, &numberSettings)};
+		if (useCustomRatio) {
+			resultVector[3] = {.renderId = rh.enqueueRender(rndCustomRatio, &numberSettings)};
+		} else {
 			torasu::RenderableProperties* props = torasu::tools::getProperties(rndSrc.get(), {TORASU_STD_PROP_IMG_RAITO}, rh.ei, rh.li, rh.rctx);
 			auto* dataRatio = torasu::tools::getPropertyValue<torasu::tstd::Dnum>(props, TORASU_STD_PROP_IMG_RAITO);
 			ratio = dataRatio ? dataRatio->getNum() : 1;
 			delete props;
-		} else {
-			ratio = this->ratio;
+		}
+
+		rh.fetchRenderResults(resultVector, useCustomRatio ? 4 : 3);
+
+		{
+			std::unique_ptr<torasu::RenderResult> rr(resultVector[0].result);
+			auto res = rh.evalResult<torasu::tstd::Dnum>(rr.get());
+			if (res) {
+				posX = res.getResult()->getNum();
+			} else {
+				if (rh.mayLog(torasu::WARN)) {
+					rh.lrib.logCause(torasu::WARN, "Failed to provde posX, using x-pos 0 (center)", res.takeInfoTag());
+				}
+				rh.lrib.hasError = true;
+				posX = 0;
+			}
+		}
+
+		{
+			std::unique_ptr<torasu::RenderResult> rr(resultVector[1].result);
+			auto res = rh.evalResult<torasu::tstd::Dnum>(rr.get());
+			if (res) {
+				posY = res.getResult()->getNum();
+			} else {
+				if (rh.mayLog(torasu::WARN)) {
+					rh.lrib.logCause(torasu::WARN, "Failed to provde posY, using y-pos 0 (center)", res.takeInfoTag());
+				}
+				rh.lrib.hasError = true;
+				posY = 0;
+			}
+		}
+
+		{
+			std::unique_ptr<torasu::RenderResult> rr(resultVector[2].result);
+			auto res = rh.evalResult<torasu::tstd::Dnum>(rr.get());
+			if (res) {
+				zoomFactor = res.getResult()->getNum();
+			} else {
+				if (rh.mayLog(torasu::WARN)) {
+					rh.lrib.logCause(torasu::WARN, "Failed to provde zoomFactor, using zoom 0 (contain)", res.takeInfoTag());
+				}
+				rh.lrib.hasError = true;
+				zoomFactor = 1;
+			}
+		}
+
+		if (useCustomRatio) {
+			std::unique_ptr<torasu::RenderResult> rr(resultVector[3].result);
+			auto res = rh.evalResult<torasu::tstd::Dnum>(rr.get());
+			if (res) {
+				ratio = res.getResult()->getNum();
+			} else {
+				if (rh.mayLog(torasu::WARN)) {
+					rh.lrib.logCause(torasu::WARN, "Failed to provde customRatio, using 1:1 ratio", res.takeInfoTag());
+				}
+				rh.lrib.hasError = true;
+				ratio = 1;
+			}
 		}
 
 		auto* rctx = rh.rctx;
@@ -114,10 +185,9 @@ torasu::RenderResult* Rauto_align2d::render(torasu::RenderInstruction* ri) {
 			throw std::runtime_error("Render-Request provided an invalid TORASU_STD_CTX_IMG_RATIO in the context (" +  std::to_string(destRatio) + ") - only ratios > 0 are allowed!");
 		}
 
-		auto* cropdata = calcAlign(this->posX, this->posY, this->zoomFactor, ratio, destRatio);
+		auto* cropdata = calcAlign(posX, posY, zoomFactor, ratio, destRatio);
 
-		return new torasu::RenderResult(torasu::RenderResultStatus::RenderResultStatus_OK, cropdata, true);
-
+		return rh.buildResult(cropdata);
 	} else {
 		// Running render based on instruction
 		return rh.runRender(internalAlign, resSettings);
@@ -129,12 +199,23 @@ torasu::ElementMap Rauto_align2d::getElements() {
 	torasu::ElementMap elems;
 
 	elems["src"] = rndSrc.get();
+	elems["x"] = rndPosX.get();
+	elems["y"] = rndPosY.get();
+	elems["zoom"] = rndZoomFactor.get();
+	elems["ratio"] = rndCustomRatio.get();
 
 	return elems;
 }
 
 void Rauto_align2d::setElement(std::string key, torasu::Element* elem) {
-	if (torasu::tools::trySetRenderableSlot("src", &rndSrc, false, key, elem)) return;
+	if (torasu::tools::trySetRenderableSlot("src", &rndSrc, false, key, elem)) {
+		internalAlign->setElement("src", rndSrc.get());
+		return;
+	}
+	if (torasu::tools::trySetRenderableSlot("x", &rndPosX, false, key, elem)) return;
+	if (torasu::tools::trySetRenderableSlot("y", &rndPosY, false, key, elem)) return;
+	if (torasu::tools::trySetRenderableSlot("zoom", &rndZoomFactor, false, key, elem)) return;
+	if (torasu::tools::trySetRenderableSlot("ratio", &rndCustomRatio, true, key, elem)) return;
 	throw torasu::tools::makeExceptSlotDoesntExist(key);
 }
 

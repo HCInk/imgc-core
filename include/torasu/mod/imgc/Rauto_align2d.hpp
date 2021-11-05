@@ -5,6 +5,8 @@
 #include <torasu/SimpleRenderable.hpp>
 #include <torasu/slot_tools.hpp>
 
+#include <torasu/std/Rnum.hpp>
+
 #include <torasu/mod/imgc/Dcropdata.hpp>
 
 namespace imgc {
@@ -12,8 +14,11 @@ namespace imgc {
 class Rauto_align2d : public torasu::tools::SimpleRenderable {
 private:
 	torasu::tools::ManagedRenderableSlot rndSrc;
+	torasu::tools::ManagedSlot<torasu::tstd::NumSlot> rndPosX;
+	torasu::tools::ManagedSlot<torasu::tstd::NumSlot> rndPosY;
+	torasu::tools::ManagedSlot<torasu::tstd::NumSlot> rndZoomFactor;
+	torasu::tools::ManagedSlot<torasu::tstd::NumSlot> rndCustomRatio;
 	Renderable* internalAlign;
-	double posX, posY, zoomFactor, ratio;
 
 	imgc::Dcropdata* calcAlign(double posX, double posY, double zoomFactor, double srcRatio,
 							   double destRatio) const;
@@ -23,7 +28,7 @@ protected:
 
 public:
 
-	Rauto_align2d(torasu::tools::RenderableSlot rndSrc, double posX, double posY, double zoomFactor, double ratio = 0);
+	Rauto_align2d(torasu::tools::RenderableSlot rndSrc, torasu::tstd::NumSlot posX, torasu::tstd::NumSlot posY, torasu::tstd::NumSlot zoomFactor, torasu::tstd::NumSlot ratio = nullptr);
 	~Rauto_align2d();
 	torasu::Identifier getType() override;
 

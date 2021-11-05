@@ -214,7 +214,7 @@ void yetAnotherIMGCTest() {
 
 	imgc::Rmedia_file video(&file);
 	imgc::Rimg_file image(&file2);
-	imgc::Rauto_align2d align(&image, 0, 0, 1);
+	imgc::Rauto_align2d align(&image, 0.0, 0.0, 1.0);
 	torasu::tstd::Rnum gainVal(10);
 
 	torasu::tstd::Rmultiply mul(&video, &align);
@@ -409,7 +409,7 @@ void cropExample() {
 
 	// imgc::Rcropdata cropdata(imgc::Dcropdata(0.1, -0.3, 0.3, -0.3));
 
-	imgc::Rauto_align2d tree(&image, 0, 0, 0);
+	imgc::Rauto_align2d tree(&image, 0.0, 0.0, 0.0);
 
 	// Creating the runner
 
@@ -683,7 +683,7 @@ void graphicsExample() {
 	tstd::Rmod_rctx spinnerChar(&spinnerChars, IR(new tstd::Rfloor_mod(IR(new tstd::Rmultiply(&time, 8)), 4)), TORASU_STD_CTX_IT, TORASU_STD_PL_NUM);
 
 	imgc::Rtext spinnerTxt(&spinnerChar);
-	imgc::Rauto_align2d spinner(IR(new imgc::Rgraphics(&spinnerTxt)), 0, 0, 0);
+	imgc::Rauto_align2d spinner(IR(new imgc::Rgraphics(&spinnerTxt)), 0.0, 0.0, 0.0);
 
 	imgc::Rlayer moveBoxes(IR(new tstd::Rlist({
 		&movedBox,
@@ -750,7 +750,7 @@ void graphicsExample() {
 	}, 2 );
 
 
-	Rtransform transform(IR(new imgc::Rauto_align2d(&vecRender, 0, 0, 0)), &transMat/* , 1.0/60, 15 */);
+	Rtransform transform(IR(new imgc::Rauto_align2d(&vecRender, 0.0, 0.0, 0.0)), &transMat/* , 1.0/60, 15 */);
 
 	// Rtransform transform(&vecRender, IR(new torasu::tstd::Rmatrix(
 	// 	{
