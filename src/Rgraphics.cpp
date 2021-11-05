@@ -69,10 +69,7 @@ torasu::RenderResult* Rgraphics::render(torasu::RenderInstruction* ri) {
 
 	}
 
-	// TODO proper way to pass a render result (while also preserving logs)
-	std::unique_ptr<torasu::RenderResult> result(rh.runRender(source, rh.rs));
-	auto* rctxm = result->getResultMask();
-	return new torasu::RenderResult(result->getStatus(), result->ejectOrClone(), true, rctxm != nullptr ? new torasu::RenderContextMask(*rctxm) : nullptr);
+	return rh.passRender(source, torasu::tools::RenderHelper::PassMode_DEFAULT);
 }
 
 torasu::ElementMap Rgraphics::getElements() {
