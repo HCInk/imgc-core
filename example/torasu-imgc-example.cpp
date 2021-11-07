@@ -892,13 +892,13 @@ int main(int argc, char** argv) {
 	// anotherIMGCTest();
 	// audioTest();
 	// videoTest();
-	// example_sdl::main(argc, argv);
+	 example_sdl::main(argc, argv);
 	// examples::yetAnotherIMGCTest();
 	// examples::cropdataExample();
 	// examples::cropExample();
 	// examples::encodeExample();
 	// examples::encodeTorasu();
-	examples::graphicsExample();
+//	examples::graphicsExample();
 
 	return 0;
 }
