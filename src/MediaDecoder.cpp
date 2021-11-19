@@ -127,8 +127,9 @@ void MediaDecoder::prepare() {
 		throw runtime_error("Failed allocating avio_context!");
 	}
 	av_format_ctx->flags = AVFMT_FLAG_CUSTOM_IO;
-	if (avformat_open_input(&av_format_ctx, "", NULL, NULL) != 0) {
-		throw runtime_error("Failed to open input audio_out_stream");
+	auto openRet = avformat_open_input(&av_format_ctx, "", NULL, NULL);
+	if (openRet != 0) {
+		throw runtime_error("Failed to open input - avformat_open_input: ERR#" + std::to_string(openRet) + " " + getErrorMessage(openRet));
 	}
 
 	// Get infromation about streams (Somehow doesn't seem necessary)
