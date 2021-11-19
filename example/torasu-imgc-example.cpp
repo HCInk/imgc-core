@@ -887,18 +887,20 @@ void graphicsExample() {
 }  // namespace imgc::examples
 
 int main(int argc, char** argv) {
+#ifdef IMGC_SDL_EXAMPLE
+	return example_sdl::main(argc, argv);
+#else
 	//netImageTest();
 	//avTest();
 	// anotherIMGCTest();
 	// audioTest();
 	// videoTest();
-	 example_sdl::main(argc, argv);
 	// examples::yetAnotherIMGCTest();
 	// examples::cropdataExample();
 	// examples::cropExample();
 	// examples::encodeExample();
 	// examples::encodeTorasu();
-//	examples::graphicsExample();
-
+	examples::graphicsExample();
 	return 0;
+#endif
 }
