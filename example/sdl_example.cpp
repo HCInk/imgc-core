@@ -86,15 +86,15 @@ void avTest(char* file) {
 	size_t totalAudioLen = ((des.streams[1]->duration * av_q2d(des.streams[1]->base_time))) * audioTestSample->getChannels()[0].sampleRate *  audioTestSample->getChannels()[0].sampleSize * 2;
 	bool decodingDone = false;
 	uint8_t* audio = new uint8_t[totalAudioLen];
-  bool forceStop = false;
+	bool forceStop = false;
 	auto* rendererThread = new std::thread([&frames, &des, &decodingDone, &totalFrames, audio, &audioLen, &currentFrameCount, &frameDuration, &totalAudioLen, &forceStop]() {
 		double i = 0;
 		for (size_t j = 0; j < totalFrames; ++j) {
-      if(forceStop)
-        break;
+			if(forceStop)
+				break;
 			while(frames.size() -currentFrameCount > 64 && currentFrameCount > 32) {
-      if(forceStop)
-        break;
+				if(forceStop)
+					break;
 
 			}
 			torasu::tstd::Dbimg_sequence* vidBuffer;
@@ -166,7 +166,7 @@ void avTest(char* file) {
 
 	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 	int t = 0;
-  SDL_AudioDeviceID devid;
+	SDL_AudioDeviceID devid;
 	if(currentFrameCount == 0) {
 		SDL_AudioSpec spec;
 		spec.channels = 2;
@@ -177,24 +177,24 @@ void avTest(char* file) {
 		state->audio_len = totalAudioLen;
 		state->audio_pos = audio;
 		spec.userdata = state;
-    devid = SDL_OpenAudioDevice(nullptr, 0, &spec, nullptr, SDL_AUDIO_ALLOW_ANY_CHANGE);
-    SDL_PauseAudioDevice(devid, 0); /* start audio playing. */
+		devid = SDL_OpenAudioDevice(nullptr, 0, &spec, nullptr, SDL_AUDIO_ALLOW_ANY_CHANGE);
+		SDL_PauseAudioDevice(devid, 0); /* start audio playing. */
 
 
 	} else {
 		std::cout << "lol\n";
 	}
 
-  std::chrono::high_resolution_clock::time_point startTime = high_resolution_clock::now();
+	std::chrono::high_resolution_clock::time_point startTime = high_resolution_clock::now();
 
 
 
 	while (true) {
 		if (currentFrameCount >= totalFrames && decodingDone) {
-      state->audio_pos = &audio[0];
-      state->audio_len = totalAudioLen;
-      currentFrameCount = 0;
-      startTime = high_resolution_clock::now();
+			state->audio_pos = &audio[0];
+			state->audio_len = totalAudioLen;
+			currentFrameCount = 0;
+			startTime = high_resolution_clock::now();
 		}
 
 
@@ -223,20 +223,20 @@ void avTest(char* file) {
 			break;
 		}
 
-    high_resolution_clock::time_point t2 = high_resolution_clock::now();
-    duration<double> abs_elapsed = duration_cast<duration<double>>(t2 - startTime);
-    double play_head = frameDuration * currentFrameCount;
-    double delay = play_head - abs_elapsed.count();
-    if(delay > 0)
-      std::this_thread::sleep_for(std::chrono::microseconds((int) (delay * 1000000)));
+		high_resolution_clock::time_point t2 = high_resolution_clock::now();
+		duration<double> abs_elapsed = duration_cast<duration<double>>(t2 - startTime);
+		double play_head = frameDuration * currentFrameCount;
+		double delay = play_head - abs_elapsed.count();
+		if(delay > 0)
+			std::this_thread::sleep_for(std::chrono::microseconds((int) (delay * 1000000)));
 
 
 
 
 
 	}
-  SDL_PauseAudio(1);
-  SDL_CloseAudioDevice(devid);
+	SDL_PauseAudio(1);
+	SDL_CloseAudioDevice(devid);
 	delete[] audio;
 	delete state;
 	SDL_DestroyTexture(message);
