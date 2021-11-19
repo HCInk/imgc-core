@@ -35,8 +35,8 @@ torasu::Identifier Rmedia_creator::getType() {
 }
 
 torasu::RenderResult* Rmedia_creator::render(torasu::RenderInstruction* ri) {
+	torasu::tools::RenderHelper rh(ri);
 	if (ri->getResultSettings()->getPipeline() == TORASU_STD_PL_FILE) {
-		torasu::tools::RenderHelper rh(ri);
 
 		std::unique_ptr<torasu::RenderResult> rrMetadata;
 		std::map<std::string, std::string> metadata;
@@ -207,7 +207,7 @@ torasu::RenderResult* Rmedia_creator::render(torasu::RenderInstruction* ri) {
 
 		return new torasu::RenderResult(torasu::RenderResultStatus_OK, result, true);
 	} else {
-		return new torasu::RenderResult(torasu::RenderResultStatus_INVALID_SEGMENT);
+		return rh.passRender(srcRnd.get(), torasu::tools::RenderHelper::PassMode_DEFAULT);
 	}
 }
 
