@@ -432,7 +432,14 @@ bool MediaDecoder::checkFrameTargetBound(AVFrame* frame, int64_t start, int64_t 
 }
 
 void MediaDecoder::handleFrame(StreamEntry* stream, DecodingState* decodingState) {
-
+	if (stream->frame->pkt_duration <= 0) {
+		if (!stream->cachedFrames.empty()) {
+			// Get duration from next frame
+			stream->frame->pkt_duration = stream->cachedFrames[0].startTime-stream->frame->pts;
+		}
+		// Add mechanism to wait on the next frame-packet from the file
+		// if this may be reached without the next frame-packet already read
+	}
 	stream->nextFramePts = stream->frame->pts + stream->frame->pkt_duration;
 
 	int64_t targetPosition = toBaseTime(decodingState->requestStart, stream->base_time);
@@ -616,6 +623,9 @@ void MediaDecoder::initializePosition(DecodingState* decodingState) {
 
 		av_seek_frame(av_format_ctx, -1, position * AV_TIME_BASE,
 					  AVSEEK_FLAG_BACKWARD); //Assuming the -1 includes all streams
+		// Flushing those without handling them is vital,
+		// because some some systems depend of the cachedFrames really being the next in the playback sequence
+		// for example if a frame does have no duration the next frame in cachedFrames, may be used to calculate the duration
 		for (auto& stream : streams) {
 			stream->flushCount = stream->cachedFrames.size();
 			stream->nextFramePts = -1;
