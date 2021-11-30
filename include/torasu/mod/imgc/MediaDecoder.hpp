@@ -93,6 +93,7 @@ struct StreamEntry {
 	int64_t duration;
 	bool draining = false;
 	int64_t nextFramePts = 0;
+	bool pushy = false;
 };
 class MediaDecoder {
 private:
@@ -191,8 +192,9 @@ private:
 	 * @brief Drain a stream
 	 * @param stream The stream to be drained
 	 * @param decodingState The current DecodingState to be updated
+	 * @param record Handle drained frame (true for end of stream situations - false when draining before end in seeking)
 	 */
-	void drainStream(StreamEntry* stream, DecodingState* decodingState);
+	void drainStream(StreamEntry* stream, DecodingState* decodingState, bool record);
 	/**
 	 * @brief Concatenates audio into one single frame, matching the requested size
 	 * @param decodingState The current DecodingState to be updated

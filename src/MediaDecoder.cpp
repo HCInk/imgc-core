@@ -17,6 +17,10 @@
 #include <torasu/std/LIcore_logger.hpp>
 
 #define DECODER_SANITY_CHECKS true
+#define DEBUG_BOUND_HITS false
+#define DEBUG_GENERAL_INFO false
+#define DEBUG_CACHE_EVENTS false
+#define DEBUG_SEEKS false
 
 using namespace std;
 namespace {
@@ -68,6 +72,30 @@ int64_t SeekFunc(void* ptr, int64_t pos, int whence) {
 	// Return the new position:
 	return reader->pos;
 }
+
+#if DEBUG_CACHE_EVENTS
+void debug_print_cache_event(std::string text, imgc::StreamEntry* entry) {
+	std::cout << text << " - Current Cache Entries [";
+	bool first = true;
+	for (auto cachedFrame : entry->cachedFrames) {
+		if (first) {
+			first = false;
+		} else {
+			std::cout << ", ";
+		}
+		std::cout << cachedFrame.startTime;
+	}
+	std::cout << "]" << std::endl;
+}
+#endif
+
+#if DEBUG_BOUND_HITS
+void debug_print_bound_match_event(std::string text, imgc::StreamEntry* stream, int64_t targetPosition, int64_t targetPositionEnd) {
+	std::cout << text << " - PPOS " << stream->frame->pkt_pos
+			  << " FP " << stream->frame->pts << " FE " << (stream->frame->pts+stream->frame->pkt_duration)
+			  << " TP " << targetPosition << " TE " << targetPositionEnd << std::endl;
+}
+#endif
 
 }
 
@@ -354,12 +382,16 @@ void MediaDecoder::getSegment(SegmentRequest request, torasu::LogInstruction li)
 	LogInstructionSession logSess(this, &li);
 
 	DecodingState* decodingState = createDecoderState(request);
-
+#if DEBUG_GENERAL_INFO
+	std::cout << "DECODE-TASK: start " << decodingState->requestStart << " end " << decodingState->requestEnd
+			  << " TYPES: " << (!decodingState->videoDone ? "V" : "") << (!decodingState->audioDone ? "A" : "")
+			  << std::endl << std::flush;
+#endif
 
 	fetchBuffered(decodingState);
 	initializePosition(decodingState);
 
-	while (true) {
+	while (true) { // DECODE-LOOP
 		if ((decodingState->videoDone||!decodingState->videoAvailable) && (decodingState->audioDone || !decodingState->audioAvailable)) {
 			break;
 		}
@@ -370,45 +402,79 @@ void MediaDecoder::getSegment(SegmentRequest request, torasu::LogInstruction li)
 		auto stream = getStreamEntryByIndex(av_packet->stream_index);
 		if (nextFrameStat == AVERROR_EOF) {
 			for(unsigned long i = 0; i < streams.size(); i++) {
-				drainStream(streams[i], decodingState);
+				drainStream(streams[i], decodingState, true);
 			}
 			break;
 		} else if (nextFrameStat < 0) {
 			throw runtime_error(std::string("Error ") + std::to_string(nextFrameStat) + std::string(" (") + getErrorMessage(nextFrameStat) + std::string(") occurred while reading frame!") );
 		}
+		bool packetIsPostponed = false;
 		int response = avcodec_send_packet(stream->ctx, av_packet);
 		if (response == AVERROR(EAGAIN)) {
-			continue;
+			packetIsPostponed = true;
 		} else if (response == AVERROR(ENOMEM)) {
 			throw runtime_error("Send packet returned ENOMEM");
 		} else if (response < 0) {
 			throw runtime_error(std::string("Error ") + std::to_string(nextFrameStat) + std::string(" (") + getErrorMessage(nextFrameStat) + std::string(") occurred while sending frame to decoder!") );
 		}
 
-		// Dont sve packets that with negative pts to cache, since they wont come out (just observed, no proofed rule)
+
+		if (!stream->pushy && av_packet->duration == 0) {
+			// Enable pushy if there are errors retrieving a duration
+			stream->pushy = true;
+		}
+
+		// Dont save packets that with negative pts to cache, since they wont come out (just observed, no proofed rule)
 		if (av_packet->pts >= 0) {
 			auto fr = BufferedFrame{av_packet->pts, av_packet->pos, av_packet->duration};
 			stream->cachedFrames.push_back(fr);
+#if DEBUG_CACHE_EVENTS
+			debug_print_cache_event("Added Cached frame " + std::to_string(av_packet->pts), stream);
+#endif
 		}
 
-		response = avcodec_receive_frame(stream->ctx, stream->frame);
-		if (response == AVERROR(EAGAIN)) {
+		// Pushy Behavior: Fill codec until EGAIN
+		if (stream->pushy && !packetIsPostponed) continue;
+
+		for (;;) { // RECIEVE-LOOP
+			// Read next frame (if available)
+			response = avcodec_receive_frame(stream->ctx, stream->frame);
+			if (response == AVERROR(EAGAIN)) {
+				if (stream->flushCount > 0) {
+					stream->flushCount--;
+				}
+				break;
+			} else if (response < 0) {
+				throw runtime_error(std::string("Error ") + std::to_string(nextFrameStat) + std::string(" (") + getErrorMessage(nextFrameStat) + std::string(") occurred while recieving frame from decoder!") );
+			}
+			stream->frameIsPresent = true;
+			removeCacheFrame(stream->frame->pkt_pos, &stream->cachedFrames);
+#if DEBUG_CACHE_EVENTS
+			debug_print_cache_event("Removed cached frame for " + std::to_string(stream->frame->pts), stream);
+#endif
+
 			if (stream->flushCount > 0) {
 				stream->flushCount--;
+			} else {
+				handleFrame(stream, decodingState);
 			}
-			continue;
-		} else if (response < 0) {
-			throw runtime_error(std::string("Error ") + std::to_string(nextFrameStat) + std::string(" (") + getErrorMessage(nextFrameStat) + std::string(") occurred while recieving frame from decoder!") );
-		}
-		stream->frameIsPresent = true;
-		removeCacheFrame(stream->frame->pkt_pos, &stream->cachedFrames);
 
-		if (stream->flushCount > 0) {
-			stream->flushCount--;
-			continue;
-		}
-		handleFrame(stream, decodingState);
-	}
+			if (!packetIsPostponed) break; // Done reading once postponed has been read
+
+			// Try sending postponed packet
+			response = avcodec_send_packet(stream->ctx, av_packet);
+			if (response == AVERROR(EAGAIN)) {
+				continue; // Continue reading until packet can be sent
+			} else if (response == AVERROR(ENOMEM)) {
+				throw runtime_error("Send packet returned ENOMEM");
+			} else if (response < 0) {
+				throw runtime_error(std::string("Error ") + std::to_string(nextFrameStat) + std::string(" (") + getErrorMessage(nextFrameStat) + std::string(") occurred while sending frame to decoder!") );
+			}
+			packetIsPostponed = false;
+			break;
+		} // END RECIEVE-LOOP
+
+	} // END DECODE-LOOP
 
 	if (!decodingState->audioFrames.empty()) {
 		concatAudio(decodingState);
@@ -433,9 +499,25 @@ bool MediaDecoder::checkFrameTargetBound(AVFrame* frame, int64_t start, int64_t 
 
 void MediaDecoder::handleFrame(StreamEntry* stream, DecodingState* decodingState) {
 	if (stream->frame->pkt_duration <= 0) {
-		if (!stream->cachedFrames.empty()) {
-			// Get duration from next frame
-			stream->frame->pkt_duration = stream->cachedFrames[0].startTime-stream->frame->pts;
+
+		// Get start of next frame
+		int64_t nextFrameTime = INT64_MAX;
+		for (auto cachedFrame : stream->cachedFrames) {
+			if (nextFrameTime > cachedFrame.startTime && cachedFrame.startTime > stream->frame->pts) {
+				nextFrameTime = cachedFrame.startTime;
+			}
+		}
+		if (nextFrameTime != INT64_MAX) {
+			// Calculate duration from distance between own start and start of other frame
+			stream->frame->pkt_duration = nextFrameTime - stream->frame->pts;
+#if DEBUG_CACHE_EVENTS
+			debug_print_cache_event("Found cached frame after " + std::to_string(stream->frame->pts)
+									+ " setting duration " + std::to_string(stream->frame->pkt_duration), stream);
+#endif
+		} else {
+#if DEBUG_CACHE_EVENTS
+			debug_print_cache_event("Found no next frame after " + std::to_string(stream->frame->pts), stream);
+#endif
 		}
 		// Add mechanism to wait on the next frame-packet from the file
 		// if this may be reached without the next frame-packet already read
@@ -455,8 +537,14 @@ void MediaDecoder::handleFrame(StreamEntry* stream, DecodingState* decodingState
 		if (checkFrameTargetBound(stream->frame, targetPosition, targetPositionEnd)
 				|| ( (targetPosition >= stream->duration) && (stream->frame->pts+stream->frame->pkt_duration) == stream->duration) ) {
 			if (decodingState->videoReadUntil > stream->frame->pts) {
+#if DEBUG_BOUND_HITS
+				debug_print_bound_match_event("VID BOUND HIT BUT ALREADY READ", stream, targetPosition, targetPositionEnd);
+#endif
 				return;
 			}
+#if DEBUG_BOUND_HITS
+			debug_print_bound_match_event("VID BOUND HIT", stream, targetPosition, targetPositionEnd);
+#endif
 			int32_t rWidth = stream->frame->width;
 			int32_t rHeight = stream->frame->height;
 
@@ -470,6 +558,11 @@ void MediaDecoder::handleFrame(StreamEntry* stream, DecodingState* decodingState
 
 			decodingState->videoReadUntil = stream->frame->pts + stream->frame->pkt_duration;
 		}
+#if DEBUG_BOUND_HITS
+		else {
+			debug_print_bound_match_event("VID BOUND MISS", stream, targetPosition, targetPositionEnd);
+		}
+#endif
 
 		if (targetPositionEnd <= stream->nextFramePts && targetPosition != stream->nextFramePts) {
 			decodingState->videoDone = true;
@@ -603,8 +696,9 @@ void MediaDecoder::initializePosition(DecodingState* decodingState) {
 	// TODO Seek inidividual streams if required
 
 	if (videoSeekBack || audioSeekBack || videoSeekForward) {
-		// std::cout << "SEEK VB " << videoSeekBack << " AB " << audioSeekBack << " VF " << videoSeekForward << std::endl;
-
+#if DEBUG_SEEKS
+		std::cout << "SEEK VB " << videoSeekBack << " AB " << audioSeekBack << " VF " << videoSeekForward << " TO REACH START " << decodingState->requestStart << std::endl;
+#endif
 		double position = decodingState->requestStart;
 
 		// Seek to
@@ -624,18 +718,21 @@ void MediaDecoder::initializePosition(DecodingState* decodingState) {
 		av_seek_frame(av_format_ctx, -1, position * AV_TIME_BASE,
 					  AVSEEK_FLAG_BACKWARD); //Assuming the -1 includes all streams
 		// Flushing those without handling them is vital,
-		// because some some systems depend of the cachedFrames really being the next in the playback sequence
+		// because some systems depend on that one of the cachedFrames to come out of the decoder next
 		// for example if a frame does have no duration the next frame in cachedFrames, may be used to calculate the duration
-		for (auto& stream : streams) {
-			stream->flushCount = stream->cachedFrames.size();
-			stream->nextFramePts = -1;
+		for (auto* stream : streams) {
+			drainStream(stream, decodingState, false);
 		}
 	}
 
 }
 
 
-void MediaDecoder::drainStream(StreamEntry* stream, DecodingState* decodingState) {
+void MediaDecoder::drainStream(StreamEntry* stream, DecodingState* decodingState, bool record) {
+
+#if DEBUG_CACHE_EVENTS
+	std::cout << "DRAIN STREAM " << stream->index << " RECORD " << record << std::endl;
+#endif
 	int drainingRequest = avcodec_send_packet(stream->ctx, NULL);
 	if(drainingRequest != 0) return;
 	stream->draining = true;
@@ -650,34 +747,50 @@ void MediaDecoder::drainStream(StreamEntry* stream, DecodingState* decodingState
 			continue;
 		}
 
-		if (response == AVERROR_EOF) {
-			if (stream->codecType == AVMEDIA_TYPE_VIDEO) {
-				// Duplicate last video-frame if last frame is not long enough
-				int64_t endOffset = stream->duration-(stream->frame->pts+stream->frame->pkt_duration);
-				if (endOffset > 0) {
-					stream->frame->pts += stream->frame->pkt_duration;
-					stream->frame->pkt_duration = endOffset;
-					handleFrame(stream, decodingState);
+		bool ended = response == AVERROR_EOF;
+
+		if (!ended && response != 0) {
+			throw runtime_error("non 0 response code from receive frame while draining");
+		}
+
+		if (!ended) {
+			{
+				// Swap once accepted
+				AVFrame* nextBuffer = stream->frame;
+				stream->frame = flushedFrame;
+				flushedFrame = nextBuffer;
+			}
+
+			removeCacheFrame(stream->frame->pkt_pos, &stream->cachedFrames);
+#if DEBUG_CACHE_EVENTS
+			debug_print_cache_event("[Drain] Removed cached frame for " + std::to_string(stream->frame->pts), stream);
+#endif
+			if (record) {
+				handleFrame(stream, decodingState);
+			}
+		} else {
+			if (record) {
+				if (stream->codecType == AVMEDIA_TYPE_VIDEO) {
+					// Duplicate last video-frame if last frame is not long enough
+					int64_t endOffset = stream->duration-(stream->frame->pts+stream->frame->pkt_duration);
+					if (endOffset > 0) {
+						stream->frame->pts += stream->frame->pkt_duration;
+						stream->frame->pkt_duration = endOffset;
+						handleFrame(stream, decodingState);
+					}
 				}
 			}
 			stream->frameIsPresent = false;
 			break;
 		}
 
-		if (response != 0) {
-			throw runtime_error("non 0 response code from receive frame while draining");
-		}
-
-		// Swap once accepted
-		{
-			AVFrame* nextBuffer = stream->frame;
-			stream->frame = flushedFrame;
-			flushedFrame = nextBuffer;
-		}
-
-		removeCacheFrame(stream->frame->pkt_pos, &stream->cachedFrames);
-		handleFrame(stream, decodingState);
 	}
+
+	if (!stream->cachedFrames.empty()) {
+		// FIXME tracking frames which went into the pipe is really unreliable since they might not come out again!
+		// throw std::logic_error("Panic: Cached frames still are in the pipe after drain!");
+	}
+
 	flushBuffers(stream);
 	stream->draining = false;
 }
