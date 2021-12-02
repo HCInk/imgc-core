@@ -303,7 +303,6 @@ void MediaDecoder::flushBuffers(StreamEntry* entry) {
 	debug_print_codec_flush_buffers(entry);
 #endif
 	entry->cachedFrames.clear();
-	entry->flushCount = 0;
 }
 
 StreamEntry* MediaDecoder::getStreamEntryByIndex(int index) {
@@ -446,12 +445,6 @@ void MediaDecoder::getSegment(SegmentRequest request, torasu::LogInstruction li)
 			throw runtime_error(std::string("Error ") + std::to_string(response) + std::string(" (") + getErrorMessage(response) + std::string(") occurred while sending frame to decoder!") );
 		}
 
-
-		/* if (!stream->pushy && av_packet->duration == 0) {
-			// Enable pushy if there are errors retrieving a duration
-			stream->pushy = true;
-		}*/
-
 		// Dont save packets that with negative pts to cache, since they wont come out (just observed, no proofed rule)
 		if (av_packet->pts >= 0) {
 			auto fr = BufferedFrame{av_packet->pts, av_packet->pos, av_packet->duration};
@@ -460,9 +453,6 @@ void MediaDecoder::getSegment(SegmentRequest request, torasu::LogInstruction li)
 			debug_print_cache_event("Added Cached frame " + std::to_string(av_packet->pts), stream);
 #endif
 		}
-
-		// Pushy Behavior: Fill codec until EGAIN
-		if (stream->pushy && !packetIsPostponed) continue;
 
 		for (;;) { // RECIEVE-LOOP
 			// Read next frame (if available)
@@ -594,12 +584,6 @@ MediaDecoder::FrameRecieveResult MediaDecoder::recieveFrameFromCodec(StreamEntry
 
 	// This code below here is executed once for each frame
 
-	if (stream->flushCount > 0) {
-		stream->flushCount--;
-		// Drop Frame
-		return FrameRecieveResult_NEEDS_INPUT;
-	}
-
 	if (mode != FrameRecieveMode_FLUSH) {
 		if (stream->codecType == AVMEDIA_TYPE_VIDEO && stream->frame->pkt_duration == 0) {
 			// Trigger need-next-frame to get info from next frame
@@ -619,39 +603,10 @@ bool MediaDecoder::checkFrameTargetBound(AVFrame* frame, int64_t start, int64_t 
 }
 
 void MediaDecoder::handleFrame(StreamEntry* stream, DecodingState* decodingState) {
-	/* if (stream->frame->pkt_duration <= 0) {
-
-		// Get start of next frame
-		int64_t nextFrameTime = INT64_MAX;
-		for (auto cachedFrame : stream->cachedFrames) {
-			if (nextFrameTime > cachedFrame.startTime && cachedFrame.startTime > stream->frame->pts) {
-				nextFrameTime = cachedFrame.startTime;
-			}
-		}
-		if (nextFrameTime != INT64_MAX) {
-			// Calculate duration from distance between own start and start of other frame
-			stream->frame->pkt_duration = nextFrameTime - stream->frame->pts;
-	#if DEBUG_CACHE_EVENTS
-			debug_print_cache_event("Found cached frame after " + std::to_string(stream->frame->pts)
-									+ " setting duration " + std::to_string(stream->frame->pkt_duration), stream);
-	#endif
-		} else {
-	#if DEBUG_CACHE_EVENTS
-			debug_print_cache_event("Found no next frame after " + std::to_string(stream->frame->pts), stream);
-	#endif
-		}
-		// Add mechanism to wait on the next frame-packet from the file
-		// if this may be reached without the next frame-packet already read
-	} */
 	stream->nextFramePts = stream->frame->pts + stream->frame->pkt_duration;
 
 	int64_t targetPosition = toBaseTime(decodingState->requestStart, stream->base_time);
 	int64_t targetPositionEnd = toBaseTime(decodingState->requestEnd, stream->base_time);
-
-	/* if(targetPositionEnd > stream->duration) {
-		// FAIL safe, forced the wanted end pos to the start of last available frame of the stream
-		targetPositionEnd = stream->duration - stream->frame->pkt_duration;
-	} */
 
 	if (!decodingState->videoDone && stream->index == video_stream_index) {
 		// Check if frame is inside of range or in the case of a requesting contents after the stream-limit, if the frame is the last one
@@ -838,9 +793,7 @@ void MediaDecoder::initializePosition(DecodingState* decodingState) {
 
 		av_seek_frame(av_format_ctx, -1, position * AV_TIME_BASE,
 					  AVSEEK_FLAG_BACKWARD); //Assuming the -1 includes all streams
-		// Flushing those without handling them is vital,
-		// because some systems depend on that one of the cachedFrames to come out of the decoder next
-		// for example if a frame does have no duration the next frame in cachedFrames, may be used to calculate the duration
+
 		for (auto* stream : streams) {
 			drainStream(stream, decodingState, false);
 		}
@@ -884,11 +837,6 @@ void MediaDecoder::drainStream(StreamEntry* stream, DecodingState* decodingState
 			stream->frameIsPresent = false;
 		}
 
-	}
-
-	if (!stream->cachedFrames.empty()) {
-		// FIXME tracking frames which went into the pipe is really unreliable since they might not come out again!
-		// throw std::logic_error("Panic: Cached frames still are in the pipe after drain!");
 	}
 
 	flushBuffers(stream);

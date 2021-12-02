@@ -84,7 +84,6 @@ struct StreamEntry {
 	//video specific
 	int vid_delay = 0;
 	AVRational vid_fps;
-	int flushCount = 0;
 
 	// Stream-state
 	bool frameIsPresent = false;
@@ -93,7 +92,6 @@ struct StreamEntry {
 	int64_t duration;
 	bool draining = false;
 	int64_t nextFramePts = 0;
-	bool pushy = false;
 	// state for prebuffering next frame if neccessary
 	bool nextFrameIsPresent = false;
 	bool enrichFromNextFrame = false;
