@@ -94,6 +94,10 @@ struct StreamEntry {
 	bool draining = false;
 	int64_t nextFramePts = 0;
 	bool pushy = false;
+	// state for prebuffering next frame if neccessary
+	bool nextFrameIsPresent = false;
+	bool enrichFromNextFrame = false;
+	AVFrame* nextFrame = nullptr;
 };
 class MediaDecoder {
 private:
@@ -149,8 +153,35 @@ private:
 
 	AVPacket* av_packet;
 	StreamEntry* getStreamEntryByIndex(int index);
-	void removeCacheFrame(int64_t pos, std::vector<BufferedFrame>* list);
+	static void removeCacheFrame(int64_t pos, std::vector<BufferedFrame>* list);
 	void extractVideoFrame(StreamEntry* stream, uint8_t* outPt);
+
+	enum FrameRecieveMode {
+		/** @brief Just read the next frame - no end expected */
+		FrameRecieveMode_NORMAL,
+		/** @brief Set if end is awaited, so it can be handled properly */
+		FrameRecieveMode_END,
+		/** @brief Flush mode, this will just recieve a frame from the codec (if possible)
+		 * but wont create a valid result of the result */
+		FrameRecieveMode_FLUSH,
+	};
+
+	enum FrameRecieveResult {
+		/** @brief sucessfully recieved new frame into stream->frame */
+		FrameRecieveResult_RECIEVED,
+		/** @brief not enough input yet to give output */
+		FrameRecieveResult_NEEDS_INPUT,
+		/** @brief stream has ended */
+		FrameRecieveResult_END
+	};
+
+	/**
+	 * @brief  Recieve frame from codec, makes sure some data is enrichted
+	 * @param  stream: Stream to recieved from
+	 * @param  mode: Mode to recieve
+	 * @retval Result of fetch
+	 */
+	static FrameRecieveResult recieveFrameFromCodec(StreamEntry* stream, FrameRecieveMode mode);
 
 	/**
 	 * @brief  Converts float time into an base_time-format, by applying the AVStream->base_time
@@ -205,7 +236,8 @@ private:
 
 	size_t determineSampleSize(StreamEntry* stream);
 
-	std::string getErrorMessage(int errorCode);
+public:
+	static std::string getErrorMessage(int errorCode);
 
 };
 
