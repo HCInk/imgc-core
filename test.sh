@@ -22,11 +22,11 @@ else
 #	rm -rf .ci/docker-wd
 	if [ "$1" == "generate" ]; then
 		echo "Generating solutions..."
-		docker run --rm -it hcink/imgc-tests:latest sh -c './test.sh no-container generate > /dev/null 2>&1 && cat results/test-solutions.json' > assets/test-solutions.json
+		docker run --rm -i hcink/imgc-tests:latest sh -c './test.sh no-container generate > /dev/stderr && cat results/test-solutions.json' > assets/test-solutions.json
 		echo "Generation of solutions finished."
 	else
 		echo "Testing..."
-		docker run --rm -it hcink/imgc-tests:latest sh -c './test.sh no-container > /dev/null 2>&1 && cat test-run/results/result.xml' > test-result.xml
+		docker run --rm -i hcink/imgc-tests:latest sh -c './test.sh no-container > /dev/stderr && cat test-run/results/result.xml' > test-result.xml
 		echo "Testing finished."
 	fi
 
