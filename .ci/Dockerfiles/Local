@@ -1,4 +1,4 @@
-FROM debian:10.4
+FROM debian:latest
 
 
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -yq \
