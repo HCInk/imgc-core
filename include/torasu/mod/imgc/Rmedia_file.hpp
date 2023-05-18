@@ -23,7 +23,7 @@ private:
 	void load(torasu::ExecutionInterface* ei, torasu::LogInstruction li);
 
 public:
-	Rmedia_file(torasu::tools::RenderableSlot src);
+	Rmedia_file(torasu::RenderableSlot src);
 	~Rmedia_file();
 	torasu::Identifier getType() override;
 
@@ -31,7 +31,7 @@ public:
 	torasu::RenderResult* render(torasu::RenderInstruction* ri) override;
 
 	torasu::ElementMap getElements() override;
-	void setElement(std::string key, torasu::Element* elem) override;
+	const torasu::OptElementSlot setElement(std::string key, const torasu::ElementSlot* elem) override;
 
 };
 

@@ -5,7 +5,7 @@
 
 namespace imgc {
 
-Rgain::Rgain(torasu::tools::RenderableSlot src, torasu::tstd::NumSlot gainVal)
+Rgain::Rgain(torasu::RenderableSlot src, torasu::tstd::NumSlot gainVal)
 	: SimpleRenderable(false, true),
 	  rSrc(src), rGainVal(gainVal) {}
 
@@ -89,15 +89,15 @@ torasu::RenderResult* Rgain::render(torasu::RenderInstruction* ri) {
 
 torasu::ElementMap Rgain::getElements() {
 	torasu::ElementMap elems;
-	elems["src"] = rSrc.get();
-	elems["val"] = rGainVal.get();
+	elems["src"] = rSrc;
+	elems["val"] = rGainVal;
 	return elems;
 }
 
-void Rgain::setElement(std::string key, Element* elem) {
-	if (torasu::tools::trySetRenderableSlot("src", &rSrc, false, key, elem)) return;
-	if (torasu::tools::trySetRenderableSlot("val", &rGainVal, false, key, elem)) return;
-	throw torasu::tools::makeExceptSlotDoesntExist(key);
+const torasu::OptElementSlot Rgain::setElement(std::string key, const torasu::ElementSlot* elem) {
+	if (key == "src") return torasu::tools::trySetRenderableSlot(&rSrc, elem);
+	if (key == "val") return torasu::tools::trySetRenderableSlot(&rGainVal, elem);
+	return nullptr;
 }
 
 } // namespace imgc

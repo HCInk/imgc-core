@@ -26,13 +26,13 @@ protected:
 	torasu::RenderResult* render(torasu::RenderInstruction* ri) override;
 
 public:
-	explicit Rimg_file(torasu::tools::RenderableSlot file);
+	explicit Rimg_file(torasu::RenderableSlot file);
 	~Rimg_file();
 	torasu::Identifier getType() override;
 
 	void ready(torasu::ReadyInstruction* ri) override;
 	torasu::ElementMap getElements() override;
-	void setElement(std::string key, Element* elem) override;
+	const torasu::OptElementSlot setElement(std::string key, const torasu::ElementSlot* elem) override;
 };
 
 } // namespace imgc

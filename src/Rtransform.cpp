@@ -49,7 +49,7 @@ inline torasu::tstd::Dmatrix createMatrixFromCrop(torasu::tstd::Dbimg::CropInfo 
 
 namespace imgc {
 
-Rtransform::Rtransform(torasu::tools::RenderableSlot source, torasu::tools::RenderableSlot transform, torasu::tstd::NumSlot shutter, torasu::tstd::NumSlot interpolationLimit)
+Rtransform::Rtransform(torasu::RenderableSlot source, torasu::RenderableSlot transform, torasu::tstd::NumSlot shutter, torasu::tstd::NumSlot interpolationLimit)
 	: SimpleRenderable(false, true), source(source), transform(transform), shutter(shutter), interpolationLimit(interpolationLimit) {}
 
 Rtransform::~Rtransform() {}
@@ -297,24 +297,20 @@ torasu::RenderResult* Rtransform::render(torasu::RenderInstruction* ri) {
 torasu::ElementMap Rtransform::getElements() {
 	torasu::ElementMap elems;
 
-	elems["s"] = source.get();
-	elems["t"] = transform.get();
-	if (shutter.get() != nullptr) {
-		elems["shut"] = shutter.get();
-	}
-	if (interpolationLimit.get() != nullptr) {
-		elems["ilimit"] = interpolationLimit.get();
-	}
+	elems["s"] = source;
+	elems["t"] = transform;
+	if (shutter) elems["shut"] = shutter;
+	if (interpolationLimit) elems["ilimit"] = interpolationLimit;
 
 	return elems;
 }
 
-void Rtransform::setElement(std::string key, Element* elem) {
-	if (torasu::tools::trySetRenderableSlot("s", &source, false, key, elem)) return;
-	if (torasu::tools::trySetRenderableSlot("t", &transform, false, key, elem)) return;
-	if (torasu::tools::trySetRenderableSlot("shut", &shutter, true, key, elem)) return;
-	if (torasu::tools::trySetRenderableSlot("ilimit", &interpolationLimit, true, key, elem)) return;
-	throw torasu::tools::makeExceptSlotDoesntExist(key);
+const torasu::OptElementSlot Rtransform::setElement(std::string key, const torasu::ElementSlot* elem) {
+	if (key == "s") return torasu::tools::trySetRenderableSlot(&source, elem);
+	if (key == "t") return torasu::tools::trySetRenderableSlot(&transform, elem);
+	if (key == "shut") return torasu::tools::trySetRenderableSlot(&shutter, elem);
+	if (key == "ilimit") return torasu::tools::trySetRenderableSlot(&interpolationLimit, elem);
+	return nullptr;
 }
 
 } // namespace imgc

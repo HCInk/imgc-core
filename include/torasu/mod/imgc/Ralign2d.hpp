@@ -18,12 +18,12 @@ protected:
 	torasu::RenderResult* render(torasu::RenderInstruction* ri) override;
 
 public:
-	Ralign2d(torasu::tools::RenderableSlot rndSrc, torasu::tools::RenderableSlot rndAlign);
+	Ralign2d(torasu::RenderableSlot rndSrc, torasu::RenderableSlot rndAlign);
 	~Ralign2d();
 	torasu::Identifier getType() override;
 
 	torasu::ElementMap getElements() override;
-	void setElement(std::string key, Element* elem) override;
+	const torasu::OptElementSlot setElement(std::string key, const torasu::ElementSlot* elem) override;
 };
 
 } // namespace imgc

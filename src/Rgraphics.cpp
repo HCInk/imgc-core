@@ -69,33 +69,22 @@ torasu::RenderResult* Rgraphics::render(torasu::RenderInstruction* ri) {
 
 	}
 
-	return rh.passRender(source, torasu::tools::RenderHelper::PassMode_DEFAULT);
+	return rh.passRender(source.get(), torasu::tools::RenderHelper::PassMode_DEFAULT);
 }
 
 torasu::ElementMap Rgraphics::getElements() {
 	torasu::ElementMap map;
 
-	if (graphics == nullptr || source != nullptr) {
+	if (graphics == nullptr || source.get() != nullptr) {
 		map["src"] = source;
 	}
 
 	return map;
 }
 
-void Rgraphics::setElement(std::string key, Element* elem) {
-	if (key == "src") {
-
-		if (elem == nullptr) {
-			source = this;
-		} else if(auto* rnd = dynamic_cast<Renderable*>(elem)) {
-			source = rnd;
-		} else {
-			throw torasu::tools::makeExceptSlotOnlyRenderables(key);
-		}
-
-	} else {
-		throw torasu::tools::makeExceptSlotDoesntExist(key);
-	}
+const torasu::OptElementSlot Rgraphics::setElement(std::string key, const torasu::ElementSlot* elem) {
+	if (key == "src") return torasu::tools::trySetRenderableSlot(&source, elem);
+	return nullptr;
 }
 
 torasu::DataResource* Rgraphics::getData() {

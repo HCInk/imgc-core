@@ -28,12 +28,12 @@ protected:
 
 public:
 
-	Rauto_align2d(torasu::tools::RenderableSlot rndSrc, torasu::tstd::NumSlot posX, torasu::tstd::NumSlot posY, torasu::tstd::NumSlot zoomFactor, torasu::tstd::NumSlot ratio = nullptr);
+	Rauto_align2d(torasu::RenderableSlot rndSrc, torasu::tstd::NumSlot posX, torasu::tstd::NumSlot posY, torasu::tstd::NumSlot zoomFactor, torasu::tstd::NumSlot ratio = nullptr);
 	~Rauto_align2d();
 	torasu::Identifier getType() override;
 
 	torasu::ElementMap getElements() override;
-	void setElement(std::string key, Element* elem) override;
+	const torasu::OptElementSlot setElement(std::string key, const torasu::ElementSlot* elem) override;
 
 };
 

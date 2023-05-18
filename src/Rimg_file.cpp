@@ -101,7 +101,7 @@ void Rimg_file::ready(torasu::ReadyInstruction* ri) {
 }
 
 
-Rimg_file::Rimg_file(torasu::tools::RenderableSlot file)
+Rimg_file::Rimg_file(torasu::RenderableSlot file)
 	: SimpleDataElement(false, true),
 	  rfile(file) {}
 
@@ -166,13 +166,13 @@ RenderResult* Rimg_file::render(RenderInstruction* ri) {
 
 torasu::ElementMap Rimg_file::getElements() {
 	torasu::ElementMap elems;
-	elems["f"] = rfile.get();
+	elems["f"] = rfile;
 	return elems;
 }
 
-void Rimg_file::setElement(std::string key, Element* elem) {
-	if (torasu::tools::trySetRenderableSlot("f", &rfile, false, key, elem)) return;
-	throw torasu::tools::makeExceptSlotDoesntExist(key);
+const torasu::OptElementSlot Rimg_file::setElement(std::string key, const ElementSlot* elem) {
+	if (key == "f") return torasu::tools::trySetRenderableSlot(&rfile, elem);
+	return nullptr;
 }
 
 }

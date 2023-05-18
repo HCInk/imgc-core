@@ -120,19 +120,19 @@ torasu::RenderResult* Rcolor::render(torasu::RenderInstruction* ri) {
 
 torasu::ElementMap Rcolor::getElements() {
 	torasu::ElementMap em;
-	em["r"] = rSrc.get();
-	em["g"] = gSrc.get();
-	em["b"] = bSrc.get();
-	em["a"] = aSrc.get();
+	em["r"] = rSrc;
+	em["g"] = gSrc;
+	em["b"] = bSrc;
+	em["a"] = aSrc;
 	return em;
 }
 
-void Rcolor::setElement(std::string key, Element* elem) {
-	if (torasu::tools::trySetRenderableSlot("r", &rSrc, false, key, elem)) return;
-	if (torasu::tools::trySetRenderableSlot("g", &gSrc, false, key, elem)) return;
-	if (torasu::tools::trySetRenderableSlot("b", &bSrc, false, key, elem)) return;
-	if (torasu::tools::trySetRenderableSlot("a", &aSrc, false, key, elem)) return;
-	throw torasu::tools::makeExceptSlotDoesntExist(key);
+const torasu::OptElementSlot Rcolor::setElement(std::string key, const torasu::ElementSlot* elem) {
+	if (key == "r") return torasu::tools::trySetRenderableSlot(&rSrc, elem);
+	if (key == "g") return torasu::tools::trySetRenderableSlot(&gSrc, elem);
+	if (key == "b") return torasu::tools::trySetRenderableSlot(&bSrc, elem);
+	if (key == "a") return torasu::tools::trySetRenderableSlot(&aSrc, elem);
+	return nullptr;
 }
 
 
@@ -160,7 +160,7 @@ static class : public torasu::ElementFactory {
 	torasu::Element* create(torasu::DataResource** data, const torasu::ElementMap& elements) const override {
 		std::unique_ptr<Rcolor> elem(new Rcolor(1.0,1.0,1.0,1.0));
 		for (auto slot : elements) {
-			elem->setElement(slot.first, slot.second);
+			elem->setElement(slot.first, &slot.second);
 		}
 		return elem.release();
 	}

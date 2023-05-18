@@ -20,12 +20,12 @@ protected:
 	torasu::RenderResult* render(torasu::RenderInstruction* ri) override;
 
 public:
-	Rgain(torasu::tools::RenderableSlot src, torasu::tstd::NumSlot gainVal);
+	Rgain(torasu::RenderableSlot src, torasu::tstd::NumSlot gainVal);
 	~Rgain();
 	torasu::Identifier getType() override;
 
 	torasu::ElementMap getElements() override;
-	void setElement(std::string key, Element* elem) override;
+	const torasu::OptElementSlot setElement(std::string key, const torasu::ElementSlot* elem) override;
 };
 
 } // namespace imgc

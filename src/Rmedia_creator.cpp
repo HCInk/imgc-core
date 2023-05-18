@@ -17,11 +17,11 @@
 namespace imgc {
 
 
-Rmedia_creator::Rmedia_creator(torasu::tools::RenderableSlot src, torasu::tstd::StringSlot format,
+Rmedia_creator::Rmedia_creator(torasu::RenderableSlot src, torasu::tstd::StringSlot format,
 							   torasu::tstd::NumSlot begin, torasu::tstd::NumSlot end, torasu::tstd::NumSlot fps,
 							   torasu::tstd::NumSlot width, torasu::tstd::NumSlot height,
 							   torasu::tstd::NumSlot videoBitrate, torasu::tstd::NumSlot audioMinSampleRate,
-							   torasu::tools::RenderableSlot metadata)
+							   torasu::RenderableSlot metadata)
 	: SimpleRenderable(false, true),
 	  srcRnd(src), formatRnd(format), beginRnd(begin), endRnd(end), fpsRnd(fps),
 	  widthRnd(width), heightRnd(height),
@@ -213,29 +213,29 @@ torasu::RenderResult* Rmedia_creator::render(torasu::RenderInstruction* ri) {
 
 torasu::ElementMap Rmedia_creator::getElements() {
 	torasu::ElementMap elems;
-	elems["src"] = srcRnd.get();
-	elems["begin"] = beginRnd.get();
-	elems["end"] = endRnd.get();
-	elems["fps"] = fpsRnd.get();
-	elems["width"] = widthRnd.get();
-	elems["height"] = heightRnd.get();
-	elems["vbr"] = videoBitrateRnd.get();
-	elems["amsr"] = audioMinSampleRateRnd.get();
-	elems["meta"] = metadataSlot.get();
+	elems["src"] = srcRnd;
+	elems["begin"] = beginRnd;
+	elems["end"] = endRnd;
+	elems["fps"] = fpsRnd;
+	elems["width"] = widthRnd;
+	elems["height"] = heightRnd;
+	elems["vbr"] = videoBitrateRnd;
+	elems["amsr"] = audioMinSampleRateRnd;
+	elems["meta"] = metadataSlot;
 	return elems;
 }
 
-void Rmedia_creator::setElement(std::string key, torasu::Element* elem) {
-	if (torasu::tools::trySetRenderableSlot("src", &srcRnd, false, key, elem)) return;
-	if (torasu::tools::trySetRenderableSlot("begin", &beginRnd, false, key, elem)) return;
-	if (torasu::tools::trySetRenderableSlot("end", &endRnd, false, key, elem)) return;
-	if (torasu::tools::trySetRenderableSlot("fps", &fpsRnd, false, key, elem)) return;
-	if (torasu::tools::trySetRenderableSlot("width", &widthRnd, false, key, elem)) return;
-	if (torasu::tools::trySetRenderableSlot("height", &heightRnd, false, key, elem)) return;
-	if (torasu::tools::trySetRenderableSlot("vbr", &videoBitrateRnd, false, key, elem)) return;
-	if (torasu::tools::trySetRenderableSlot("amsr", &audioMinSampleRateRnd, false, key, elem)) return;
-	if (torasu::tools::trySetRenderableSlot("meta", &metadataSlot, true, key, elem)) return;
-	throw torasu::tools::makeExceptSlotDoesntExist(key);
+const torasu::OptElementSlot Rmedia_creator::setElement(std::string key, const torasu::ElementSlot* elem) {
+	if (key == "src") return torasu::tools::trySetRenderableSlot(&srcRnd, elem);
+	if (key == "begin") return torasu::tools::trySetRenderableSlot(&beginRnd, elem);
+	if (key == "end") return torasu::tools::trySetRenderableSlot(&endRnd, elem);
+	if (key == "fps") return torasu::tools::trySetRenderableSlot(&fpsRnd, elem);
+	if (key == "width") return torasu::tools::trySetRenderableSlot(&widthRnd, elem);
+	if (key == "height") return torasu::tools::trySetRenderableSlot(&heightRnd, elem);
+	if (key == "vbr") return torasu::tools::trySetRenderableSlot(&videoBitrateRnd, elem);
+	if (key == "amsr") return torasu::tools::trySetRenderableSlot(&audioMinSampleRateRnd, elem);
+	if (key == "meta") return torasu::tools::trySetRenderableSlot(&metadataSlot, elem);
+	return nullptr;
 }
 
 } // namespace imgc

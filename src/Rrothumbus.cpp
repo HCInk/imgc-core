@@ -34,7 +34,7 @@ torasu::RenderResult* Rrothumbus::render(torasu::RenderInstruction* ri) {
 		// Retrieve rounding
 
 		double rounding;
-		if (roundValRnd != nullptr) {
+		if (roundValRnd) {
 
 			torasu::ResultSettings numSettings(TORASU_STD_PL_NUM, torasu::tools::NO_FORMAT);
 
@@ -100,15 +100,13 @@ torasu::RenderResult* Rrothumbus::render(torasu::RenderInstruction* ri) {
 
 torasu::ElementMap Rrothumbus::getElements() {
 	torasu::ElementMap elems;
-	if (roundValRnd) {
-		elems["round"] = roundValRnd;
-	}
+	if (roundValRnd) elems["round"] = roundValRnd;
 	return elems;
 }
 
-void Rrothumbus::setElement(std::string key, torasu::Element* elem) {
-	if (torasu::tools::trySetRenderableSlot("round", &roundValRnd, true, key, elem)) return;
-	throw torasu::tools::makeExceptSlotDoesntExist(key);
+const torasu::OptElementSlot Rrothumbus::setElement(std::string key, const torasu::ElementSlot* elem) {
+	if (key == "round") return torasu::tools::trySetRenderableSlot(&roundValRnd, elem);
+	return nullptr;
 }
 
 

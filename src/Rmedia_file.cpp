@@ -60,7 +60,7 @@ public:
 	friend Rmedia_file;
 };
 
-Rmedia_file::Rmedia_file(torasu::tools::RenderableSlot src)
+Rmedia_file::Rmedia_file(torasu::RenderableSlot src)
 	: torasu::tools::SimpleDataElement(false, true), srcRnd(src) {}
 
 Rmedia_file::~Rmedia_file() {}
@@ -248,16 +248,13 @@ torasu::RenderResult* Rmedia_file::render(torasu::RenderInstruction* ri) {
 
 torasu::ElementMap Rmedia_file::getElements() {
 	torasu::ElementMap ret;
-
-	if (srcRnd.get() != NULL) ret["src"] = srcRnd.get();
-
+	ret["src"] = srcRnd;
 	return ret;
 }
 
-void Rmedia_file::setElement(std::string key, Element* elem) {
-	if (torasu::tools::trySetRenderableSlot("src", &srcRnd, false, key, elem)) return;
-	throw torasu::tools::makeExceptSlotDoesntExist(key);
+const torasu::OptElementSlot Rmedia_file::setElement(std::string key, const torasu::ElementSlot* elem) {
+	if (key == "src") return torasu::tools::trySetRenderableSlot(&srcRnd, elem);
+	return nullptr;
 }
-
 
 }

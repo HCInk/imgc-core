@@ -10,7 +10,7 @@
 
 namespace imgc {
 
-Rlayer::Rlayer(torasu::tools::RenderableSlot layers)
+Rlayer::Rlayer(torasu::RenderableSlot layers)
 	: SimpleRenderable(false, true), layers(layers) {}
 
 Rlayer::~Rlayer() {}
@@ -143,13 +143,13 @@ torasu::RenderResult* Rlayer::render(torasu::RenderInstruction* ri) {
 
 torasu::ElementMap Rlayer::getElements() {
 	torasu::ElementMap map;
-	map["layers"] = layers.get();
+	map["layers"] = layers;
 	return map;
 }
 
-void Rlayer::setElement(std::string key, Element* elem) {
-	if (torasu::tools::trySetRenderableSlot("layers", &layers, false, key, elem)) return;
-	throw torasu::tools::makeExceptSlotDoesntExist(key);
+const torasu::OptElementSlot Rlayer::setElement(std::string key, const torasu::ElementSlot* elem) {
+	if (key == "layers") return torasu::tools::trySetRenderableSlot(&layers, elem);
+	return nullptr;
 }
 
 

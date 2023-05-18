@@ -473,13 +473,13 @@ torasu::RenderResult* Rtext::render(torasu::RenderInstruction* ri) {
 
 torasu::ElementMap Rtext::getElements() {
 	torasu::ElementMap elems;
-	elems["text"] = textRnd.get();
+	elems["text"] = textRnd;
 	return elems;
 }
 
-void Rtext::setElement(std::string key, torasu::Element* elem) {
-	if (torasu::tools::trySetRenderableSlot("text", &textRnd, false, key, elem)) return;
-	throw torasu::tools::makeExceptSlotDoesntExist(key);
+const torasu::OptElementSlot Rtext::setElement(std::string key, const torasu::ElementSlot* elem) {
+	if (key == "text") return torasu::tools::trySetRenderableSlot(&textRnd, elem);
+	return nullptr;
 }
 
 

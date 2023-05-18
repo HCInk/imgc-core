@@ -16,7 +16,7 @@
 
 namespace imgc {
 
-Ralign2d::Ralign2d(torasu::tools::RenderableSlot rndSrc, torasu::tools::RenderableSlot rndAlign)
+Ralign2d::Ralign2d(torasu::RenderableSlot rndSrc, torasu::RenderableSlot rndAlign)
 	: torasu::tools::SimpleRenderable(false, true),
 	  rndSrc(rndSrc),
 	  rndAlign(rndAlign) {}
@@ -195,17 +195,16 @@ torasu::RenderResult* Ralign2d::render(torasu::RenderInstruction* ri) {
 torasu::ElementMap Ralign2d::getElements() {
 	torasu::ElementMap elems;
 
-	elems["src"] = rndSrc.get();
-	elems["align"] = rndAlign.get();
+	elems["src"] = rndSrc;
+	elems["align"] = rndAlign;
 
 	return elems;
 }
 
-void Ralign2d::setElement(std::string key, torasu::Element* elem) {
-
-	if (torasu::tools::trySetRenderableSlot("src", &rndSrc, false, key, elem)) return;
-	if (torasu::tools::trySetRenderableSlot("align", &rndAlign, false, key, elem)) return;
-	throw torasu::tools::makeExceptSlotDoesntExist(key);
+const torasu::OptElementSlot Ralign2d::setElement(std::string key, const torasu::ElementSlot* elem) {
+	if (key == "src") return torasu::tools::trySetRenderableSlot(&rndSrc, elem);
+	if (key == "align") return torasu::tools::trySetRenderableSlot(&rndAlign, elem);
+	return nullptr;
 
 }
 

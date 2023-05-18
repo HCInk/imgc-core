@@ -77,7 +77,7 @@ struct BufferedFrame {
 struct StreamEntry {
 	int index;
 	AVMediaType codecType;
-	AVCodec* codec = nullptr;
+	const AVCodec* codec = nullptr;
 	AVCodecContext* ctx = nullptr;
 	AVCodecParameters* ctx_params = nullptr;
 	AVRational base_time;

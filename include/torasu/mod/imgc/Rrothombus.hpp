@@ -2,13 +2,14 @@
 #define INCLUDE_TORASU_MOD_IMGC_RROTHOMBUS_HPP_
 
 #include <torasu/torasu.hpp>
+#include <torasu/slot_tools.hpp>
 #include <torasu/SimpleRenderable.hpp>
 
 namespace imgc {
 
 class Rrothumbus : public torasu::tools::SimpleRenderable {
 private:
-	Renderable* roundValRnd = nullptr;
+	torasu::tools::ManagedRenderableSlot roundValRnd;
 
 protected:
 	torasu::RenderResult* render(torasu::RenderInstruction* ri) override;
@@ -19,7 +20,7 @@ public:
 	torasu::Identifier getType() override;
 
 	torasu::ElementMap getElements() override;
-	void setElement(std::string key, Element* elem) override;
+	const torasu::OptElementSlot setElement(std::string key, const torasu::ElementSlot* elem) override;
 };
 
 } // namespace imgc

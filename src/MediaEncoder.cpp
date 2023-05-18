@@ -84,7 +84,7 @@ public:
 	} state = CREATED;
 
 	// Contexts
-	AVCodec* codec = nullptr;
+	const AVCodec* codec = nullptr;
 	AVCodecContext* ctx = nullptr;
 	AVCodecParameters* params = nullptr;
 	AVStream* stream = nullptr;
@@ -129,8 +129,8 @@ public:
 	~StreamContainer() {
 		// TODO Log this message w/ logger
 		// std::cout << " FREE STREAM " << this << std::endl;
-		if (stream != nullptr) {
-			avcodec_free_context(&stream->codec);
+		if (ctx != nullptr) {
+			avcodec_free_context(&ctx);
 		}
 		if (queuedPacket != nullptr) {
 			av_packet_free(&queuedPacket);
@@ -155,7 +155,7 @@ public:
 			state = ERROR;
 			throw std::runtime_error("Cannot create stream!");
 		}
-		ctx = stream->codec;
+		ctx = avcodec_alloc_context3(codec);
 		params = stream->codecpar;
 		avcodec_parameters_from_context(params, ctx);
 

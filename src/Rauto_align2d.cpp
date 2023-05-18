@@ -15,7 +15,7 @@
 
 namespace imgc {
 
-Rauto_align2d::Rauto_align2d(torasu::tools::RenderableSlot rndSrc, torasu::tstd::NumSlot posX, torasu::tstd::NumSlot posY, torasu::tstd::NumSlot zoomFactor, torasu::tstd::NumSlot ratio)
+Rauto_align2d::Rauto_align2d(torasu::RenderableSlot rndSrc, torasu::tstd::NumSlot posX, torasu::tstd::NumSlot posY, torasu::tstd::NumSlot zoomFactor, torasu::tstd::NumSlot ratio)
 	: SimpleRenderable(false, true),
 	  rndSrc(rndSrc), rndPosX(posX), rndPosY(posY), rndZoomFactor(zoomFactor), rndCustomRatio(ratio) {
 
@@ -198,25 +198,27 @@ torasu::RenderResult* Rauto_align2d::render(torasu::RenderInstruction* ri) {
 torasu::ElementMap Rauto_align2d::getElements() {
 	torasu::ElementMap elems;
 
-	elems["src"] = rndSrc.get();
-	elems["x"] = rndPosX.get();
-	elems["y"] = rndPosY.get();
-	elems["zoom"] = rndZoomFactor.get();
-	elems["ratio"] = rndCustomRatio.get();
+	elems["src"] = rndSrc;
+	elems["x"] = rndPosX;
+	elems["y"] = rndPosY;
+	elems["zoom"] = rndZoomFactor;
+	elems["ratio"] = rndCustomRatio;
 
 	return elems;
 }
 
-void Rauto_align2d::setElement(std::string key, torasu::Element* elem) {
-	if (torasu::tools::trySetRenderableSlot("src", &rndSrc, false, key, elem)) {
-		internalAlign->setElement("src", rndSrc.get());
-		return;
+const torasu::OptElementSlot Rauto_align2d::setElement(std::string key, const torasu::ElementSlot* elem) {
+	if (key == "src") {
+		torasu::tools::trySetRenderableSlot(&rndSrc, elem);
+		torasu::ElementSlot internalSlot(rndSrc.get());
+		internalAlign->setElement("src", &internalSlot);
+		return rndSrc.asElementSlot();
 	}
-	if (torasu::tools::trySetRenderableSlot("x", &rndPosX, false, key, elem)) return;
-	if (torasu::tools::trySetRenderableSlot("y", &rndPosY, false, key, elem)) return;
-	if (torasu::tools::trySetRenderableSlot("zoom", &rndZoomFactor, false, key, elem)) return;
-	if (torasu::tools::trySetRenderableSlot("ratio", &rndCustomRatio, true, key, elem)) return;
-	throw torasu::tools::makeExceptSlotDoesntExist(key);
+	if (key == "x") return torasu::tools::trySetRenderableSlot(&rndPosX, elem);
+	if (key == "y") return torasu::tools::trySetRenderableSlot(&rndPosY, elem);
+	if (key == "zoom") return torasu::tools::trySetRenderableSlot(&rndZoomFactor, elem);
+	if (key == "ratio") return torasu::tools::trySetRenderableSlot(&rndCustomRatio, elem);
+	return nullptr;
 }
 
 } // namespace imgc

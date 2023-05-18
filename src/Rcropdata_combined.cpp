@@ -57,20 +57,20 @@ torasu::RenderResult* Rcropdata_combined::render(torasu::RenderInstruction* ri) 
 torasu::ElementMap Rcropdata_combined::getElements() {
 	torasu::ElementMap elems;
 
-	elems["l"] = leftRnd.get();
-	elems["r"] = rightRnd.get();
-	elems["t"] = topRnd.get();
-	elems["b"] = bottomRnd.get();
+	elems["l"] = leftRnd;
+	elems["r"] = rightRnd;
+	elems["t"] = topRnd;
+	elems["b"] = bottomRnd;
 
 	return elems;
 }
 
-void Rcropdata_combined::setElement(std::string key, torasu::Element* elem) {
-	if (torasu::tools::trySetRenderableSlot("l", &leftRnd, false, key, elem)) return;
-	if (torasu::tools::trySetRenderableSlot("r", &rightRnd, false, key, elem)) return;
-	if (torasu::tools::trySetRenderableSlot("t", &topRnd, false, key, elem)) return;
-	if (torasu::tools::trySetRenderableSlot("b", &bottomRnd, false, key, elem)) return;
-	throw torasu::tools::makeExceptSlotDoesntExist(key);
+const torasu::OptElementSlot Rcropdata_combined::setElement(std::string key, const torasu::ElementSlot* elem) {
+	if (key == "l") return torasu::tools::trySetRenderableSlot(&leftRnd, elem);
+	if (key == "r") return torasu::tools::trySetRenderableSlot(&rightRnd, elem);
+	if (key == "t") return torasu::tools::trySetRenderableSlot(&topRnd, elem);
+	if (key == "b") return torasu::tools::trySetRenderableSlot(&bottomRnd, elem);
+	return nullptr;
 }
 
 } // namespace imgc

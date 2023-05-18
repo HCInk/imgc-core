@@ -4,6 +4,7 @@
 #include <memory>
 
 #include <torasu/torasu.hpp>
+#include <torasu/slot_tools.hpp>
 #include <torasu/mod/imgc/Dgraphics.hpp>
 #include <torasu/SimpleRenderable.hpp>
 
@@ -12,7 +13,7 @@ namespace imgc {
 class Rgraphics : public torasu::tools::SimpleRenderable {
 private:
 	std::unique_ptr<Dgraphics> graphics;
-	Renderable* source;
+	torasu::tools::ManagedRenderableSlot source;
 
 protected:
 	torasu::RenderResult* render(torasu::RenderInstruction* ri) override;
@@ -24,7 +25,7 @@ public:
 	torasu::Identifier getType() override;
 
 	torasu::ElementMap getElements() override;
-	void setElement(std::string key, Element* elem) override;
+	const torasu::OptElementSlot setElement(std::string key, const torasu::ElementSlot* elem) override;
 
 	torasu::DataResource* getData() override;
 	void setData(torasu::DataResource* data) override;

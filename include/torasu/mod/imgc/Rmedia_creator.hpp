@@ -29,16 +29,16 @@ protected:
 	torasu::RenderResult* render(torasu::RenderInstruction* ri) override;
 
 public:
-	Rmedia_creator(torasu::tools::RenderableSlot src, torasu::tstd::StringSlot format,
+	Rmedia_creator(torasu::RenderableSlot src, torasu::tstd::StringSlot format,
 				   torasu::tstd::NumSlot begin, torasu::tstd::NumSlot end, torasu::tstd::NumSlot fps = 0.0,
 				   torasu::tstd::NumSlot width = 0.0, torasu::tstd::NumSlot height = 0.0,
 				   torasu::tstd::NumSlot videoBitrate = 0.0, torasu::tstd::NumSlot audioMinSampleRate = -1,
-				   torasu::tools::RenderableSlot metadata = nullptr);
+				   torasu::RenderableSlot metadata = nullptr);
 	~Rmedia_creator();
 	torasu::Identifier getType() override;
 
 	torasu::ElementMap getElements() override;
-	void setElement(std::string key, Element* elem) override;
+	const torasu::OptElementSlot setElement(std::string key, const torasu::ElementSlot* elem) override;
 
 };
 

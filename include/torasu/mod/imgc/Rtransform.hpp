@@ -21,12 +21,12 @@ protected:
 	torasu::RenderResult* render(torasu::RenderInstruction* ri) override;
 
 public:
-	Rtransform(torasu::tools::RenderableSlot source, torasu::tools::RenderableSlot transform, torasu::tstd::NumSlot shutter = nullptr, torasu::tstd::NumSlot interpolationLimit = nullptr);
+	Rtransform(torasu::RenderableSlot source, torasu::RenderableSlot transform, torasu::tstd::NumSlot shutter = nullptr, torasu::tstd::NumSlot interpolationLimit = nullptr);
 	~Rtransform();
 	torasu::Identifier getType() override;
 
 	torasu::ElementMap getElements() override;
-	void setElement(std::string key, Element* elem) override;
+	const torasu::OptElementSlot setElement(std::string key, const torasu::ElementSlot* elem) override;
 };
 
 
