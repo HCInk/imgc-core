@@ -106,7 +106,7 @@ void debug_print_cache_event(std::string text, imgc::StreamEntry* entry) {
 #if DEBUG_BOUND_HITS
 void debug_print_bound_match_event(std::string text, imgc::StreamEntry* stream, int64_t targetPosition, int64_t targetPositionEnd) {
 	std::cout << text << " - PPOS " << stream->frame->pkt_pos
-			  << " FP " << stream->frame->pts << " FE " << (stream->frame->pts+stream->frame->pkt_duration)
+			  << " FP " << stream->frame->pts << " FE " << (stream->frame->pts+stream->frame->duration)
 			  << " TP " << targetPosition << " TE " << targetPositionEnd << std::endl;
 }
 #endif
@@ -515,7 +515,7 @@ void MediaDecoder::getSegment(SegmentRequest request, torasu::LogInstruction li)
 			*request.audioBuffer = new torasu::tstd::Daudio_buffer(1, 1, torasu::tstd::Daudio_buffer_CHFMT::FLOAT32, 4, 0);
 		} else {
 			auto audioStream = getStreamEntryByIndex(audio_stream_index);
-			*request.audioBuffer = new torasu::tstd::Daudio_buffer(audioStream->ctx->channels, audioStream->ctx->sample_rate, torasu::tstd::Daudio_buffer_CHFMT::FLOAT32, determineSampleSize(audioStream), 0);
+			*request.audioBuffer = new torasu::tstd::Daudio_buffer(audioStream->ctx->ch_layout.nb_channels, audioStream->ctx->sample_rate, torasu::tstd::Daudio_buffer_CHFMT::FLOAT32, determineSampleSize(audioStream), 0);
 		}
 	}
 	// TODO Distruct decoding state correctly
@@ -529,8 +529,8 @@ MediaDecoder::FrameRecieveResult MediaDecoder::recieveFrameFromCodec(StreamEntry
 	if (stream->nextFrameIsPresent) {
 		if (stream->enrichFromNextFrame) { // Current frame needs to be enrichted by next frame
 			// Fix video-frame-duration if neccessary
-			if (stream->codecType == AVMEDIA_TYPE_VIDEO && stream->frame->pkt_duration == 0) {
-				stream->frame->pkt_duration = stream->nextFrame->pts - stream->frame->pts;
+			if (stream->codecType == AVMEDIA_TYPE_VIDEO && stream->frame->duration == 0) {
+				stream->frame->duration = stream->nextFrame->pts - stream->frame->pts;
 			}
 			stream->enrichFromNextFrame = false;
 			stream->frameIsPresent = true;
@@ -563,8 +563,8 @@ MediaDecoder::FrameRecieveResult MediaDecoder::recieveFrameFromCodec(StreamEntry
 			if (mode != FrameRecieveMode_FLUSH) {
 				if (stream->enrichFromNextFrame) {
 					// Fix video-frame-duration if neccessary
-					if (stream->codecType == AVMEDIA_TYPE_VIDEO && stream->frame->pkt_duration == 0) {
-						stream->frame->pkt_duration = stream->duration - stream->frame->pts;
+					if (stream->codecType == AVMEDIA_TYPE_VIDEO && stream->frame->duration == 0) {
+						stream->frame->duration = stream->duration - stream->frame->pts;
 					}
 					stream->enrichFromNextFrame = false;
 					stream->frameIsPresent = true;
@@ -574,10 +574,10 @@ MediaDecoder::FrameRecieveResult MediaDecoder::recieveFrameFromCodec(StreamEntry
 
 				if (stream->codecType == AVMEDIA_TYPE_VIDEO) {
 					// Duplicate last video-frame if last frame is not long enough
-					int64_t endOffset = stream->duration-(stream->frame->pts+stream->frame->pkt_duration);
+					int64_t endOffset = stream->duration-(stream->frame->pts+stream->frame->duration);
 					if (endOffset > 0) {
-						stream->frame->pts += stream->frame->pkt_duration;
-						stream->frame->pkt_duration = endOffset;
+						stream->frame->pts += stream->frame->duration;
+						stream->frame->duration = endOffset;
 						// Send out duplicated end-frame
 						return FrameRecieveResult_RECIEVED;
 					}
@@ -604,7 +604,7 @@ MediaDecoder::FrameRecieveResult MediaDecoder::recieveFrameFromCodec(StreamEntry
 	// This code below here is executed once for each frame
 
 	if (mode != FrameRecieveMode_FLUSH) {
-		if (stream->codecType == AVMEDIA_TYPE_VIDEO && stream->frame->pkt_duration == 0) {
+		if (stream->codecType == AVMEDIA_TYPE_VIDEO && stream->frame->duration == 0) {
 			// Trigger need-next-frame to get info from next frame
 			stream->enrichFromNextFrame = true;
 			return recieveFrameFromCodec(stream, mode);
@@ -618,11 +618,11 @@ MediaDecoder::FrameRecieveResult MediaDecoder::recieveFrameFromCodec(StreamEntry
 }
 
 bool MediaDecoder::checkFrameTargetBound(AVFrame* frame, int64_t start, int64_t end) {
-	return ( (frame->pts < end) && (frame->pts >= start || frame->pts + frame->pkt_duration > start) ) || (frame->pts == start);
+	return ( (frame->pts < end) && (frame->pts >= start || frame->pts + frame->duration > start) ) || (frame->pts == start);
 }
 
 void MediaDecoder::handleFrame(StreamEntry* stream, DecodingState* decodingState) {
-	stream->nextFramePts = stream->frame->pts + stream->frame->pkt_duration;
+	stream->nextFramePts = stream->frame->pts + stream->frame->duration;
 
 	int64_t targetPosition = toBaseTime(decodingState->requestStart, stream->base_time);
 	int64_t targetPositionEnd = toBaseTime(decodingState->requestEnd, stream->base_time);
@@ -630,7 +630,7 @@ void MediaDecoder::handleFrame(StreamEntry* stream, DecodingState* decodingState
 	if (!decodingState->videoDone && stream->index == video_stream_index) {
 		// Check if frame is inside of range or in the case of a requesting contents after the stream-limit, if the frame is the last one
 		if (checkFrameTargetBound(stream->frame, targetPosition, targetPositionEnd)
-				|| ( (targetPosition >= stream->duration) && (stream->frame->pts+stream->frame->pkt_duration) == stream->duration) ) {
+				|| ( (targetPosition >= stream->duration) && (stream->frame->pts+stream->frame->duration) == stream->duration) ) {
 			if (decodingState->videoReadUntil > stream->frame->pts) {
 #if DEBUG_BOUND_HITS
 				debug_print_bound_match_event("VID BOUND HIT BUT ALREADY READ", stream, targetPosition, targetPositionEnd);
@@ -651,7 +651,7 @@ void MediaDecoder::handleFrame(StreamEntry* stream, DecodingState* decodingState
 			// std::cout << "extracting video frame to " << ((void*)target) << " - " << ((void*)(target+rWidth*rHeight*4-1)) << std::endl;
 			extractVideoFrame(stream, target);
 
-			decodingState->videoReadUntil = stream->frame->pts + stream->frame->pkt_duration;
+			decodingState->videoReadUntil = stream->frame->pts + stream->frame->duration;
 		}
 #if DEBUG_BOUND_HITS
 		else {
@@ -674,12 +674,12 @@ void MediaDecoder::handleFrame(StreamEntry* stream, DecodingState* decodingState
 			static const size_t sampleSize = 4;
 
 			// How big the audio-frame should be
-			size_t memSize = stream->frame->pkt_duration * stream->ctx->sample_rate
+			size_t memSize = stream->frame->duration * stream->ctx->sample_rate
 							 * stream->base_time.num / stream->base_time.den * sampleSize;
 			// How big the audio-frame actually is
 			size_t dataSize = stream->frame->nb_samples * sampleSize;
 
-			for (int i = 0; i < stream->frame->channels; ++i) {
+			for (int i = 0; i < stream->frame->ch_layout.nb_channels; ++i) {
 				auto* cp = new uint8_t[memSize];
 				int dataGap = memSize-dataSize;
 				if (dataGap < 0) {
@@ -691,7 +691,7 @@ void MediaDecoder::handleFrame(StreamEntry* stream, DecodingState* decodingState
 				std::fill(cp, cp+dataGap, 0x00);
 				data.push_back(cp);
 			}
-			auto part = AudioFrame{stream->frame->pts, stream->frame->pts + stream->frame->pkt_duration,
+			auto part = AudioFrame{stream->frame->pts, stream->frame->pts + stream->frame->duration,
 								   stream->frame->nb_samples, memSize, data};
 			decodingState->audioFrames.push_back(part);
 		}
@@ -867,7 +867,7 @@ void MediaDecoder::concatAudio(DecodingState* decodingState) {
 
 	auto* audioCtx = audioStream->ctx;
 	auto audioBaseTime = audioStream->base_time;
-	int channelCount = audioCtx->channels;
+	int channelCount = audioCtx->ch_layout.nb_channels;
 	int sampleRate = audioCtx->sample_rate;
 
 	size_t sampleSize = determineSampleSize(audioStream);

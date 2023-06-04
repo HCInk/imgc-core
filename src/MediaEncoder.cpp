@@ -212,7 +212,7 @@ public:
 			frame->format = ctx->sample_fmt;
 			frame->nb_samples = frame_size;
 			frame->sample_rate = ctx->sample_rate;
-			frame->channel_layout = ctx->channel_layout;
+			frame->ch_layout = ctx->ch_layout;
 		} else {
 			state = ERROR;
 			throw std::runtime_error("Can't configure frame for codec-type: " + std::to_string(ctx->codec_type));
@@ -596,7 +596,7 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request, torasu::LogInst
 		}
 		codecParams->format = AV_SAMPLE_FMT_FLTP;
 		codecParams->sample_rate = samplerate;
-		codecParams->channel_layout = AV_CH_LAYOUT_STEREO;
+		codecParams->ch_layout = AV_CHANNEL_LAYOUT_STEREO;
 		codecParams->bit_rate = audioBitrate;
 
 		audStream.open();
