@@ -16,6 +16,7 @@
 #include <torasu/log_tools.hpp>
 #include <torasu/std/LIcore_logger.hpp>
 
+#define HACKY_INTERNAL_CONTEXT_DETECTION true
 #define DECODER_SANITY_CHECKS true
 #define DEBUG_BOUND_HITS false
 #define DEBUG_GENERAL_INFO false
@@ -73,6 +74,18 @@ int64_t SeekFunc(void* ptr, int64_t pos, int whence) {
 	// Return the new position:
 	return reader->pos;
 }
+
+#if HACKY_INTERNAL_CONTEXT_DETECTION
+/** partial copy of internal FF stream (for hacky extraction of internal avctx) */
+extern "C" struct FFStream {
+	AVStream pub;
+	int reorder;
+	struct AVBSFContext* bsfc;
+	int bitstream_checked;
+	struct AVCodecContext* avctx;
+	/* vv-- more fields, but not relevant for us --vv */
+};
+#endif
 
 #if DEBUG_CACHE_EVENTS
 void debug_print_cache_event(std::string text, imgc::StreamEntry* entry) {
@@ -245,6 +258,12 @@ void MediaDecoder::prepare() {
 		if (!entry->frame) {
 			throw runtime_error("Failed to allocate av_frame");
 		}
+
+#if HACKY_INTERNAL_CONTEXT_DETECTION
+		void* avctxInternal = reinterpret_cast<FFStream*>(stream)->avctx;
+		loggers.emplace_back().attach(avctxInternal, logCallback);
+#endif
+
 		streams.push_back(entry);
 	}
 }
