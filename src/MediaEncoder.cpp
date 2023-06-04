@@ -446,8 +446,8 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request, torasu::LogInst
 
 	CHECK_PARAM_UNSET(isnan(end), "end", "It is required for encoding.")
 
-	bool doVideo = request.doVideo;
-	bool doAudio = request.doAudio;
+	const bool doVideo = request.doVideo;
+	const bool doAudio = request.doAudio;
 
 	if (!doVideo && !doAudio)
 		throw std::logic_error("Nor 'doVideo' or 'doAudio' is set, set one or both to configure.");
@@ -504,15 +504,15 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request, torasu::LogInst
 	// Format Setup
 	//
 
-	AVOutputFormat oformat;
+	const AVOutputFormat* oformat = nullptr;
 	for (void* itHelper = nullptr;;) {
 		const AVOutputFormat* oformatCurr = av_muxer_iterate(&itHelper);
 		if (oformatCurr == nullptr) {
 			throw std::runtime_error("Format name " + formatName + " couldn't be found!");
 		}
-		// std::cout << " FMT-IT " << oformat->name << std::endl;
+		// std::cout << " FMT-IT " << oformatCurr->name << std::endl;
 		if (formatName == oformatCurr->name) {
-			oformat = *oformatCurr;
+			oformat = oformatCurr;
 			break;
 		}
 	}
@@ -525,29 +525,25 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request, torasu::LogInst
 	}
 
 	if (doAudio) {
-		if (oformat.audio_codec == AV_CODEC_ID_NONE) {
+		if (oformat->audio_codec == AV_CODEC_ID_NONE) {
 			throw std::runtime_error("No audio-codec available for the format '" + formatName + "'");
 		}
-	} else {
-		oformat.audio_codec = AV_CODEC_ID_NONE;
 	}
 
 	if (doVideo) {
-		if (oformat.video_codec == AV_CODEC_ID_NONE) {
+		if (oformat->video_codec == AV_CODEC_ID_NONE) {
 			throw std::runtime_error("No video-codec available for the format '" + formatName + "'");
 		}
-	} else {
-		oformat.video_codec = AV_CODEC_ID_NONE;
 	}
 
 	if (li.level <= torasu::INFO) {
 		li.logger->log(torasu::INFO, std::string() + "FMT SELECTED:\n"
-					   "	name: " + oformat.name + "\n"
-					   "	video_codec: " + avcodec_get_name(oformat.video_codec) + "\n"
-					   "	audio_codec: " + avcodec_get_name(oformat.audio_codec) );
+					   "	name: " + oformat->name + "\n"
+					   "	video_codec: " + avcodec_get_name(oformat->video_codec) + "\n"
+					   "	audio_codec: " + avcodec_get_name(oformat->audio_codec) );
 	}
 
-	formatCtx->oformat = &oformat;
+	formatCtx->oformat = oformat;
 
 	//
 	// Stream Setup
@@ -567,7 +563,7 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request, torasu::LogInst
 		}
 
 		auto& vidStream = streams.emplace_back();
-		vidStream.init(oformat.video_codec, formatCtx, videoLi);
+		vidStream.init(oformat->video_codec, formatCtx, videoLi);
 
 		AVCodecParameters* codecParams = vidStream.params;
 		vidStream.time_base = {1, framerate};
@@ -589,7 +585,7 @@ torasu::tstd::Dfile* MediaEncoder::encode(EncodeRequest request, torasu::LogInst
 			audioLi.options = audioLi.options &~ torasu::LogInstruction::OPT_PROGRESS;
 		}
 		auto& audStream = streams.emplace_back();
-		audStream.init(oformat.audio_codec, formatCtx, audioLi);
+		audStream.init(oformat->audio_codec, formatCtx, audioLi);
 
 		AVCodecParameters* codecParams = audStream.params;
 		audStream.time_base = {1, samplerate};
